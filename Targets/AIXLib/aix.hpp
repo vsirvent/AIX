@@ -356,9 +356,23 @@ class Module
 {
 public:
 
-    void registerParameter(Tensor * tensor)
+    virtual ~Module()
     {
-        m_parameters.emplace_back(tensor);
+        for (auto tensor : m_recycle)
+        {
+            delete tensor;
+        }
+    }
+
+    void registerParameter(Tensor & tensor)
+    {
+        m_parameters.emplace_back(&tensor);
+    }
+
+    auto * recycle(auto * tensor)
+    {
+        m_recycle.emplace_back(tensor);
+        return tensor;
     }
 
     std::vector<Tensor*> parameters()
@@ -368,6 +382,7 @@ public:
 
 private:
     std::vector<Tensor*> m_parameters;
+    std::vector<Tensor*> m_recycle;
 };
 
 

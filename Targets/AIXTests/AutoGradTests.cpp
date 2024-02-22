@@ -68,10 +68,10 @@ TEST_CASE("Auto Grad - Module Test")
             m_t = Tensor(4, true);
             m_u = Tensor(5, true);
 
-            registerParameter(&m_x);
-            registerParameter(&m_y);
-            registerParameter(&m_t);
-            registerParameter(&m_u);
+            registerParameter(m_x);
+            registerParameter(m_y);
+            registerParameter(m_t);
+            registerParameter(m_u);
         }
 
         auto forward()
@@ -81,18 +81,17 @@ TEST_CASE("Auto Grad - Module Test")
             // Decompose all operations into atomic calculations to construct the graph.
             // Assume that all operations are scalar and applied element-wise.
             // Execute calculations as though they were Assembly instructions. :)
-            auto p1 = new Add(m_x, m_y);      // p1 = x + y
-            auto m1 = new Mul(m_x, *p1);      // m1 = x * p1
-            auto d1 = new Div(*m1, m_t);      // d1 = m1 / t
-            auto m2 = new Mul(m_y, m_y);      // m2 = y * y
-            auto z  = new Sub(*d1, *m2);      // z = d1 - m2
-            auto r  = new Mul(m_x, *z);       // r = x * z
-            auto s1 = new Sin(m_u);           // s1 = Sin(u)
-            auto s2 = new Mul(*s1, m_u);      // s2 = s1 * u
-            Add m(*r, *s2);                   // m = r + s2
+            auto p1 = recycle(new Add(m_x, m_y));      // p1 = x + y
+            auto m1 = recycle(new Mul(m_x, *p1));      // m1 = x * p1
+            auto d1 = recycle(new Div(*m1, m_t));      // d1 = m1 / t
+            auto m2 = recycle(new Mul(m_y, m_y));      // m2 = y * y
+            auto z  = recycle(new Sub(*d1, *m2));      // z = d1 - m2
+            auto r  = recycle(new Mul(m_x, *z));       // r = x * z
+            auto s1 = recycle(new Sin(m_u));           // s1 = Sin(u)
+            auto s2 = recycle(new Mul(*s1, m_u));      // s2 = s1 * u
+            auto m  = recycle(new Add(*r, *s2));       // m = r + s2
 
-            // TODO: Implement MatMull when Tensor can handle multi-dimensions.
-            return m;
+            return *m;
         }
 
         Tensor  m_x;
