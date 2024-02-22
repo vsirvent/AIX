@@ -351,4 +351,24 @@ private:
     float m_lr;     // Learning rate
 };
 
+
+class Module
+{
+public:
+
+    void registerParameter(Tensor * tensor)
+    {
+        m_parameters.emplace_back(tensor);
+    }
+
+    std::vector<Tensor*> parameters()
+    {
+        return m_parameters;
+    }
+
+private:
+    std::vector<Tensor*> m_parameters;
+};
+
+
 }   // namespace
