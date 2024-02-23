@@ -19,10 +19,10 @@ using namespace aix;
 
 TEST_CASE("Simple optimizer test")
 {
-    auto x = aix::tensor(2, true);
-    auto y = aix::tensor(3, true);
-    auto t = aix::tensor(4, true);
-    auto u = aix::tensor(5, true);
+    auto x = aix::tensor({2}, {1,1}, true);
+    auto y = aix::tensor({3}, {1,1}, true);
+    auto t = aix::tensor({4}, {1,1}, true);
+    auto u = aix::tensor({5}, {1,1}, true);
 
     auto z = x * (x + y) / t - y * y;
     auto m = x * z + Tensor::sin(u) * u;
@@ -45,9 +45,9 @@ TEST_CASE("Simple optimizer test")
     optimizer.step();
 
     // Print the updated values of x, y, t, u to see the effect of the single optimization step.
-    CHECK(x.value() == Approx(2.03));
-    CHECK(y.value() == Approx(3.11));
-    CHECK(t.value() == Approx(4.0125));
-    CHECK(u.value() == Approx(4.99541));
+    CHECK(x.value().data()[0] == Approx(2.03));
+    CHECK(y.value().data()[0] == Approx(3.11));
+    CHECK(t.value().data()[0] == Approx(4.0125));
+    CHECK(u.value().data()[0] == Approx(4.99541));
     // Note: Results are consistent with those from PyTorch.
 }

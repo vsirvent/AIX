@@ -16,6 +16,7 @@
 #include <numeric>
 #include <cmath>
 #include <cassert>
+#include <utility>
 
 
 namespace aix
@@ -36,17 +37,22 @@ public:
     }
 
     // Constructor
-    TensorValue(const std::vector<size_t>& shape) : m_shape(shape)
+    TensorValue(float value, const std::vector<size_t>& shape) : m_shape(shape)
     {
         size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<size_t>());
-        m_data = std::vector<float>(totalSize, 0);
+        m_data = std::vector<float>(totalSize, value);
+        computeStrides();
+    }
+
+    // Constructor
+    TensorValue(float value) : m_shape(std::vector<size_t>{1, 1})
+    {
+        m_data = std::vector<float>(1, value);
         computeStrides();
     }
 
     // Access element at a specific index.
-    float& operator()(const std::vector<size_t>& indices) { return m_data[getIndex(indices)]; }
-
-    // const float& operator()(const std::vector<size_t>& indices) const { return m_data[getIndex(indices)]; }
+    float & operator()(const std::vector<size_t>& indices) { return m_data[getIndex(indices)]; }
 
     // Get the shape of the tensor
     const std::vector<size_t>& shape() const    { return m_shape; }
@@ -63,16 +69,11 @@ public:
     // Overload the + operator
     TensorValue operator+(const TensorValue& other) const
     {
-        // Check if the shapes of the two tensors are the same
-        if (m_shape != other.m_shape)
-        {
-            throw std::invalid_argument("Shapes of the tensors must be the same.");
-        }
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
 
-        // Create a new TensorValue to store the result
-        TensorValue result(m_shape);
-
-        // Perform element-wise addition
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
         for (size_t i = 0; i < m_data.size(); ++i)
         {
             result.m_data[i] = m_data[i] + other.m_data[i];
@@ -84,16 +85,11 @@ public:
     // Overload the - operator
     TensorValue operator-(const TensorValue& other) const
     {
-        // Check if the shapes of the two tensors are the same
-        if (m_shape != other.m_shape)
-        {
-            throw std::invalid_argument("Shapes of the tensors must be the same.");
-        }
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
 
-        // Create a new TensorValue to store the result
-        TensorValue result(m_shape);
-
-        // Perform element-wise addition
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
         for (size_t i = 0; i < m_data.size(); ++i)
         {
             result.m_data[i] = m_data[i] - other.m_data[i];
@@ -105,16 +101,11 @@ public:
     // Overload the * operator
     TensorValue operator*(const TensorValue& other) const
     {
-        // Check if the shapes of the two tensors are the same
-        if (m_shape != other.m_shape)
-        {
-            throw std::invalid_argument("Shapes of the tensors must be the same.");
-        }
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
 
-        // Create a new TensorValue to store the result
-        TensorValue result(m_shape);
-
-        // Perform element-wise addition
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
         for (size_t i = 0; i < m_data.size(); ++i)
         {
             result.m_data[i] = m_data[i] * other.m_data[i];
@@ -126,19 +117,72 @@ public:
     // Overload the / operator
     TensorValue operator/(const TensorValue& other) const
     {
-        // Check if the shapes of the two tensors are the same
-        if (m_shape != other.m_shape)
-        {
-            throw std::invalid_argument("Shapes of the tensors must be the same.");
-        }
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
 
-        // Create a new TensorValue to store the result
-        TensorValue result(m_shape);
-
-        // Perform element-wise addition
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
         for (size_t i = 0; i < m_data.size(); ++i)
         {
             result.m_data[i] = m_data[i] / other.m_data[i];
+        }
+
+        return result;
+    }
+
+    // Overload the unary - operator
+    TensorValue operator-() const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            result.m_data[i] = -m_data[i];
+        }
+
+        return result;
+    }
+
+    // Overload the * operator for scalar multiplication
+    TensorValue operator*(float scalar) const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            result.m_data[i] = m_data[i] * scalar;
+        }
+
+        return result;
+    }
+
+    void fill(float value)
+    {
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            m_data[i] = value;
+        }
+    }
+
+    static TensorValue sin(const TensorValue & value)
+    {
+        // Perform element-wise sin.
+        TensorValue result(0, value.shape());
+        for (size_t i = 0; i < value.data().size(); ++i)
+        {
+            result.m_data[i] = std::sin(value.m_data[i]);
+        }
+
+        return result;
+    }
+
+    static TensorValue cos(const TensorValue & value)
+    {
+        // Perform element-wise cos.
+        TensorValue result(0, value.shape());
+        for (size_t i = 0; i < value.data().size(); ++i)
+        {
+            result.m_data[i] = std::cos(value.m_data[i]);
         }
 
         return result;
@@ -164,6 +208,14 @@ private:
         return std::inner_product(indices.begin(), indices.end(), m_strides.begin(), 0);
     }
 
+    inline void validateShapes(const auto & shape1, const auto & shape2) const
+    {
+        if (shape1 != shape2)
+        {
+            throw std::invalid_argument("Shapes of the tensors must be the same.");
+        }
+    }
+
 private:
     std::vector<float>  m_data;      // The flat array of tensor elements
     std::vector<size_t> m_shape;     // The shape of the tensor
@@ -175,32 +227,35 @@ class Tensor
 {
 public:
     // Constructor
-    Tensor() :  m_value{0}, m_requireGrad{false}, m_isRoot{false} { }
+    Tensor() : m_requireGrad{false}, m_isRoot{false} { }
 
     // Constructor for a simple tensor with an optional gradient requirement.
-    Tensor(float value, bool requireGrad = false, bool isRoot = false)
-            :  m_value{value}, m_requireGrad{requireGrad}, m_isRoot{isRoot} {}
+    Tensor(const TensorValue & value, bool requireGrad = false, bool isRoot = false)
+            :  m_value{value}, m_requireGrad{requireGrad}, m_isRoot{isRoot}
+    {
+        m_grad = TensorValue(0, value.shape());
+    }
 
     // Calculate all values in the graph recursively.
-    void evaluate()             { m_evaluateFunc(this); }
+    void evaluate()  { m_evaluateFunc(this); }
 
     // Perform backpropagation to calculate gradients recursively.
-    void backward(float seed)   { m_backwardFunc(this, seed); }
+    void backward(const TensorValue & seed)  { m_backwardFunc(this, seed); }
 
     // Getters and setters for the tensor's value.
-    float value() const         { return m_value; }
-    void setValue(float value)  { m_value = value; }
+    const TensorValue & value() const        { return m_value; }
+    void setValue(const TensorValue & value) { m_value = value; }
 
     // Gradient-related methods.
-    float grad() const          { return m_grad; }
-    void zeroGrad()             { m_grad = 0; }
-    bool isRequireGrad() const  { return m_requireGrad; }
+    const TensorValue & grad() const { return m_grad; }
+    void zeroGrad()                  { m_grad.fill(0); }
+    bool isRequireGrad() const       { return m_requireGrad; }
 
     static void defaultEvaluation([[maybe_unused]] Tensor * obj) { }
-    static void defaultBackward(Tensor * obj, float seed)
+    static void defaultBackward(Tensor * obj, const TensorValue & seed)
     {
         if (obj->m_requireGrad)
-            obj->m_grad += seed;
+            obj->m_grad = obj->m_grad + seed;
     }
 
     // Auto gradient methods for add operation.
@@ -212,7 +267,7 @@ public:
         obj->m_value = obj->m_a->value() + obj->m_b->value();
     }
 
-    static void addBackwardFunc(Tensor * obj, float seed)
+    static void addBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
         if (!obj->m_a) return;
         // Calculate gradients.
@@ -229,7 +284,7 @@ public:
         obj->m_value = obj->m_a->value() - obj->m_b->value();
     }
 
-    static void subBackwardFunc(Tensor * obj, float seed)
+    static void subBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
         if (!obj->m_a) return;
         // Calculate gradients.
@@ -246,7 +301,7 @@ public:
         obj->m_value = obj->m_a->value() * obj->m_b->value();
     }
 
-    static void mulBackwardFunc(Tensor * obj, float seed)
+    static void mulBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
         if (!obj->m_a) return;
         // Calculate gradients.
@@ -263,7 +318,7 @@ public:
         obj->m_value = obj->m_a->value() / obj->m_b->value();
     }
 
-    static void divBackwardFunc(Tensor * obj, float seed)
+    static void divBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
         if (!obj->m_a) return;
         // Calculate gradients.
@@ -276,15 +331,15 @@ public:
     {
         if (!obj->m_a) return;
         obj->m_a->evaluate();
-        obj->m_value = std::sin(obj->m_a->value());
+        obj->m_value = TensorValue::sin(obj->m_a->value());
     }
 
-    static void sinBackwardFunc(Tensor * obj, float seed)
+    static void sinBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
         if (!obj->m_a) return;
         // The derivative of sin(a) with respect to 'a' is cos(a).
         // Therefore, the gradient of the input is multiplied by cos(a).
-        obj->m_a->backward(std::cos(obj->m_a->value()) * seed);   // ∂f/∂a = cos(a)
+        obj->m_a->backward(TensorValue::cos(obj->m_a->value()) * seed);   // ∂f/∂a = cos(a)
     }
 
     // Overload the + operator
@@ -351,8 +406,8 @@ protected:
                         std::make_shared<Tensor>(*tensor);
     }
 
-    float m_value{0};
-    float m_grad{0};
+    TensorValue m_value;
+    TensorValue m_grad;
     bool  m_requireGrad{false};
     bool  m_isRoot{false};
 
@@ -360,8 +415,8 @@ protected:
     std::shared_ptr<Tensor>  m_a{nullptr};
     std::shared_ptr<Tensor>  m_b{nullptr};
 
-    std::function<void(Tensor * tensor)>               m_evaluateFunc = defaultEvaluation;
-    std::function<void(Tensor * tensor, float seed)>   m_backwardFunc = defaultBackward;
+    std::function<void(Tensor * tensor)>  m_evaluateFunc = defaultEvaluation;
+    std::function<void(Tensor * tensor, const TensorValue & seed)>  m_backwardFunc = defaultBackward;
 };
 
 
@@ -377,7 +432,7 @@ public:
         {
             if (param->isRequireGrad())
             {
-                param->setValue(param->value() - m_lr * param->grad());   // w' = w - lr * w_gradient.
+                param->setValue(param->value() - param->grad() * m_lr);   // w' = w - lr * w_gradient.
             }
         }
     }
@@ -421,10 +476,14 @@ private:
 }   // namespace
 
 
-inline Tensor tensor(float value, bool requireGrad = false)
+inline Tensor tensor(const std::vector<float>& data, const std::vector<size_t>& shape, bool requireGrad = false)
 {
-    return {value, requireGrad, true};
+    return {TensorValue{data, shape}, requireGrad, true};
 }
 
+inline Tensor tensor(const std::vector<float>& data, bool requireGrad = false)
+{
+    return {TensorValue{data, {1, data.size()}}, requireGrad, true};
+}
 
 }   // namespace
