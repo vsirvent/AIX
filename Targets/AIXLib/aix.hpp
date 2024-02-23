@@ -181,16 +181,11 @@ public:
     Tensor(float value, bool requireGrad = false, bool isRoot = false)
             :  m_value{value}, m_requireGrad{requireGrad}, m_isRoot{isRoot} {}
 
-    void evaluate()
-    {
-        m_evaluateFunc(this);
-    }
+    // Calculate all values in the graph recursively.
+    void evaluate()             { m_evaluateFunc(this); }
 
-    // Perform backpropagation to calculate gradients.
-    void backward(float seed)
-    {
-        m_backwardFunc(this, seed);
-    }
+    // Perform backpropagation to calculate gradients recursively.
+    void backward(float seed)   { m_backwardFunc(this, seed); }
 
     // Getters and setters for the tensor's value.
     float value() const         { return m_value; }
@@ -208,6 +203,7 @@ public:
             obj->m_grad += seed;
     }
 
+    // Auto gradient methods for add operation.
     static void addEvaluateFunc(Tensor * obj)
     {
         if (!obj->m_a) return;
@@ -224,6 +220,7 @@ public:
         obj->m_b->backward(seed);
     }
 
+    // Auto gradient methods for sub operation.
     static void subEvaluateFunc(Tensor * obj)
     {
         if (!obj->m_a) return;
@@ -240,7 +237,7 @@ public:
         obj->m_b->backward(-seed);
     }
 
-
+    // Auto gradient methods for mul operation.
     static void mulEvaluateFunc(Tensor * obj)
     {
         if (!obj->m_a) return;
@@ -257,6 +254,7 @@ public:
         obj->m_b->backward(obj->m_a->value() * seed);
     }
 
+    // Auto gradient methods for div operation.
     static void divEvaluateFunc(Tensor * obj)
     {
         if (!obj->m_a) return;
@@ -273,6 +271,7 @@ public:
         obj->m_b->backward(-obj->m_a->value() * seed / (obj->m_b->value() * obj->m_b->value()));    // ∂f/∂b = -a / b^2
     }
 
+    // Auto gradient methods for sin operation.
     static void sinEvaluateFunc(Tensor * obj)
     {
         if (!obj->m_a) return;
@@ -292,8 +291,8 @@ public:
     Tensor operator+(const Tensor & other) const
     {
         Tensor result;
-        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
-        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_a = duplicateInstance(this, m_isRoot);
+        result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = addEvaluateFunc;
         result.m_backwardFunc = addBackwardFunc;
         return result;
@@ -303,8 +302,8 @@ public:
     Tensor operator-(const Tensor & other) const
     {
         Tensor result;
-        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
-        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_a = duplicateInstance(this, m_isRoot);
+        result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = subEvaluateFunc;
         result.m_backwardFunc = subBackwardFunc;
         return result;
@@ -314,8 +313,8 @@ public:
     Tensor operator*(const Tensor & other) const
     {
         Tensor result;
-        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
-        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_a = duplicateInstance(this, m_isRoot);
+        result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = mulEvaluateFunc;
         result.m_backwardFunc = mulBackwardFunc;
         return result;
@@ -325,8 +324,8 @@ public:
     Tensor operator/(const Tensor & other) const
     {
         Tensor result;
-        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
-        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_a = duplicateInstance(this, m_isRoot);
+        result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = divEvaluateFunc;
         result.m_backwardFunc = divBackwardFunc;
         return result;
@@ -335,7 +334,7 @@ public:
     static Tensor sin(const Tensor & other)
     {
         Tensor result;
-        result.m_a = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_a = duplicateInstance(&other, other.m_isRoot);
         result.m_b = nullptr;
         result.m_evaluateFunc = sinEvaluateFunc;
         result.m_backwardFunc = sinBackwardFunc;
@@ -343,14 +342,23 @@ public:
     };
 
 protected:
+    inline static std::shared_ptr<Tensor> duplicateInstance(const Tensor * tensor, bool isRoot)
+    {
+        // Duplicates instances that are not root (temporary) objects or converts root objects (source parameters)
+        // to shared pointers with a custom no-deleter to prevent deletion of objects.
+        auto noDelete = [](const Tensor*){ };   // Custom deleter not to delete external raw pointers.
+        return isRoot ? std::shared_ptr<Tensor>(const_cast<Tensor*>(tensor), noDelete) :
+                        std::make_shared<Tensor>(*tensor);
+    }
+
     float m_value{0};
     float m_grad{0};
     bool  m_requireGrad{false};
     bool  m_isRoot{false};
 
     // Pointers to operands, if this tensor is the result of an operation.
-    Tensor * m_a{nullptr};
-    Tensor * m_b{nullptr};
+    std::shared_ptr<Tensor>  m_a{nullptr};
+    std::shared_ptr<Tensor>  m_b{nullptr};
 
     std::function<void(Tensor * tensor)>               m_evaluateFunc = defaultEvaluation;
     std::function<void(Tensor * tensor, float seed)>   m_backwardFunc = defaultBackward;
