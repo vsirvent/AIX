@@ -19,26 +19,13 @@ using namespace aix;
 
 TEST_CASE("Simple optimizer test")
 {
-    auto x = Tensor(2, true);
-    auto y = Tensor(3, true);
-    auto t = Tensor(4, true);
-    auto u = Tensor(5, true);
+    auto x = aix::tensor(2, true);
+    auto y = aix::tensor(3, true);
+    auto t = aix::tensor(4, true);
+    auto u = aix::tensor(5, true);
 
-    // z = x * (x + y) / t - y * y
-    // m = x * z + Sin(u) * u
-    // Decompose all operations into atomic calculations to construct the graph.
-    // Assume that all operations are scalar and applied element-wise.
-    // Execute calculations as though they were Assembly instructions. :)
-    Add  p1(x, y);    // p1 = x + y
-    Mul  m1(x, p1);   // m1 = x * p1
-    Div  d1(m1, t);   // d1 = m1 / t
-    Mul  m2(y, y);    // m2 = y * y
-    Sub  z(d1, m2);   // z = d1 - m2
-    Mul  r(x, z);     // r = x * z
-    Sin  s1(u);       // s1 = Sin(u)
-    Mul  s2(s1, u);   // s2 = s1 * u
-    Add  m(r, s2);    // m = r + s2
-    // TODO: Implement MatMull when Tensor can handle multi-dimensions.
+    auto z = x * (x + y) / t - y * y;
+    auto m = x * z + Tensor::sin(u) * u;
 
     // Traverse the graph (starting from the end) to calculate all expression values.
     // This approach is known as lazy evaluation, meaning that values are not calculated
@@ -48,8 +35,8 @@ TEST_CASE("Simple optimizer test")
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
     m.backward(1);      // ∂m/∂m = 1.
 
-    // Define the tensors that require gradients. These are learnable parameters.
-    std::vector<Tensor*> parameters = {&x, &y, &t, &u};
+    // Create a vector list of learnable parameters for optimizations.
+    auto parameters = {&x, &y, &t, &u};
 
     // Create an instance of the optimizer with a specified learning rate.
     SGDOptimizer optimizer(parameters, 0.01f);

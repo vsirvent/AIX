@@ -123,7 +123,6 @@ public:
         return result;
     }
 
-
     // Overload the / operator
     TensorValue operator/(const TensorValue& other) const
     {
@@ -145,14 +144,13 @@ public:
         return result;
     }
 
-
 private:
     // Compute the strides based on the shape of the tensor
     void computeStrides()
     {
         m_strides.resize(m_shape.size());
         size_t stride = 1;
-        for (int i = m_shape.size() - 1; i >= 0; --i)
+        for (int64_t i = m_shape.size() - 1; i >= 0; --i)
         {
             m_strides[i] = stride;
             stride *= m_shape[i];
@@ -177,25 +175,21 @@ class Tensor
 {
 public:
     // Constructor
-    Tensor() = default;
+    Tensor() :  m_value{0}, m_requireGrad{false}, m_isRoot{false} { }
 
     // Constructor for a simple tensor with an optional gradient requirement.
-    Tensor(float value, bool requireGrad = false)
+    Tensor(float value, bool requireGrad = false, bool isRoot = false)
+            :  m_value{value}, m_requireGrad{requireGrad}, m_isRoot{isRoot} {}
+
+    void evaluate()
     {
-        m_value = value;
-        m_requireGrad = requireGrad;
+        m_evaluateFunc(this);
     }
 
-    // Virtual destructor to allow derived classes to clean up resources.
-    virtual ~Tensor() = default;
-
-    virtual void evaluate() { }
-
     // Perform backpropagation to calculate gradients.
-    virtual void backward(float seed)
+    void backward(float seed)
     {
-        if (m_requireGrad)
-            m_grad += seed;
+        m_backwardFunc(this, seed);
     }
 
     // Getters and setters for the tensor's value.
@@ -207,125 +201,167 @@ public:
     void zeroGrad()             { m_grad = 0; }
     bool isRequireGrad() const  { return m_requireGrad; }
 
+    static void defaultEvaluation([[maybe_unused]] Tensor * obj) { }
+    static void defaultBackward(Tensor * obj, float seed)
+    {
+        if (obj->m_requireGrad)
+            obj->m_grad += seed;
+    }
+
+    static void addEvaluateFunc(Tensor * obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_b->evaluate();
+        obj->m_value = obj->m_a->value() + obj->m_b->value();
+    }
+
+    static void addBackwardFunc(Tensor * obj, float seed)
+    {
+        if (!obj->m_a) return;
+        // Calculate gradients.
+        obj->m_a->backward(seed);
+        obj->m_b->backward(seed);
+    }
+
+    static void subEvaluateFunc(Tensor * obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_b->evaluate();
+        obj->m_value = obj->m_a->value() - obj->m_b->value();
+    }
+
+    static void subBackwardFunc(Tensor * obj, float seed)
+    {
+        if (!obj->m_a) return;
+        // Calculate gradients.
+        obj->m_a->backward(seed);
+        obj->m_b->backward(-seed);
+    }
+
+
+    static void mulEvaluateFunc(Tensor * obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_b->evaluate();
+        obj->m_value = obj->m_a->value() * obj->m_b->value();
+    }
+
+    static void mulBackwardFunc(Tensor * obj, float seed)
+    {
+        if (!obj->m_a) return;
+        // Calculate gradients.
+        obj->m_a->backward(obj->m_b->value() * seed);
+        obj->m_b->backward(obj->m_a->value() * seed);
+    }
+
+    static void divEvaluateFunc(Tensor * obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_b->evaluate();
+        obj->m_value = obj->m_a->value() / obj->m_b->value();
+    }
+
+    static void divBackwardFunc(Tensor * obj, float seed)
+    {
+        if (!obj->m_a) return;
+        // Calculate gradients.
+        obj->m_a->backward(seed / obj->m_b->value());                                               // ∂f/∂a = 1 / b
+        obj->m_b->backward(-obj->m_a->value() * seed / (obj->m_b->value() * obj->m_b->value()));    // ∂f/∂b = -a / b^2
+    }
+
+    static void sinEvaluateFunc(Tensor * obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_value = std::sin(obj->m_a->value());
+    }
+
+    static void sinBackwardFunc(Tensor * obj, float seed)
+    {
+        if (!obj->m_a) return;
+        // The derivative of sin(a) with respect to 'a' is cos(a).
+        // Therefore, the gradient of the input is multiplied by cos(a).
+        obj->m_a->backward(std::cos(obj->m_a->value()) * seed);   // ∂f/∂a = cos(a)
+    }
+
+    // Overload the + operator
+    Tensor operator+(const Tensor & other) const
+    {
+        Tensor result;
+        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
+        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_evaluateFunc = addEvaluateFunc;
+        result.m_backwardFunc = addBackwardFunc;
+        return result;
+    }
+
+    // Overload the - operator
+    Tensor operator-(const Tensor & other) const
+    {
+        Tensor result;
+        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
+        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_evaluateFunc = subEvaluateFunc;
+        result.m_backwardFunc = subBackwardFunc;
+        return result;
+    }
+
+    // Overload the - operator
+    Tensor operator*(const Tensor & other) const
+    {
+        Tensor result;
+        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
+        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_evaluateFunc = mulEvaluateFunc;
+        result.m_backwardFunc = mulBackwardFunc;
+        return result;
+    }
+
+    // Overload the / operator
+    Tensor operator/(const Tensor & other) const
+    {
+        Tensor result;
+        result.m_a = m_isRoot ?       const_cast<Tensor*>(this)   : const_cast<Tensor*>(new Tensor(*this));
+        result.m_b = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_evaluateFunc = divEvaluateFunc;
+        result.m_backwardFunc = divBackwardFunc;
+        return result;
+    }
+
+    static Tensor sin(const Tensor & other)
+    {
+        Tensor result;
+        result.m_a = other.m_isRoot ? const_cast<Tensor*>(&other) : const_cast<Tensor*>(new Tensor(other));
+        result.m_b = nullptr;
+        result.m_evaluateFunc = sinEvaluateFunc;
+        result.m_backwardFunc = sinBackwardFunc;
+        return result;
+    };
+
 protected:
     float m_value{0};
     float m_grad{0};
     bool  m_requireGrad{false};
+    bool  m_isRoot{false};
 
     // Pointers to operands, if this tensor is the result of an operation.
     Tensor * m_a{nullptr};
     Tensor * m_b{nullptr};
-};
 
-
-class Add: public Tensor
-{
-public:
-    Add(Tensor & a, Tensor & b) { m_a = &a; m_b = &b; }
-
-    void evaluate() final
-    {
-        m_a->evaluate();
-        m_b->evaluate();
-        m_value = m_a->value() + m_b->value();
-    }
-
-    void backward(float seed) final
-    {
-        // Calculate gradients.
-        m_a->backward(seed);
-        m_b->backward(seed);
-    }
-};
-
-
-class Sub: public Tensor
-{
-public:
-    Sub(Tensor & a, Tensor & b) { m_a = &a; m_b = &b; }
-
-    void evaluate() final
-    {
-        m_a->evaluate();
-        m_b->evaluate();
-        m_value = m_a->value() - m_b->value();
-    }
-
-    void backward(float seed) final
-    {
-        // Calculate gradients.
-        m_a->backward(seed);
-        m_b->backward(-seed);
-    }
-};
-
-
-class Mul: public Tensor
-{
-public:
-    Mul(Tensor & a, Tensor & b) { m_a = &a; m_b = &b; }
-
-    void evaluate() final
-    {
-        m_a->evaluate();
-        m_b->evaluate();
-        m_value = m_a->value() * m_b->value();
-    }
-
-    void backward(float seed) final
-    {
-        // Calculate gradients.
-        m_a->backward(m_b->value() * seed);
-        m_b->backward(m_a->value() * seed);
-    }
-};
-
-
-class Div: public Tensor
-{
-public:
-    Div(Tensor & a, Tensor & b) { m_a = &a; m_b = &b; }
-
-    void evaluate() final
-    {
-        m_a->evaluate();
-        m_b->evaluate();
-        m_value = m_a->value() / m_b->value();
-    }
-
-    void backward(float seed) final
-    {
-        // Calculate gradients.
-        m_a->backward(seed / m_b->value());                                     // ∂f/∂a = 1 / b
-        m_b->backward(-m_a->value() * seed / (m_b->value() * m_b->value()));    // ∂f/∂b = -a / b^2
-    }
-};
-
-
-class Sin : public Tensor
-{
-public:
-    explicit Sin(Tensor & a) { m_a = &a; }
-
-    void evaluate() final
-    {
-        m_a->evaluate();
-        m_value = std::sin(m_a->value());
-    }
-
-    void backward(float seed) final
-    {
-        // The derivative of sin(a) with respect to 'a' is cos(a).
-        // Therefore, the gradient of the input is multiplied by cos(a).
-        m_a->backward(std::cos(m_a->value()) * seed);   // ∂f/∂a = cos(a)
-    }
+    std::function<void(Tensor * tensor)>               m_evaluateFunc = defaultEvaluation;
+    std::function<void(Tensor * tensor, float seed)>   m_backwardFunc = defaultBackward;
 };
 
 
 class SGDOptimizer
 {
 public:
-    SGDOptimizer(const std::vector<Tensor*> & parameters, float lr = 0.01f) : m_parameters(parameters), m_lr(lr) {}
+    explicit SGDOptimizer(const std::vector<Tensor*> & parameters, float lr = 0.01f)
+        : m_parameters(parameters), m_lr(lr) {}
 
     void step()
     {
@@ -352,27 +388,17 @@ private:
 };
 
 
+namespace nn
+{
+
 class Module
 {
 public:
-
-    virtual ~Module()
-    {
-        for (auto tensor : m_recycle)
-        {
-            delete tensor;
-        }
-    }
+    virtual ~Module() = default;
 
     void registerParameter(Tensor & tensor)
     {
         m_parameters.emplace_back(&tensor);
-    }
-
-    auto * recycle(auto * tensor)
-    {
-        m_recycle.emplace_back(tensor);
-        return tensor;
     }
 
     std::vector<Tensor*> parameters()
@@ -382,8 +408,15 @@ public:
 
 private:
     std::vector<Tensor*> m_parameters;
-    std::vector<Tensor*> m_recycle;
 };
+
+}   // namespace
+
+
+inline Tensor tensor(float value, bool requireGrad = false)
+{
+    return {value, requireGrad, true};
+}
 
 
 }   // namespace
