@@ -41,3 +41,4 @@ include_directories(Targets/AIXLib)
 
 # Target folders
 add_subdirectory(Targets/AIXTests)
+add_subdirectory(Targets/XORApp)

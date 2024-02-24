@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cassert>
 #include <utility>
+#include <random>
 
 
 namespace aix
@@ -39,7 +40,7 @@ public:
     // Constructor
     TensorValue(float value, const std::vector<size_t>& shape) : m_shape(shape)
     {
-        size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<size_t>());
+        size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         m_data = std::vector<float>(totalSize, value);
         computeStrides();
     }
@@ -165,6 +166,14 @@ public:
         {
             m_data[i] = value;
         }
+    }
+
+    float mean() const
+    {
+        if (m_data.empty()) return 0.0f; // Guard against division by zero for empty tensors
+
+        float sum = std::accumulate(m_data.begin(), m_data.end(), 0.0f);
+        return sum / static_cast<float>(m_data.size());
     }
 
     static TensorValue sin(const TensorValue & value)
@@ -495,6 +504,22 @@ public:
         obj->m_b->backward(TensorValue::matmul(obj->m_a->value().transpose(), seed));      // ∂E/∂b = a^T * ∂E/∂c
     }
 
+    static void meanEvaluateFunc(Tensor * obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_value = TensorValue(obj->m_a->value().mean(), {1, 1});
+    }
+
+    static void meanBackwardFunc(Tensor * obj, const TensorValue & seed)
+    {
+        if (!obj->m_a) return;
+        // The gradient of the mean operation is distributed evenly across all elements.
+        size_t totalElements = obj->m_a->value().data().size();
+        TensorValue grad = TensorValue(1.0f / totalElements, obj->m_a->value().shape());
+        obj->m_a->backward(grad * seed);    // Adjust seed by the gradient of mean operation.
+    }
+
     // Overload the + operator
     Tensor operator+(const Tensor & other) const
     {
@@ -568,6 +593,16 @@ public:
         result.m_backwardFunc = matmulBackwardFunc;
         // The result requires gradients if either of the inputs does.
         //result.m_requireGrad = a.m_requireGrad || b.m_requireGrad;
+        return result;
+    }
+
+    Tensor mean() const
+    {
+        Tensor result({0, {1, 1}});     // Assuming a scalar tensor for the mean result.
+        result.m_a = duplicateInstance(this, m_isRoot);
+        result.m_b = nullptr;
+        result.m_evaluateFunc = meanEvaluateFunc;
+        result.m_backwardFunc = meanBackwardFunc;
         return result;
     }
 
@@ -648,6 +683,19 @@ private:
     std::vector<Tensor*> m_parameters;
 };
 
+class MSELoss
+{
+public:
+    //Tensor operator()(const Tensor & predictions, const Tensor & targets)
+    Tensor operator()(Tensor predictions, Tensor targets)
+    {
+        auto diff = predictions - targets;
+        auto squared_diff = diff * diff;
+        auto loss = squared_diff.mean(); // Assuming a mean() method is implemented in Tensor.
+        return loss;
+    }
+};
+
 }   // namespace
 
 
@@ -660,5 +708,25 @@ inline Tensor tensor(const std::vector<float>& data, bool requireGrad = false)
 {
     return {TensorValue{data, {1, data.size()}}, requireGrad, true};
 }
+
+static std::random_device randomDevice; // Consider making this static if thread safety isn't a concern or not needed
+static std::mt19937 randGen(randomDevice());
+
+std::vector<float> randf(const std::vector<size_t>& shape, float min=-1, float max=1)
+{
+    size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
+    std::vector<float> rndData(totalSize);
+
+    std::uniform_real_distribution<float> distr(min, max); // Directly use float
+
+    // Use a lambda to generate random floats
+    auto rand_gen = [&]() -> float { return distr(randGen); };
+
+    // Fill rndData with random numbers
+    std::generate(rndData.begin(), rndData.end(), rand_gen);
+
+    return rndData;
+}
+
 
 }   // namespace
