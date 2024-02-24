@@ -712,7 +712,7 @@ inline Tensor tensor(const std::vector<float>& data, bool requireGrad = false)
 static std::random_device randomDevice; // Consider making this static if thread safety isn't a concern or not needed
 static std::mt19937 randGen(randomDevice());
 
-std::vector<float> randf(const std::vector<size_t>& shape, float min=-1, float max=1)
+inline std::vector<float> randf(const std::vector<size_t>& shape, float min=-1, float max=1)
 {
     size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
     std::vector<float> rndData(totalSize);
