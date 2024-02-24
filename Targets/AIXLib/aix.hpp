@@ -188,6 +188,18 @@ public:
         return result;
     }
 
+    static TensorValue tanh(const TensorValue & value)
+    {
+        // Perform element-wise tanh.
+        TensorValue result(0, value.shape());
+        for (size_t i = 0; i < value.data().size(); ++i)
+        {
+            result.m_data[i] = std::tanh(value.m_data[i]);
+        }
+
+        return result;
+    }
+
 private:
     // Compute the strides based on the shape of the tensor
     void computeStrides()
@@ -342,6 +354,23 @@ public:
         obj->m_a->backward(TensorValue::cos(obj->m_a->value()) * seed);   // ∂f/∂a = cos(a)
     }
 
+    static void tanhEvaluateFunc(Tensor * obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_value = TensorValue::tanh(obj->m_a->value());
+    }
+
+    static void tanhBackwardFunc(Tensor * obj, const TensorValue & seed)
+    {
+        if (!obj->m_a) return;
+        // The derivative of tanh(a) with respect to 'a' is 1 - tanh^2(a).
+        // Therefore, the gradient of the input is multiplied by (1 - tanh^2(a)).
+        auto tanhValue = TensorValue::tanh(obj->m_a->value());
+        auto oneTensor = TensorValue(1.0, tanhValue.shape());
+        obj->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
+    }
+
     // Overload the + operator
     Tensor operator+(const Tensor & other) const
     {
@@ -393,6 +422,16 @@ public:
         result.m_b = nullptr;
         result.m_evaluateFunc = sinEvaluateFunc;
         result.m_backwardFunc = sinBackwardFunc;
+        return result;
+    };
+
+    static Tensor tanh(const Tensor & other)
+    {
+        Tensor result;
+        result.m_a = duplicateInstance(&other, other.m_isRoot);
+        result.m_b = nullptr;
+        result.m_evaluateFunc = tanhEvaluateFunc;
+        result.m_backwardFunc = tanhBackwardFunc;
         return result;
     };
 

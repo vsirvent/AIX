@@ -38,7 +38,7 @@ struct TestModel : public aix::nn::Module
 
     Tensor forward() const
     {
-        auto z = m_x * (m_x + m_y) / m_t - m_y * m_y;
+        auto z = m_x * (m_x + m_y) / m_t - Tensor::tanh(m_y * m_y);
         auto m = m_x * z + Tensor::sin(m_u) * m_u;
         return m;
     }
@@ -80,11 +80,11 @@ TEST_CASE("Auto Grad - Module Test - 1x1 Tensor")
     CHECK(tm.m_u.value().shape() == shape);
     CHECK(m.value().shape()      == shape);
 
-    CHECK(tm.m_x.grad().data()[0] == Approx(-3));
-    CHECK(tm.m_y.grad().data()[0] == Approx(-11));
+    CHECK(tm.m_x.grad().data()[0] == Approx(5));
+    CHECK(tm.m_y.grad().data()[0] == Approx(0.999999));
     CHECK(tm.m_t.grad().data()[0] == Approx(-1.25));
     CHECK(tm.m_u.grad().data()[0] == Approx(0.459387));
-    CHECK(m.value().data()[0]     == Approx(-17.7946));
+    CHECK(m.value().data()[0]     == Approx(-1.79462));
 }
 
 
@@ -118,11 +118,11 @@ TEST_CASE("Auto Grad - Module Test - 1x2 Tensor")
     CHECK(tm.m_u.value().shape() == shape);
     CHECK(m.value().shape()      == shape);
 
-    CheckVectorApproxValues(tm.m_x.grad().data(), {-7.2,    -11.3333});
-    CheckVectorApproxValues(tm.m_y.grad().data(), {-5.8,    -15.3333});
-    CheckVectorApproxValues(tm.m_t.grad().data(), {-0.16,   -0.666667});
-    CheckVectorApproxValues(tm.m_u.grad().data(), {5.9343,  -0.174642});
-    CheckVectorApproxValues(m.value().data(),     {-3.6011, -20.0851});
+    CheckVectorApproxValues(tm.m_x.grad().data(), {0.8, 3.66667});
+    CheckVectorApproxValues(tm.m_y.grad().data(), {0.199999, 0.666667});
+    CheckVectorApproxValues(tm.m_t.grad().data(), {-0.16, -0.666667});
+    CheckVectorApproxValues(tm.m_u.grad().data(), {5.9343, -0.174642});
+    CheckVectorApproxValues(m.value().data(),     {4.39891, 9.91487});
 }
 
 
@@ -156,9 +156,9 @@ TEST_CASE("Auto Grad - Module Test - 2x3 Tensor")
     CHECK(tm.m_u.value().shape() == shape);
     CHECK(m.value().shape()      == shape);
 
-    CheckVectorApproxValues(tm.m_x.grad().data(), {-47.6923, -60.8571, -75.6, -92, -110.118, -130});
-    CheckVectorApproxValues(tm.m_y.grad().data(), {-13.9231, -31.7143, -53.4, -79, -108.529, -142});
+    CheckVectorApproxValues(tm.m_x.grad().data(), {0.307692, 2.14286, 4.4, 7, 9.88235, 13});
+    CheckVectorApproxValues(tm.m_y.grad().data(), {0.0769231, 0.285714, 0.6, 1, 1.47059, 2});
     CheckVectorApproxValues(tm.m_t.grad().data(), {-0.0473373, -0.204082, -0.48, -0.875, -1.38408, -2});
     CheckVectorApproxValues(tm.m_u.grad().data(), {18.9353, 9.07459, -10.6657, -22.008, -13.1014, 9.27472});
-    CheckVectorApproxValues(m.value().data(),     {-45.5369, -106.8840, -218.2302, -386.1947, -600.9337, -849.7339});
+    CheckVectorApproxValues(m.value().data(),     {2.46305, 19.116, 21.7698, 9.80527, -0.933655, 8.26612});
 }

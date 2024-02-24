@@ -98,6 +98,13 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 }
 
 
+TEST_CASE("TensorValue::Tanh 2x2")
+{
+    auto x = TensorValue({0.1, 0.2, 0.3, 0.4}, {2, 2});
+    CheckVectorApproxValues(TensorValue::tanh(x).data(), {0.099668, 0.197375, 0.291313, 0.379949});
+}
+
+
 /*
 
 TEST_CASE("Testing broadcasting support in TensorValue")
