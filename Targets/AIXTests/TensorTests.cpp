@@ -98,55 +98,46 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 }
 
 
-TEST_CASE("TensorValue::Tanh 2x2")
+TEST_CASE("TensorValue::tanh 2x2")
 {
     auto x = TensorValue({0.1, 0.2, 0.3, 0.4}, {2, 2});
     CheckVectorApproxValues(TensorValue::tanh(x).data(), {0.099668, 0.197375, 0.291313, 0.379949});
 }
 
 
-/*
-
-TEST_CASE("Testing broadcasting support in TensorValue")
+TEST_CASE("TensorValue::matmul 1x1 1x1")
 {
-    SUBCASE("Broadcast scalar to tensor")
-    {
-        TensorValue tensor({1.0, 2.0, 3.0}, {3});
-        TensorValue scalar({10.0}, {1}); // Scalar is a tensor with shape {1}
-        TensorValue result = tensor + scalar;
-        CHECK(result.data() == std::vector<float>({11.0, 12.0, 13.0}));
-    }
+    auto a = TensorValue(2, {1, 1});
+    auto b = TensorValue(3, {1, 1});
+    auto c = TensorValue::matmul(a, b);
 
-    SUBCASE("Broadcast vector to matrix along last dimension")
-    {
-        TensorValue matrix({{1.0, 2.0}, {3.0, 4.0}}, {2, 2});
-        TensorValue vector({10.0, 20.0}, {2}); // Vector is a tensor with shape {2}
-        TensorValue result = matrix + vector;
-        CHECK(result.data() == std::vector<float>({11.0, 22.0, 13.0, 24.0}));
-    }
-
-    SUBCASE("Broadcast vector to matrix along first dimension")
-    {
-        TensorValue matrix({{1.0, 2.0}, {3.0, 4.0}}, {2, 2});
-        TensorValue vector({10.0, 20.0}, {2, 1}); // Vector is a tensor with shape {2, 1}
-        TensorValue result = matrix + vector;
-        CHECK(result.data() == std::vector<float>({11.0, 12.0, 23.0, 24.0}));
-    }
-
-    SUBCASE("Broadcast matrix to 3D tensor")
-    {
-        TensorValue tensor3d({{{1.0, 2.0}, {3.0, 4.0}}, {{5.0, 6.0}, {7.0, 8.0}}}, {2, 2, 2});
-        TensorValue matrix({{10.0, 20.0}, {30.0, 40.0}}, {2, 2}); // Matrix is a tensor with shape {2, 2}
-        TensorValue result = tensor3d + matrix;
-        CHECK(result.data() == std::vector<float>({11.0, 22.0, 33.0, 44.0, 15.0, 26.0, 37.0, 48.0}));
-    }
-
-    SUBCASE("Incompatible shapes for broadcasting")
-    {
-        TensorValue tensor1({1.0, 2.0, 3.0}, {3});
-        TensorValue tensor2({10.0, 20.0}, {2});
-        CHECK_THROWS_WITH(tensor1 + tensor2, "Shapes are not compatible for broadcasting.");
-    }
+    CHECK(c.shape() == std::vector<size_t>{1, 1});
+    CheckVectorApproxValues(c.data(), {6});
 }
 
-*/
+
+TEST_CASE("TensorValue::matmul 2x4 4x3")
+{
+    auto a = TensorValue({1,2,3,4,5,6,7,8},            {2, 4});
+    auto b = TensorValue({1,2,3,4,5,6,7,8,9,10,11,12}, {4, 3});
+    auto c = TensorValue::matmul(a, b);     // Result matrix.
+
+    CHECK(c.shape() == std::vector<size_t>{2, 3});
+    CheckVectorApproxValues(c.data(), {70, 80, 90, 158, 184, 210});
+}
+
+
+TEST_CASE("TensorValue::transpose 1x1")
+{
+    auto a = TensorValue(2, {1, 1}).transpose();
+    CHECK(a.shape() == std::vector<size_t>{1, 1});
+    CheckVectorApproxValues(a.data(), {2});
+}
+
+
+TEST_CASE("TensorValue::transpose 2x3")
+{
+    auto a = TensorValue({1, 2, 3, 4, 5, 6}, {2, 3}).transpose();
+    CHECK(a.shape() == std::vector<size_t>{3, 2});
+    CheckVectorApproxValues(a.data(), {1, 4, 2, 5, 3, 6});
+}

@@ -51,8 +51,11 @@ public:
         computeStrides();
     }
 
-    // Access element at a specific index.
+    // Access element at a specific index (non-const version).
     float & operator()(const std::vector<size_t>& indices) { return m_data[getIndex(indices)]; }
+
+    // Access element at a specific index (const version).
+    float operator()(const std::vector<size_t>& indices) const { return m_data[getIndex(indices)]; }
 
     // Get the shape of the tensor
     const std::vector<size_t>& shape() const    { return m_shape; }
@@ -200,6 +203,71 @@ public:
         return result;
     }
 
+    // Matrix multiplication for 2D tensors.
+    static TensorValue matmul(const TensorValue & a, const TensorValue & b)
+    {
+        // Ensure both tensors are 2D or can be treated as such.
+        if (a.shape().size() != 2 || b.shape().size() != 2)
+        {
+            throw std::invalid_argument("Both tensors must be 2D for matrix multiplication.");
+        }
+
+        // Check if the inner dimensions match.
+        if (a.shape()[1] != b.shape()[0])
+        {
+            throw std::invalid_argument("The inner dimensions of the tensors do not match.");
+        }
+
+        size_t m = a.shape()[0];        // Rows of the first matrix
+        size_t n = b.shape()[1];        // Columns of the second matrix
+        size_t inner = a.shape()[1];    // Inner dimension
+
+        // Resultant tensor shape
+        std::vector<size_t> resultShape = {m, n};
+        TensorValue result(0.0f, resultShape);
+
+        // Perform matrix multiplication
+        for (size_t i = 0; i < m; ++i)
+        {
+            for (size_t j = 0; j < n; ++j)
+            {
+                float sum = 0.0f;
+                for (size_t k = 0; k < inner; ++k)
+                {
+                    sum += a({i, k}) * b({k, j});
+                }
+                result({i, j}) = sum;
+            }
+        }
+
+        return result;
+    }
+
+    // Transpose of the tensor for 2D tensors.
+    TensorValue transpose() const
+    {
+        // Ensure the tensor is 2D.
+        if (m_shape.size() != 2)
+        {
+            throw std::invalid_argument("Transpose operation is currently implemented for 2D tensors only.");
+        }
+
+        // The shape of the transposed tensor will have swapped dimensions.
+        TensorValue transposed(0.0f, {m_shape[1], m_shape[0]});
+
+        // Perform the transpose operation.
+        for (size_t i = 0; i < m_shape[0]; ++i)
+        {
+            for (size_t j = 0; j < m_shape[1]; ++j)
+            {
+                // Swap the indices for the transposition.
+                transposed({j, i}) = (*this)({i, j});
+            }
+        }
+
+        return transposed;
+    }
+
 private:
     // Compute the strides based on the shape of the tensor
     void computeStrides()
@@ -246,6 +314,42 @@ public:
             :  m_value{value}, m_requireGrad{requireGrad}, m_isRoot{isRoot}
     {
         m_grad = TensorValue(0, value.shape());
+    }
+
+    // Copy Constructor
+    Tensor(const Tensor& other)
+            : m_value{other.m_value},
+              m_grad{other.m_grad},
+              m_requireGrad{other.m_requireGrad},
+              m_isRoot{false},  // Copy should not be considered as raw pointer.
+              m_a{other.m_a},
+              m_b{other.m_b},
+              m_evaluateFunc{other.m_evaluateFunc},
+              m_backwardFunc{other.m_backwardFunc}
+    {
+        // For shared_ptr, simply use the copy constructor which increases the reference count.
+        // If there's any deep copying mechanism needed for complex objects or manual memory management,
+        // it should be handled here. In this case, shared_ptr takes care of the memory management,
+        // so no additional steps are necessary.
+    }
+
+    // Copy Assignment Operator
+    Tensor& operator=(const Tensor& other)
+    {
+        if (this != &other)     // Protect against self-assignment
+        {
+            m_value = other.m_value;
+            m_grad = other.m_grad;
+            m_requireGrad = other.m_requireGrad;
+            m_isRoot = other.m_isRoot;
+            m_a = other.m_a;
+            m_b = other.m_b;
+            m_evaluateFunc = other.m_evaluateFunc;
+            m_backwardFunc = other.m_backwardFunc;
+            // Handle shared_ptr or other deep copy mechanisms here if necessary.
+        }
+
+        return *this;
     }
 
     // Calculate all values in the graph recursively.
@@ -371,10 +475,30 @@ public:
         obj->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
     }
 
+    static void matmulForwardFunc(Tensor *obj)
+    {
+        if (!obj->m_a) return;
+        obj->m_a->evaluate();
+        obj->m_b->evaluate();
+        obj->m_value = TensorValue::matmul(obj->m_a->value(), obj->m_b->value());
+    }
+
+    static void matmulBackwardFunc(Tensor * obj, const TensorValue & seed)
+    {
+        if (!obj->m_a) return;
+        // Assuming m_a and m_b are the input matrices a and b, respectively,
+        // and seed is ∂E/∂c, the gradient of the loss with respect to the output matrix c.
+        // Compute gradients with respect to a and b
+
+        // Corrected to use matrix multiplication for backward pass calculations
+        obj->m_a->backward(TensorValue::matmul(seed, obj->m_b->value().transpose()));      // ∂E/∂a = ∂E/∂c * b^T
+        obj->m_b->backward(TensorValue::matmul(obj->m_a->value().transpose(), seed));      // ∂E/∂b = a^T * ∂E/∂c
+    }
+
     // Overload the + operator
     Tensor operator+(const Tensor & other) const
     {
-        Tensor result;
+        Tensor result({0, {value().shape()}});
         result.m_a = duplicateInstance(this, m_isRoot);
         result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = addEvaluateFunc;
@@ -385,7 +509,7 @@ public:
     // Overload the - operator
     Tensor operator-(const Tensor & other) const
     {
-        Tensor result;
+        Tensor result({0, {value().shape()}});
         result.m_a = duplicateInstance(this, m_isRoot);
         result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = subEvaluateFunc;
@@ -396,7 +520,7 @@ public:
     // Overload the - operator
     Tensor operator*(const Tensor & other) const
     {
-        Tensor result;
+        Tensor result({0, {value().shape()}});
         result.m_a = duplicateInstance(this, m_isRoot);
         result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = mulEvaluateFunc;
@@ -407,7 +531,7 @@ public:
     // Overload the / operator
     Tensor operator/(const Tensor & other) const
     {
-        Tensor result;
+        Tensor result({0, {value().shape()}});
         result.m_a = duplicateInstance(this, m_isRoot);
         result.m_b = duplicateInstance(&other, other.m_isRoot);
         result.m_evaluateFunc = divEvaluateFunc;
@@ -417,7 +541,7 @@ public:
 
     static Tensor sin(const Tensor & other)
     {
-        Tensor result;
+        Tensor result({0, {other.value().shape()}});
         result.m_a = duplicateInstance(&other, other.m_isRoot);
         result.m_b = nullptr;
         result.m_evaluateFunc = sinEvaluateFunc;
@@ -427,13 +551,25 @@ public:
 
     static Tensor tanh(const Tensor & other)
     {
-        Tensor result;
+        Tensor result({0, {other.value().shape()}});
         result.m_a = duplicateInstance(&other, other.m_isRoot);
         result.m_b = nullptr;
         result.m_evaluateFunc = tanhEvaluateFunc;
         result.m_backwardFunc = tanhBackwardFunc;
         return result;
     };
+
+    static Tensor matmul(const Tensor & a, const Tensor & b)
+    {
+        Tensor result({0, {a.value().shape()[0], b.value().shape()[1]}});
+        result.m_a = duplicateInstance(&a, a.m_isRoot);
+        result.m_b = duplicateInstance(&b, b.m_isRoot);
+        result.m_evaluateFunc = matmulForwardFunc;
+        result.m_backwardFunc = matmulBackwardFunc;
+        // The result requires gradients if either of the inputs does.
+        //result.m_requireGrad = a.m_requireGrad || b.m_requireGrad;
+        return result;
+    }
 
 protected:
     inline static std::shared_ptr<Tensor> duplicateInstance(const Tensor * tensor, bool isRoot)
