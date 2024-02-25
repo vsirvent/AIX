@@ -22,8 +22,8 @@ public:
     // Constructor
     Linear(size_t numInputs, size_t numOutputs, size_t numSamples)
     {
-        m_w1 = aix::tensor(aix::randf({numInputs, numOutputs}),  {numInputs, numOutputs},  true);
-        m_b1 = aix::tensor(aix::randf({numSamples, numOutputs}), {numSamples, numOutputs}, true);
+        m_w1 = aix::tensor(aix::randn({numInputs, numOutputs}), {numInputs, numOutputs}, true);
+        m_b1 = aix::tensor(aix::randn({numSamples, numOutputs}), {numSamples, numOutputs}, true);
 
         // Register learnable parameters.
         registerParameter(m_w1);

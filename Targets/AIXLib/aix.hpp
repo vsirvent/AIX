@@ -717,7 +717,7 @@ inline Tensor tensor(const std::vector<float>& data, bool requireGrad = false)
     return {TensorValue{data, {1, data.size()}}, requireGrad, true};
 }
 
-inline std::vector<float> randf(const std::vector<size_t>& shape, float min=-1, float max=1)
+inline std::vector<float> randn(const std::vector<size_t>& shape, float min= -1, float max= 1)
 {
     static std::random_device randomDevice;
     static std::mt19937 randGen(randomDevice());
