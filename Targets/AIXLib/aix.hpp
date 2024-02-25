@@ -674,7 +674,15 @@ public:
         m_parameters.emplace_back(&tensor);
     }
 
-    std::vector<Tensor*> parameters()
+    void registerModule(Module & module)
+    {
+        for (auto param : module.parameters())
+        {
+            m_parameters.emplace_back(param);
+        }
+    }
+
+    const std::vector<Tensor*> parameters() const
     {
         return m_parameters;
     }
