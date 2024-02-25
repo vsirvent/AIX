@@ -380,13 +380,15 @@ public:
     static void defaultBackward(Tensor * obj, const TensorValue & seed)
     {
         if (obj->m_requireGrad)
+        {
             obj->m_grad = obj->m_grad + seed;
+        }
     }
 
     // Auto gradient methods for add operation.
     static void addEvaluateFunc(Tensor * obj)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         obj->m_a->evaluate();
         obj->m_b->evaluate();
         obj->m_value = obj->m_a->value() + obj->m_b->value();
@@ -394,7 +396,7 @@ public:
 
     static void addBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         // Calculate gradients.
         obj->m_a->backward(seed);
         obj->m_b->backward(seed);
@@ -403,7 +405,7 @@ public:
     // Auto gradient methods for sub operation.
     static void subEvaluateFunc(Tensor * obj)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         obj->m_a->evaluate();
         obj->m_b->evaluate();
         obj->m_value = obj->m_a->value() - obj->m_b->value();
@@ -411,7 +413,7 @@ public:
 
     static void subBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         // Calculate gradients.
         obj->m_a->backward(seed);
         obj->m_b->backward(-seed);
@@ -420,7 +422,7 @@ public:
     // Auto gradient methods for mul operation.
     static void mulEvaluateFunc(Tensor * obj)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         obj->m_a->evaluate();
         obj->m_b->evaluate();
         obj->m_value = obj->m_a->value() * obj->m_b->value();
@@ -428,7 +430,7 @@ public:
 
     static void mulBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         // Calculate gradients.
         obj->m_a->backward(obj->m_b->value() * seed);
         obj->m_b->backward(obj->m_a->value() * seed);
@@ -437,7 +439,7 @@ public:
     // Auto gradient methods for div operation.
     static void divEvaluateFunc(Tensor * obj)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         obj->m_a->evaluate();
         obj->m_b->evaluate();
         obj->m_value = obj->m_a->value() / obj->m_b->value();
@@ -445,7 +447,7 @@ public:
 
     static void divBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         // Calculate gradients.
         obj->m_a->backward(seed / obj->m_b->value());                                               // ∂f/∂a = 1 / b
         obj->m_b->backward(-obj->m_a->value() * seed / (obj->m_b->value() * obj->m_b->value()));    // ∂f/∂b = -a / b^2
@@ -486,7 +488,7 @@ public:
 
     static void matmulForwardFunc(Tensor *obj)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         obj->m_a->evaluate();
         obj->m_b->evaluate();
         obj->m_value = TensorValue::matmul(obj->m_a->value(), obj->m_b->value());
@@ -494,7 +496,7 @@ public:
 
     static void matmulBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!obj->m_a || !obj->m_b) return;
         // Assuming m_a and m_b are the input matrices a and b, respectively,
         // and seed is ∂E/∂c, the gradient of the loss with respect to the output matrix c.
         // Compute gradients with respect to a and b
@@ -591,8 +593,6 @@ public:
         result.m_b = duplicateInstance(&b, b.m_isRoot);
         result.m_evaluateFunc = matmulForwardFunc;
         result.m_backwardFunc = matmulBackwardFunc;
-        // The result requires gradients if either of the inputs does.
-        //result.m_requireGrad = a.m_requireGrad || b.m_requireGrad;
         return result;
     }
 
@@ -691,6 +691,7 @@ private:
     std::vector<Tensor*> m_parameters;
 };
 
+
 class MSELoss
 {
 public:
@@ -698,8 +699,7 @@ public:
     Tensor operator()(Tensor predictions, Tensor targets)
     {
         auto diff = predictions - targets;
-        auto squared_diff = diff * diff;
-        auto loss = squared_diff.mean(); // Assuming a mean() method is implemented in Tensor.
+        auto loss = (diff * diff).mean();
         return loss;
     }
 };
@@ -717,21 +717,17 @@ inline Tensor tensor(const std::vector<float>& data, bool requireGrad = false)
     return {TensorValue{data, {1, data.size()}}, requireGrad, true};
 }
 
-static std::random_device randomDevice; // Consider making this static if thread safety isn't a concern or not needed
-static std::mt19937 randGen(randomDevice());
-
 inline std::vector<float> randf(const std::vector<size_t>& shape, float min=-1, float max=1)
 {
+    static std::random_device randomDevice;
+    static std::mt19937 randGen(randomDevice());
+    std::uniform_real_distribution<float> distr(min, max); // Directly use float
+
     size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
     std::vector<float> rndData(totalSize);
 
-    std::uniform_real_distribution<float> distr(min, max); // Directly use float
-
-    // Use a lambda to generate random floats
-    auto rand_gen = [&]() -> float { return distr(randGen); };
-
     // Fill rndData with random numbers
-    std::generate(rndData.begin(), rndData.end(), rand_gen);
+    std::generate(rndData.begin(), rndData.end(), [&distr]() -> float { return distr(randGen); });
 
     return rndData;
 }
