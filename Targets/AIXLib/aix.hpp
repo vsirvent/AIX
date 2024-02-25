@@ -147,7 +147,54 @@ public:
         return result;
     }
 
-    // Overload the * operator for scalar multiplication
+    TensorValue operator+(float scalar) const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            result.m_data[i] = m_data[i] + scalar;
+        }
+
+        return result;
+    }
+
+    TensorValue operator-(float scalar) const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            result.m_data[i] = m_data[i] - scalar;
+        }
+
+        return result;
+    }
+
+    TensorValue operator+=(float scalar) const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            result.m_data[i] += scalar;
+        }
+
+        return result;
+    }
+
+    TensorValue operator-=(float scalar) const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            result.m_data[i] -= scalar;
+        }
+
+        return result;
+    }
+
     TensorValue operator*(float scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
@@ -155,6 +202,66 @@ public:
         for (size_t i = 0; i < m_data.size(); ++i)
         {
             result.m_data[i] = m_data[i] * scalar;
+        }
+
+        return result;
+    }
+
+    TensorValue operator/(float scalar) const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, m_shape);
+        for (size_t i = 0; i < m_data.size(); ++i)
+        {
+            result.m_data[i] = m_data[i] / scalar;
+        }
+
+        return result;
+    }
+
+    friend TensorValue operator*(float scalar, const TensorValue& tensor)
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, tensor.m_shape);
+        for (size_t i = 0; i < tensor.m_data.size(); ++i)
+        {
+            result.m_data[i] = scalar * tensor.m_data[i];
+        }
+
+        return result;
+    }
+
+    friend TensorValue operator/(float scalar, const TensorValue& tensor)
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, tensor.m_shape);
+        for (size_t i = 0; i < tensor.m_data.size(); ++i)
+        {
+            result.m_data[i] = scalar / tensor.m_data[i];
+        }
+
+        return result;
+    }
+
+    friend TensorValue operator+(float scalar, const TensorValue& tensor)
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, tensor.m_shape);
+        for (size_t i = 0; i < tensor.m_data.size(); ++i)
+        {
+            result.m_data[i] = scalar + tensor.m_data[i];
+        }
+
+        return result;
+    }
+
+    friend TensorValue operator-(float scalar, const TensorValue& tensor)
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(0, tensor.m_shape);
+        for (size_t i = 0; i < tensor.m_data.size(); ++i)
+        {
+            result.m_data[i] = scalar - tensor.m_data[i];
         }
 
         return result;
@@ -174,6 +281,18 @@ public:
 
         float sum = std::accumulate(m_data.begin(), m_data.end(), 0.0f);
         return sum / static_cast<float>(m_data.size());
+    }
+
+    static TensorValue sqrt(const TensorValue & value)
+    {
+        // Perform element-wise sin.
+        TensorValue result(0, value.shape());
+        for (size_t i = 0; i < value.data().size(); ++i)
+        {
+            result.m_data[i] = std::sqrt(value.m_data[i]);
+        }
+
+        return result;
     }
 
     static TensorValue sin(const TensorValue & value)
@@ -486,7 +605,7 @@ public:
         obj->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
     }
 
-    static void matmulForwardFunc(Tensor *obj)
+    static void matmulEvaluateFunc(Tensor *obj)
     {
         if (!obj->m_a || !obj->m_b) return;
         obj->m_a->evaluate();
@@ -591,7 +710,7 @@ public:
         Tensor result({0, {a.value().shape()[0], b.value().shape()[1]}});
         result.m_a = duplicateInstance(&a, a.m_isRoot);
         result.m_b = duplicateInstance(&b, b.m_isRoot);
-        result.m_evaluateFunc = matmulForwardFunc;
+        result.m_evaluateFunc = matmulEvaluateFunc;
         result.m_backwardFunc = matmulBackwardFunc;
         return result;
     }
@@ -662,6 +781,66 @@ private:
     std::vector<Tensor*> m_parameters;
     float m_lr;     // Learning rate
 };
+
+
+class AdamOptimizer
+{
+public:
+    explicit AdamOptimizer(const std::vector<Tensor*> & parameters,
+                           float lr = 0.001f, float beta1 = 0.9f, float beta2 = 0.999f, float epsilon = 1e-8f)
+            : m_parameters(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
+    {
+        for (const auto & param : m_parameters)
+        {
+            m_m.emplace_back(0, param->value().shape());
+            m_v.emplace_back(0, param->value().shape());
+        }
+    }
+
+    void step()
+    {
+        ++m_timestep;
+        for (size_t i = 0; i < m_parameters.size(); ++i)
+        {
+            if (m_parameters[i]->isRequireGrad())
+            {
+                // Update biased first moment estimate.
+                m_m[i] = m_beta1 * m_m[i] + (1.0f - m_beta1) * m_parameters[i]->grad();
+
+                // Update biased second raw moment estimate.
+                m_v[i] = m_beta2 * m_v[i] + (1.0f - m_beta2) * m_parameters[i]->grad() * m_parameters[i]->grad();
+
+                // Compute bias-corrected first moment estimate.
+                TensorValue mHat = m_m[i] / (1.0f - std::pow(m_beta1, m_timestep));
+
+                // Compute bias-corrected second raw moment estimate.
+                TensorValue vHat = m_v[i] / (1.0f - std::pow(m_beta2, m_timestep));
+
+                // Update parameter.
+                m_parameters[i]->setValue(m_parameters[i]->value() -  m_lr * mHat / (TensorValue::sqrt(vHat) + m_epsilon));
+            }
+        }
+    }
+
+    void zeroGrad()
+    {
+        for (const auto & param : m_parameters)
+        {
+            param->zeroGrad();
+        }
+    }
+
+private:
+    std::vector<Tensor*>  m_parameters;     // Neural Net's learnable parameters.
+    float m_lr;             // Learning rate.
+    float m_beta1;          // Exponential decay rate for the first moment estimates.
+    float m_beta2;          // Exponential decay rate for the second moment estimates.
+    float m_epsilon;        // Small constant for numerical stability.
+    size_t m_timestep{0};   // Time step.
+    std::vector<TensorValue>    m_m;    // First moment vector.
+    std::vector<TensorValue>    m_v;    // Second moment vector.
+};
+
 
 }   // namespace
 
