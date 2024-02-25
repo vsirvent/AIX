@@ -630,6 +630,9 @@ protected:
 };
 
 
+namespace optim
+{
+
 class SGDOptimizer
 {
 public:
@@ -659,6 +662,8 @@ private:
     std::vector<Tensor*> m_parameters;
     float m_lr;     // Learning rate
 };
+
+}   // namespace
 
 
 namespace nn

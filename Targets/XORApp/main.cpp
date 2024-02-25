@@ -71,7 +71,7 @@ int main()
     NeuralNet model(kNumInputs, kNumTargets, kNumSamples);
 
     // Define a loss function and an optimizer.
-    aix::SGDOptimizer optimizer(model.parameters(), 0.3f);
+    aix::optim::SGDOptimizer optimizer(model.parameters(), 0.3f);
 
     auto lossFunc = aix::nn::MSELoss();
 

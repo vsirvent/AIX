@@ -39,7 +39,7 @@ TEST_CASE("Simple optimizer test")
     auto parameters = {&x, &y, &t, &u};
 
     // Create an instance of the optimizer with a specified learning rate.
-    SGDOptimizer optimizer(parameters, 0.01f);
+    optim::SGDOptimizer optimizer(parameters, 0.01f);
 
     // Perform an optimization step.
     optimizer.step();
