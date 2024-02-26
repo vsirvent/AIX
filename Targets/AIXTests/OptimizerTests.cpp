@@ -36,7 +36,7 @@ TEST_CASE("Simple optimizer test")
     m.backward(1);      // ∂m/∂m = 1.
 
     // Create a vector list of learnable parameters for optimizations.
-    auto parameters = {&x, &y, &t, &u};
+    auto parameters = {x, y, t, u};
 
     // Create an instance of the optimizer with a specified learning rate.
     optim::SGDOptimizer optimizer(parameters, 0.01f);

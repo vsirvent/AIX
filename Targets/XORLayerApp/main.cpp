@@ -19,11 +19,13 @@
 class Linear : public aix::nn::Module
 {
 public:
+    Linear() = default;
+
     // Constructor
     Linear(size_t numInputs, size_t numOutputs, size_t numSamples)
     {
-        m_w1 = aix::tensor(aix::randn({numInputs, numOutputs}), {numInputs, numOutputs}, true);
-        m_b1 = aix::tensor(aix::randn({numSamples, numOutputs}), {numSamples, numOutputs}, true);
+        m_w1 = aix::randn({numInputs, numOutputs},  true);  // A tensor filled with random numbers in [-1, 1].
+        m_b1 = aix::randn({numSamples, numOutputs}, true);
 
         // Register learnable parameters.
         registerParameter(m_w1);
@@ -37,8 +39,8 @@ public:
         return aix::Tensor::matmul(x, m_w1) + m_b1;
     }
 
-    aix::Tensor m_w1;
-    aix::Tensor m_b1;
+    aix::Tensor  m_w1;
+    aix::Tensor  m_b1;
 };
 
 
@@ -47,9 +49,10 @@ class NeuralNet : public aix::nn::Module
 public:
     // Constructor
     NeuralNet(size_t numInputs, size_t numOutputs, size_t numSamples)
-        : m_fc1{numInputs, 4, numSamples},
-          m_fc2{4, numOutputs, numSamples}
     {
+        m_fc1 = Linear(numInputs, 4, numSamples);
+        m_fc2 = Linear(4, numOutputs, numSamples);
+
         registerModule(m_fc1);
         registerModule(m_fc2);
     }

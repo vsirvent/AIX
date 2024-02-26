@@ -269,9 +269,9 @@ public:
 
     void fill(float value)
     {
-        for (size_t i = 0; i < m_data.size(); ++i)
+        for (float & i : m_data)
         {
-            m_data[i] = value;
+            i = value;
         }
     }
 
@@ -431,53 +431,14 @@ private:
 };
 
 
-class Tensor
+class Tensor;
+
+class TensorNode
 {
 public:
-    // Constructor
-    Tensor() : m_requireGrad{false}, m_isRoot{false} { }
-
-    // Constructor for a simple tensor with an optional gradient requirement.
-    Tensor(const TensorValue & value, bool requireGrad = false, bool isRoot = false)
-            :  m_value{value}, m_requireGrad{requireGrad}, m_isRoot{isRoot}
+    explicit TensorNode(const TensorValue & value, bool requireGrad = false)
+            :  m_value{value}, m_grad{0, value.shape()}, m_requireGrad{requireGrad}
     {
-        m_grad = TensorValue(0, value.shape());
-    }
-
-    // Copy Constructor
-    Tensor(const Tensor& other)
-            : m_value{other.m_value},
-              m_grad{other.m_grad},
-              m_requireGrad{other.m_requireGrad},
-              m_isRoot{false},  // Copy should not be considered as raw pointer.
-              m_a{other.m_a},
-              m_b{other.m_b},
-              m_evaluateFunc{other.m_evaluateFunc},
-              m_backwardFunc{other.m_backwardFunc}
-    {
-        // For shared_ptr, simply use the copy constructor which increases the reference count.
-        // If there's any deep copying mechanism needed for complex objects or manual memory management,
-        // it should be handled here. In this case, shared_ptr takes care of the memory management,
-        // so no additional steps are necessary.
-    }
-
-    // Copy Assignment Operator
-    Tensor& operator=(const Tensor& other)
-    {
-        if (this != &other)     // Protect against self-assignment
-        {
-            m_value = other.m_value;
-            m_grad = other.m_grad;
-            m_requireGrad = other.m_requireGrad;
-            m_isRoot = other.m_isRoot;
-            m_a = other.m_a;
-            m_b = other.m_b;
-            m_evaluateFunc = other.m_evaluateFunc;
-            m_backwardFunc = other.m_backwardFunc;
-            // Handle shared_ptr or other deep copy mechanisms here if necessary.
-        }
-
-        return *this;
     }
 
     // Calculate all values in the graph recursively.
@@ -486,264 +447,276 @@ public:
     // Perform backpropagation to calculate gradients recursively.
     void backward(const TensorValue & seed)  { m_backwardFunc(this, seed); }
 
+    TensorValue  m_value;
+    TensorValue  m_grad;
+    bool  m_requireGrad;
+    std::shared_ptr<TensorNode>  m_a{nullptr};
+    std::shared_ptr<TensorNode>  m_b{nullptr};
+    std::function<void(TensorNode * tensor)>                            m_evaluateFunc{nullptr};
+    std::function<void(TensorNode * tensor, const TensorValue & seed)>  m_backwardFunc{nullptr};
+};
+
+
+class Tensor
+{
+public:
+    // Constructor.
+    Tensor() = default;
+
+    // Constructor.
+    explicit Tensor(const TensorValue & value, bool requireGrad = false)
+    {
+        // Create a new Tensor Graph Node.
+        m_data = std::make_shared<TensorNode>(value, requireGrad);
+        m_data->m_evaluateFunc = defaultEvaluation;
+        m_data->m_backwardFunc = defaultBackward;
+    }
+
+    // Calculate all values in the graph recursively.
+    void evaluate()  { m_data->evaluate(); }
+
+    // Perform backpropagation to calculate gradients recursively.
+    void backward(const TensorValue & seed)  { m_data->backward(seed); }
+
     // Getters and setters for the tensor's value.
-    const TensorValue & value() const        { return m_value; }
-    void setValue(const TensorValue & value) { m_value = value; }
+    const TensorValue & value() const        { return m_data->m_value; }
+    void setValue(const TensorValue & value) { m_data->m_value = value; }
 
     // Gradient-related methods.
-    const TensorValue & grad() const { return m_grad; }
-    void zeroGrad()                  { m_grad.fill(0); }
-    bool isRequireGrad() const       { return m_requireGrad; }
+    const TensorValue & grad() const { return m_data->m_grad; }
+    void zeroGrad()                  { m_data->m_grad.fill(0); }
+    bool isRequireGrad() const       { return m_data->m_requireGrad; }
 
-    static void defaultEvaluation([[maybe_unused]] Tensor * obj) { }
-    static void defaultBackward(Tensor * obj, const TensorValue & seed)
+    static void defaultEvaluation([[maybe_unused]] TensorNode * node) { }
+    static void defaultBackward(TensorNode * node, const TensorValue & seed)
     {
-        if (obj->m_requireGrad)
+        if (node->m_requireGrad)
         {
-            obj->m_grad = obj->m_grad + seed;
+            node->m_grad = node->m_grad + seed;
         }
     }
 
     // Auto gradient methods for add operation.
-    static void addEvaluateFunc(Tensor * obj)
+    static void addEvaluateFunc(TensorNode * node)
     {
-        if (!obj->m_a || !obj->m_b) return;
-        obj->m_a->evaluate();
-        obj->m_b->evaluate();
-        obj->m_value = obj->m_a->value() + obj->m_b->value();
+        if (!node->m_a || !node->m_b) return;
+        node->m_a->evaluate();
+        node->m_b->evaluate();
+        node->m_value = node->m_a->m_value + node->m_b->m_value;
     }
 
-    static void addBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void addBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a || !obj->m_b) return;
+        if (!node->m_a || !node->m_b) return;
         // Calculate gradients.
-        obj->m_a->backward(seed);
-        obj->m_b->backward(seed);
+        node->m_a->backward(seed);
+        node->m_b->backward(seed);
     }
 
     // Auto gradient methods for sub operation.
-    static void subEvaluateFunc(Tensor * obj)
+    static void subEvaluateFunc(TensorNode * node)
     {
-        if (!obj->m_a || !obj->m_b) return;
-        obj->m_a->evaluate();
-        obj->m_b->evaluate();
-        obj->m_value = obj->m_a->value() - obj->m_b->value();
+        if (!node->m_a || !node->m_b) return;
+        node->m_a->evaluate();
+        node->m_b->evaluate();
+        node->m_value = node->m_a->m_value - node->m_b->m_value;
     }
 
-    static void subBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void subBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a || !obj->m_b) return;
+        if (!node->m_a || !node->m_b) return;
         // Calculate gradients.
-        obj->m_a->backward(seed);
-        obj->m_b->backward(-seed);
+        node->m_a->backward(seed);
+        node->m_b->backward(-seed);
     }
 
     // Auto gradient methods for mul operation.
-    static void mulEvaluateFunc(Tensor * obj)
+    static void mulEvaluateFunc(TensorNode * node)
     {
-        if (!obj->m_a || !obj->m_b) return;
-        obj->m_a->evaluate();
-        obj->m_b->evaluate();
-        obj->m_value = obj->m_a->value() * obj->m_b->value();
+        if (!node->m_a || !node->m_b) return;
+        node->m_a->evaluate();
+        node->m_b->evaluate();
+        node->m_value = node->m_a->m_value * node->m_b->m_value;
     }
 
-    static void mulBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void mulBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a || !obj->m_b) return;
+        if (!node->m_a || !node->m_b) return;
         // Calculate gradients.
-        obj->m_a->backward(obj->m_b->value() * seed);
-        obj->m_b->backward(obj->m_a->value() * seed);
+        node->m_a->backward(node->m_b->m_value * seed);
+        node->m_b->backward(node->m_a->m_value * seed);
     }
 
     // Auto gradient methods for div operation.
-    static void divEvaluateFunc(Tensor * obj)
+    static void divEvaluateFunc(TensorNode * node)
     {
-        if (!obj->m_a || !obj->m_b) return;
-        obj->m_a->evaluate();
-        obj->m_b->evaluate();
-        obj->m_value = obj->m_a->value() / obj->m_b->value();
+        if (!node->m_a || !node->m_b) return;
+        node->m_a->evaluate();
+        node->m_b->evaluate();
+        node->m_value = node->m_a->m_value / node->m_b->m_value;
     }
 
-    static void divBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void divBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a || !obj->m_b) return;
+        if (!node->m_a || !node->m_b) return;
         // Calculate gradients.
-        obj->m_a->backward(seed / obj->m_b->value());                                               // ∂f/∂a = 1 / b
-        obj->m_b->backward(-obj->m_a->value() * seed / (obj->m_b->value() * obj->m_b->value()));    // ∂f/∂b = -a / b^2
+        node->m_a->backward(seed / node->m_b->m_value);                                               // ∂f/∂a = 1 / b
+        node->m_b->backward(-node->m_a->m_value * seed / (node->m_b->m_value * node->m_b->m_value));  // ∂f/∂b = -a / b^2
     }
 
     // Auto gradient methods for sin operation.
-    static void sinEvaluateFunc(Tensor * obj)
+    static void sinEvaluateFunc(TensorNode * node)
     {
-        if (!obj->m_a) return;
-        obj->m_a->evaluate();
-        obj->m_value = TensorValue::sin(obj->m_a->value());
+        if (!node->m_a) return;
+        node->m_a->evaluate();
+        node->m_value = TensorValue::sin(node->m_a->m_value);
     }
 
-    static void sinBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void sinBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!node->m_a) return;
         // The derivative of sin(a) with respect to 'a' is cos(a).
         // Therefore, the gradient of the input is multiplied by cos(a).
-        obj->m_a->backward(TensorValue::cos(obj->m_a->value()) * seed);   // ∂f/∂a = cos(a)
+        node->m_a->backward(TensorValue::cos(node->m_a->m_value) * seed);   // ∂f/∂a = cos(a)
     }
 
-    static void tanhEvaluateFunc(Tensor * obj)
+    static void tanhEvaluateFunc(TensorNode * node)
     {
-        if (!obj->m_a) return;
-        obj->m_a->evaluate();
-        obj->m_value = TensorValue::tanh(obj->m_a->value());
+        if (!node->m_a) return;
+        node->m_a->evaluate();
+        node->m_value = TensorValue::tanh(node->m_a->m_value);
     }
 
-    static void tanhBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void tanhBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!node->m_a) return;
         // The derivative of tanh(a) with respect to 'a' is 1 - tanh^2(a).
         // Therefore, the gradient of the input is multiplied by (1 - tanh^2(a)).
-        auto tanhValue = TensorValue::tanh(obj->m_a->value());
+        auto tanhValue = TensorValue::tanh(node->m_a->m_value);
         auto oneTensor = TensorValue(1.0, tanhValue.shape());
-        obj->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
+        node->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
     }
 
-    static void matmulEvaluateFunc(Tensor *obj)
+    static void matmulEvaluateFunc(TensorNode *node)
     {
-        if (!obj->m_a || !obj->m_b) return;
-        obj->m_a->evaluate();
-        obj->m_b->evaluate();
-        obj->m_value = TensorValue::matmul(obj->m_a->value(), obj->m_b->value());
+        if (!node->m_a || !node->m_b) return;
+        node->m_a->evaluate();
+        node->m_b->evaluate();
+        node->m_value = TensorValue::matmul(node->m_a->m_value, node->m_b->m_value);
     }
 
-    static void matmulBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void matmulBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a || !obj->m_b) return;
+        if (!node->m_a || !node->m_b) return;
         // Assuming m_a and m_b are the input matrices a and b, respectively,
         // and seed is ∂E/∂c, the gradient of the loss with respect to the output matrix c.
         // Compute gradients with respect to a and b
 
         // Corrected to use matrix multiplication for backward pass calculations
-        obj->m_a->backward(TensorValue::matmul(seed, obj->m_b->value().transpose()));      // ∂E/∂a = ∂E/∂c * b^T
-        obj->m_b->backward(TensorValue::matmul(obj->m_a->value().transpose(), seed));      // ∂E/∂b = a^T * ∂E/∂c
+        node->m_a->backward(TensorValue::matmul(seed, node->m_b->m_value.transpose()));      // ∂E/∂a = ∂E/∂c * b^T
+        node->m_b->backward(TensorValue::matmul(node->m_a->m_value.transpose(), seed));      // ∂E/∂b = a^T * ∂E/∂c
     }
 
-    static void meanEvaluateFunc(Tensor * obj)
+    static void meanEvaluateFunc(TensorNode * node)
     {
-        if (!obj->m_a) return;
-        obj->m_a->evaluate();
-        obj->m_value = TensorValue(obj->m_a->value().mean(), {1, 1});
+        if (!node->m_a) return;
+        node->m_a->evaluate();
+        node->m_value = TensorValue(node->m_a->m_value.mean(), {1, 1});
     }
 
-    static void meanBackwardFunc(Tensor * obj, const TensorValue & seed)
+    static void meanBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (!obj->m_a) return;
+        if (!node->m_a) return;
         // The gradient of the mean operation is distributed evenly across all elements. grad = 1/N
-        obj->m_a->backward(seed / float(obj->m_a->value().data().size()));
+        node->m_a->backward(seed / float(node->m_a->m_value.data().size()));
     }
 
     // Overload the + operator
-    Tensor operator+(const Tensor & other) const
+    Tensor operator+(const Tensor & rhsTensor) const
     {
         Tensor result({0, {value().shape()}});
-        result.m_a = duplicateInstance(this, m_isRoot);
-        result.m_b = duplicateInstance(&other, other.m_isRoot);
-        result.m_evaluateFunc = addEvaluateFunc;
-        result.m_backwardFunc = addBackwardFunc;
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_evaluateFunc = addEvaluateFunc;
+        result.m_data->m_backwardFunc = addBackwardFunc;
         return result;
     }
 
     // Overload the - operator
-    Tensor operator-(const Tensor & other) const
+    Tensor operator-(const Tensor & rhsTensor) const
     {
         Tensor result({0, {value().shape()}});
-        result.m_a = duplicateInstance(this, m_isRoot);
-        result.m_b = duplicateInstance(&other, other.m_isRoot);
-        result.m_evaluateFunc = subEvaluateFunc;
-        result.m_backwardFunc = subBackwardFunc;
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_evaluateFunc = subEvaluateFunc;
+        result.m_data->m_backwardFunc = subBackwardFunc;
         return result;
     }
 
-    // Overload the - operator
-    Tensor operator*(const Tensor & other) const
+    // Overload the * operator
+    Tensor operator*(const Tensor & rhsTensor) const
     {
         Tensor result({0, {value().shape()}});
-        result.m_a = duplicateInstance(this, m_isRoot);
-        result.m_b = duplicateInstance(&other, other.m_isRoot);
-        result.m_evaluateFunc = mulEvaluateFunc;
-        result.m_backwardFunc = mulBackwardFunc;
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_evaluateFunc = mulEvaluateFunc;
+        result.m_data->m_backwardFunc = mulBackwardFunc;
         return result;
     }
 
     // Overload the / operator
-    Tensor operator/(const Tensor & other) const
+    Tensor operator/(const Tensor & rhsTensor) const
     {
         Tensor result({0, {value().shape()}});
-        result.m_a = duplicateInstance(this, m_isRoot);
-        result.m_b = duplicateInstance(&other, other.m_isRoot);
-        result.m_evaluateFunc = divEvaluateFunc;
-        result.m_backwardFunc = divBackwardFunc;
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_evaluateFunc = divEvaluateFunc;
+        result.m_data->m_backwardFunc = divBackwardFunc;
         return result;
     }
 
-    static Tensor sin(const Tensor & other)
+    static Tensor sin(const Tensor & rhsTensor)
     {
-        Tensor result({0, {other.value().shape()}});
-        result.m_a = duplicateInstance(&other, other.m_isRoot);
-        result.m_b = nullptr;
-        result.m_evaluateFunc = sinEvaluateFunc;
-        result.m_backwardFunc = sinBackwardFunc;
+        Tensor result({0, {rhsTensor.value().shape()}});
+        result.m_data->m_a = rhsTensor.m_data;
+        result.m_data->m_b = nullptr;
+        result.m_data->m_evaluateFunc = sinEvaluateFunc;
+        result.m_data->m_backwardFunc = sinBackwardFunc;
         return result;
     };
 
-    static Tensor tanh(const Tensor & other)
+    static Tensor tanh(const Tensor & rhsTensor)
     {
-        Tensor result({0, {other.value().shape()}});
-        result.m_a = duplicateInstance(&other, other.m_isRoot);
-        result.m_b = nullptr;
-        result.m_evaluateFunc = tanhEvaluateFunc;
-        result.m_backwardFunc = tanhBackwardFunc;
+        Tensor result({0, {rhsTensor.value().shape()}});
+        result.m_data->m_a = rhsTensor.m_data;
+        result.m_data->m_b = nullptr;
+        result.m_data->m_evaluateFunc = tanhEvaluateFunc;
+        result.m_data->m_backwardFunc = tanhBackwardFunc;
         return result;
     };
 
     static Tensor matmul(const Tensor & a, const Tensor & b)
     {
         Tensor result({0, {a.value().shape()[0], b.value().shape()[1]}});
-        result.m_a = duplicateInstance(&a, a.m_isRoot);
-        result.m_b = duplicateInstance(&b, b.m_isRoot);
-        result.m_evaluateFunc = matmulEvaluateFunc;
-        result.m_backwardFunc = matmulBackwardFunc;
+        result.m_data->m_a = a.m_data;
+        result.m_data->m_b = b.m_data;
+        result.m_data->m_evaluateFunc = matmulEvaluateFunc;
+        result.m_data->m_backwardFunc = matmulBackwardFunc;
         return result;
     }
 
     Tensor mean() const
     {
-        Tensor result({0, {1, 1}});     // Assuming a scalar tensor for the mean result.
-        result.m_a = duplicateInstance(this, m_isRoot);
-        result.m_b = nullptr;
-        result.m_evaluateFunc = meanEvaluateFunc;
-        result.m_backwardFunc = meanBackwardFunc;
+        Tensor result({0, {1, 1}});     // Scalar tensor for the mean result.
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = nullptr;
+        result.m_data->m_evaluateFunc = meanEvaluateFunc;
+        result.m_data->m_backwardFunc = meanBackwardFunc;
         return result;
     }
 
 protected:
-    inline static std::shared_ptr<Tensor> duplicateInstance(const Tensor * tensor, bool isRoot)
-    {
-        // Duplicates instances that are not root (temporary) objects or converts root objects (source parameters)
-        // to shared pointers with a custom no-deleter to prevent deletion of objects.
-        auto noDelete = [](const Tensor*){ };   // Custom deleter not to delete external raw pointers.
-        return isRoot ? std::shared_ptr<Tensor>(const_cast<Tensor*>(tensor), noDelete) :
-                        std::make_shared<Tensor>(*tensor);
-    }
-
-    TensorValue m_value;
-    TensorValue m_grad;
-    bool  m_requireGrad{false};
-    bool  m_isRoot{false};
-
-    // Pointers to operands, if this tensor is the result of an operation.
-    std::shared_ptr<Tensor>  m_a{nullptr};
-    std::shared_ptr<Tensor>  m_b{nullptr};
-
-    std::function<void(Tensor * tensor)>  m_evaluateFunc = defaultEvaluation;
-    std::function<void(Tensor * tensor, const TensorValue & seed)>  m_backwardFunc = defaultBackward;
+    std::shared_ptr<TensorNode>  m_data{nullptr};
 };
 
 
@@ -753,30 +726,30 @@ namespace optim
 class SGDOptimizer
 {
 public:
-    explicit SGDOptimizer(const std::vector<Tensor*> & parameters, float lr = 0.01f)
+    explicit SGDOptimizer(const std::vector<Tensor> & parameters, float lr = 0.01f)
         : m_parameters(parameters), m_lr(lr) {}
 
     void step()
     {
-        for (const auto & param : m_parameters)
+        for (auto & param : m_parameters)
         {
-            if (param->isRequireGrad())
+            if (param.isRequireGrad())
             {
-                param->setValue(param->value() - param->grad() * m_lr);   // w' = w - lr * w_gradient.
+                param.setValue(param.value() - param.grad() * m_lr);   // w' = w - lr * w_gradient.
             }
         }
     }
 
     void zeroGrad()
     {
-        for (const auto & param : m_parameters)
+        for (auto & param : m_parameters)
         {
-            param->zeroGrad();
+            param.zeroGrad();
         }
     }
 
 private:
-    std::vector<Tensor*> m_parameters;
+    std::vector<Tensor> m_parameters;
     float m_lr;     // Learning rate
 };
 
@@ -784,14 +757,14 @@ private:
 class AdamOptimizer
 {
 public:
-    explicit AdamOptimizer(const std::vector<Tensor*> & parameters,
+    explicit AdamOptimizer(const std::vector<Tensor> & parameters,
                            float lr = 0.001f, float beta1 = 0.9f, float beta2 = 0.999f, float epsilon = 1e-8f)
             : m_parameters(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
     {
         for (const auto & param : m_parameters)
         {
-            m_m.emplace_back(0, param->value().shape());
-            m_v.emplace_back(0, param->value().shape());
+            m_m.emplace_back(0, param.value().shape());
+            m_v.emplace_back(0, param.value().shape());
         }
     }
 
@@ -800,36 +773,36 @@ public:
         ++m_timestep;
         for (size_t i = 0; i < m_parameters.size(); ++i)
         {
-            if (m_parameters[i]->isRequireGrad())
+            if (m_parameters[i].isRequireGrad())
             {
                 // Update biased first moment estimate.
-                m_m[i] = m_beta1 * m_m[i] + (1.0f - m_beta1) * m_parameters[i]->grad();
+                m_m[i] = m_beta1 * m_m[i] + (1.0f - m_beta1) * m_parameters[i].grad();
 
                 // Update biased second raw moment estimate.
-                m_v[i] = m_beta2 * m_v[i] + (1.0f - m_beta2) * m_parameters[i]->grad() * m_parameters[i]->grad();
+                m_v[i] = m_beta2 * m_v[i] + (1.0f - m_beta2) * m_parameters[i].grad() * m_parameters[i].grad();
 
                 // Compute bias-corrected first moment estimate.
-                TensorValue mHat = m_m[i] / (1.0f - std::pow(m_beta1, m_timestep));
+                TensorValue mHat = m_m[i] / float(1.0f - std::pow(m_beta1, m_timestep));
 
                 // Compute bias-corrected second raw moment estimate.
-                TensorValue vHat = m_v[i] / (1.0f - std::pow(m_beta2, m_timestep));
+                TensorValue vHat = m_v[i] / float(1.0f - std::pow(m_beta2, m_timestep));
 
                 // Update parameter.
-                m_parameters[i]->setValue(m_parameters[i]->value() -  m_lr * mHat / (TensorValue::sqrt(vHat) + m_epsilon));
+                m_parameters[i].setValue(m_parameters[i].value() -  m_lr * mHat / (TensorValue::sqrt(vHat) + m_epsilon));
             }
         }
     }
 
     void zeroGrad()
     {
-        for (const auto & param : m_parameters)
+        for (auto & param : m_parameters)
         {
-            param->zeroGrad();
+            param.zeroGrad();
         }
     }
 
 private:
-    std::vector<Tensor*>  m_parameters;     // Neural Net's learnable parameters.
+    std::vector<Tensor>  m_parameters;     // Neural Net's learnable parameters.
     float m_lr;             // Learning rate.
     float m_beta1;          // Exponential decay rate for the first moment estimates.
     float m_beta2;          // Exponential decay rate for the second moment estimates.
@@ -853,32 +826,31 @@ public:
 
     void registerParameter(Tensor & tensor)
     {
-        m_parameters.emplace_back(&tensor);
+        m_parameters.emplace_back(tensor);
     }
 
-    void registerModule(Module & module)
+    void registerModule(const Module & module)
     {
-        for (auto param : module.parameters())
+        for (const auto & param : module.parameters())
         {
             m_parameters.emplace_back(param);
         }
     }
 
-    const std::vector<Tensor*> parameters() const
+    std::vector<Tensor> parameters() const
     {
         return m_parameters;
     }
 
 private:
-    std::vector<Tensor*> m_parameters;
+    std::vector<Tensor> m_parameters;
 };
 
 
 class MSELoss
 {
 public:
-    //Tensor operator()(const Tensor & predictions, const Tensor & targets)
-    Tensor operator()(Tensor predictions, Tensor targets)
+    Tensor operator()(const Tensor & predictions, const Tensor & targets)
     {
         auto diff = predictions - targets;
         auto loss = (diff * diff).mean();
@@ -891,19 +863,19 @@ public:
 
 inline Tensor tensor(const std::vector<float>& data, const std::vector<size_t>& shape, bool requireGrad = false)
 {
-    return {TensorValue{data, shape}, requireGrad, true};
+    return Tensor{TensorValue{data, shape}, requireGrad};
 }
 
 inline Tensor tensor(const std::vector<float>& data, bool requireGrad = false)
 {
-    return {TensorValue{data, {1, data.size()}}, requireGrad, true};
+    return Tensor{TensorValue{data, {1, data.size()}}, requireGrad};
 }
 
-inline std::vector<float> randn(const std::vector<size_t>& shape, float min= -1, float max= 1)
+inline Tensor randn(const std::vector<size_t>& shape, bool requireGrad = false)
 {
     static std::random_device randomDevice;
     static std::mt19937 randGen(randomDevice());
-    std::uniform_real_distribution<float> distr(min, max); // Directly use float
+    std::uniform_real_distribution<float> distr(-1, 1);
 
     size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
     std::vector<float> rndData(totalSize);
@@ -911,7 +883,7 @@ inline std::vector<float> randn(const std::vector<size_t>& shape, float min= -1,
     // Fill rndData with random numbers
     std::generate(rndData.begin(), rndData.end(), [&distr]() -> float { return distr(randGen); });
 
-    return rndData;
+    return Tensor{TensorValue{rndData, shape}, requireGrad};
 }
 
 
