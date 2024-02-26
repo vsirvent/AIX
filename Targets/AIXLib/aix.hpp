@@ -635,10 +635,8 @@ public:
     static void meanBackwardFunc(Tensor * obj, const TensorValue & seed)
     {
         if (!obj->m_a) return;
-        // The gradient of the mean operation is distributed evenly across all elements.
-        size_t totalElements = obj->m_a->value().data().size();
-        TensorValue grad = TensorValue(1.0f / totalElements, obj->m_a->value().shape());
-        obj->m_a->backward(grad * seed);    // Adjust seed by the gradient of mean operation.
+        // The gradient of the mean operation is distributed evenly across all elements. grad = 1/N
+        obj->m_a->backward(seed / float(obj->m_a->value().data().size()));
     }
 
     // Overload the + operator
