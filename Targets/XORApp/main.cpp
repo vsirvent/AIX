@@ -7,12 +7,12 @@
 //  trade secret or copyright law. Dissemination of this information or reproduction of this
 //  material is strictly forbidden unless prior written permission is obtained from Arkin Terli.
 
-
 // Project includes
 #include <aix.hpp>
 // External includes
 // System includes
 #include <iostream>
+#include <chrono>
 
 
 class NeuralNet : public aix::nn::Module
@@ -21,7 +21,7 @@ public:
     // Constructor
     NeuralNet(size_t numInputs, size_t numOutputs, size_t numSamples)
     {
-        constexpr size_t hlSize = 8;      // Hidden layer size.
+        constexpr size_t hlSize = 4;      // Hidden layer size.
         m_w1 = aix::tensor(aix::randn({numInputs, hlSize}), {numInputs, hlSize}, true);
         m_b1 = aix::tensor(aix::randn({numSamples, hlSize}), {numSamples, hlSize}, true);
         m_w2 = aix::tensor(aix::randn({hlSize, numOutputs}), {hlSize, numOutputs}, true);
@@ -53,13 +53,14 @@ int main()
     constexpr int kNumInputs   = 2;
     constexpr int kNumTargets  = 1;
     constexpr int kNumEpochs   = 1000;
-    constexpr int kLogInterval = 10;
-    constexpr float kLossThreshold = 1e-6;
+    constexpr int kLogInterval = 100;
+    constexpr float kLearningRate  = 0.05f;
+    constexpr float kLossThreshold = 1e-5f;
 
     // Example inputs and targets for demonstration purposes.
     auto inputs  = aix::tensor({0.0, 0.0,
-                                1.0, 0.0,
                                 0.0, 1.0,
+                                1.0, 0.0,
                                 1.0, 1.0}, {kNumSamples, kNumInputs});
 
     auto targets = aix::tensor({0.0,
@@ -71,31 +72,39 @@ int main()
     NeuralNet model(kNumInputs, kNumTargets, kNumSamples);
 
     // Define a loss function and an optimizer.
-    aix::optim::SGDOptimizer optimizer(model.parameters(), 0.3f);
+    aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);
 
     auto lossFunc = aix::nn::MSELoss();
+    auto timeStart = std::chrono::steady_clock::now();
 
     // Training loop.
     for (size_t epoch = 0; epoch < kNumEpochs; ++epoch)
     {
-        optimizer.zeroGrad();       // Zero the gradients before backward pass.
+        optimizer.zeroGrad();                               // Zero the gradients before backward pass.
 
+        // Forward step.
         auto predictions = model.forward(inputs);
-
         auto loss = lossFunc(predictions, targets);         // Loss calculations are still part of computation graph.
-
         loss.evaluate();                                    // Compute all values in the graph.
+
+        // Backward step.
         loss.backward({1, {kNumSamples, kNumTargets}});     // Compute all gradients in the graph.
 
-        optimizer.step();           // Update parameters.
+        // Optimization step.
+        optimizer.step();                                   // Update neural net's learnable parameters.
 
+        // Log loss value.
         if (epoch % kLogInterval == 0 || loss.value().data()[0] <= kLossThreshold)
             std::cout << "Epoch: " << epoch << " Loss = " << loss.value().data()[0] << std::endl << std::flush;
 
+        // Stop training process when loss is lower than the threshold.
         if (loss.value().data()[0] <= kLossThreshold)
             break;
     }
     std::cout << std::endl;
+
+    auto timeEnd = std::chrono::steady_clock::now();
+    std::cout << "Training on CPU: " << std::chrono::duration<double, std::milli>(timeEnd - timeStart).count() << " ms.\n";
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);
