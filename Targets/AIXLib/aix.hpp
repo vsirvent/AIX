@@ -481,6 +481,7 @@ public:
     // Getters and setters for the tensor's value.
     const TensorValue & value() const        { return m_data->m_value; }
     void setValue(const TensorValue & value) { m_data->m_value = value; }
+    const std::vector<size_t> & shape() const { return m_data->m_value.shape(); }
 
     // Gradient-related methods.
     const TensorValue & grad() const { return m_data->m_grad; }
@@ -634,7 +635,7 @@ public:
     // Overload the + operator
     Tensor operator+(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {value().shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = addEvaluateFunc;
@@ -645,7 +646,7 @@ public:
     // Overload the - operator
     Tensor operator-(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {value().shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = subEvaluateFunc;
@@ -656,7 +657,7 @@ public:
     // Overload the * operator
     Tensor operator*(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {value().shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = mulEvaluateFunc;
@@ -667,7 +668,7 @@ public:
     // Overload the / operator
     Tensor operator/(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {value().shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = divEvaluateFunc;
@@ -677,7 +678,7 @@ public:
 
     static Tensor sin(const Tensor & rhsTensor)
     {
-        Tensor result({0, {rhsTensor.value().shape()}}, rhsTensor.m_data->m_requireGrad);
+        Tensor result({0, {rhsTensor.shape()}}, rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = sinEvaluateFunc;
@@ -687,7 +688,7 @@ public:
 
     static Tensor tanh(const Tensor & rhsTensor)
     {
-        Tensor result({0, {rhsTensor.value().shape()}}, rhsTensor.m_data->m_requireGrad);
+        Tensor result({0, {rhsTensor.shape()}}, rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = tanhEvaluateFunc;
@@ -697,8 +698,7 @@ public:
 
     static Tensor matmul(const Tensor & a, const Tensor & b)
     {
-        Tensor result({0, {a.value().shape()[0], b.value().shape()[1]}}, a.m_data->m_requireGrad ||
-                                                                         b.m_data->m_requireGrad);
+        Tensor result({0, {a.shape()[0], b.shape()[1]}}, a.m_data->m_requireGrad || b.m_data->m_requireGrad);
         result.m_data->m_a = a.m_data;
         result.m_data->m_b = b.m_data;
         result.m_data->m_evaluateFunc = matmulEvaluateFunc;
@@ -764,8 +764,8 @@ public:
     {
         for (const auto & param : m_parameters)
         {
-            m_m.emplace_back(0, param.value().shape());
-            m_v.emplace_back(0, param.value().shape());
+            m_m.emplace_back(0, param.shape());
+            m_v.emplace_back(0, param.shape());
         }
     }
 
