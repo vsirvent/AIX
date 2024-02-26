@@ -24,8 +24,8 @@ TEST_CASE("Simple TensorValue 1 dim - Add")
 
     auto z = x + y;
 
-    CHECK(z.shape() == std::vector<size_t>{1, 3});
-    CHECK(z.data()  == std::vector<float>{5, 7, 9});
+    CHECK(z.shape() == Shape{1, 3});
+    CHECK(z.data() == Array{5, 7, 9});
 }
 
 
@@ -36,8 +36,8 @@ TEST_CASE("Simple TensorValue 2 dim - Add")
 
     auto z = x + y;
 
-    CHECK(z.shape() == std::vector<size_t>{2, 3});
-    CHECK(z.data()  == std::vector<float>{8, 10, 12, 14, 16, 18});
+    CHECK(z.shape() == Shape{2, 3});
+    CHECK(z.data() == Array{8, 10, 12, 14, 16, 18});
 }
 
 
@@ -48,8 +48,8 @@ TEST_CASE("Simple TensorValue 2 dim - Sub")
 
     auto z = x - y;
 
-    CHECK(z.shape() == std::vector<size_t>{2, 3});
-    CHECK(z.data()  == std::vector<float>{-6, -6, -6, -6, -6, -6});
+    CHECK(z.shape() == Shape{2, 3});
+    CHECK(z.data() == Array{-6, -6, -6, -6, -6, -6});
 }
 
 
@@ -60,8 +60,8 @@ TEST_CASE("Simple TensorValue 2 dim - Mul")
 
     auto z = x * y;
 
-    CHECK(z.shape() == std::vector<size_t>{2, 3});
-    CHECK(z.data()  == std::vector<float>{7, 16, 27, 40, 55, 72});
+    CHECK(z.shape() == Shape{2, 3});
+    CHECK(z.data() == Array{7, 16, 27, 40, 55, 72});
 }
 
 
@@ -72,8 +72,8 @@ TEST_CASE("Simple TensorValue 2 dim - Div")
 
     auto z = x / y;
 
-    CHECK(z.shape() == std::vector<size_t>{2, 3});
-    CHECK(z.data()  == std::vector<float>{-1, 0, 1, 2, -3, -1});
+    CHECK(z.shape() == Shape{2, 3});
+    CHECK(z.data() == Array{-1, 0, 1, 2, -3, -1});
 }
 
 
@@ -111,7 +111,7 @@ TEST_CASE("TensorValue::matmul 1x1 1x1")
     auto b = TensorValue(3, {1, 1});
     auto c = TensorValue::matmul(a, b);
 
-    CHECK(c.shape() == std::vector<size_t>{1, 1});
+    CHECK(c.shape() == Shape{1, 1});
     CheckVectorApproxValues(c.data(), {6});
 }
 
@@ -122,7 +122,7 @@ TEST_CASE("TensorValue::matmul 2x4 4x3")
     auto b = TensorValue({1,2,3,4,5,6,7,8,9,10,11,12}, {4, 3});
     auto c = TensorValue::matmul(a, b);     // Result matrix.
 
-    CHECK(c.shape() == std::vector<size_t>{2, 3});
+    CHECK(c.shape() == Shape{2, 3});
     CheckVectorApproxValues(c.data(), {70, 80, 90, 158, 184, 210});
 }
 
@@ -130,7 +130,7 @@ TEST_CASE("TensorValue::matmul 2x4 4x3")
 TEST_CASE("TensorValue::transpose 1x1")
 {
     auto a = TensorValue(2, {1, 1}).transpose();
-    CHECK(a.shape() == std::vector<size_t>{1, 1});
+    CHECK(a.shape() == Shape{1, 1});
     CheckVectorApproxValues(a.data(), {2});
 }
 
@@ -138,6 +138,6 @@ TEST_CASE("TensorValue::transpose 1x1")
 TEST_CASE("TensorValue::transpose 2x3")
 {
     auto a = TensorValue({1, 2, 3, 4, 5, 6}, {2, 3}).transpose();
-    CHECK(a.shape() == std::vector<size_t>{3, 2});
+    CHECK(a.shape() == Shape{3, 2});
     CheckVectorApproxValues(a.data(), {1, 4, 2, 5, 3, 6});
 }

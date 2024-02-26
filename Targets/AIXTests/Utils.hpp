@@ -10,6 +10,7 @@
 #pragma once
 
 // Project includes
+#include <aix.hpp>
 // External includes
 #include <doctest/doctest.h>
 // System includes
@@ -21,7 +22,7 @@ inline auto Approx(auto value)
     return doctest::Approx(value).epsilon(EPSILON);
 }
 
-inline void CheckVectorApproxValues(const std::vector<float> & source, const std::vector<float> & values)
+inline void CheckVectorApproxValues(const aix::Array & source, const aix::Array & values)
 {
     for (size_t i=0; i<values.size(); ++i)
     {

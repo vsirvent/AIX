@@ -23,6 +23,19 @@
 namespace aix
 {
 
+#ifdef AIX_DATA_TYPE_FLOAT
+    using DataType = float;
+#elif  AIX_DATA_TYPE_DOUBLE
+    using DataType = double;
+#else
+    using DataType = float;     // Default data type.
+#endif
+
+using Array = std::vector<DataType>;
+using Shape = std::vector<size_t>;
+using Index = std::vector<size_t>;
+
+
 class TensorValue
 {
 public:
@@ -30,48 +43,48 @@ public:
     TensorValue() = default;
 
     // Constructor
-    TensorValue(const std::vector<float>& data, const std::vector<size_t>& shape)
-            : m_data(data), m_shape(shape)
+    TensorValue(Array data, Shape shape)
+            : m_data(std::move(data)), m_shape(std::move(shape))
     {
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
     }
 
     // Constructor
-    TensorValue(float value, const std::vector<size_t>& shape) : m_shape(shape)
+    TensorValue(DataType value, Shape shape) : m_shape(std::move(shape))
     {
         size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
-        m_data = std::vector<float>(totalSize, value);
+        m_data = Array(totalSize, value);
         computeStrides();
     }
 
     // Constructor
-    TensorValue(float value) : m_shape(std::vector<size_t>{1, 1})
+    TensorValue(DataType value) : m_shape{Shape{1, 1}}
     {
-        m_data = std::vector<float>(1, value);
+        m_data = Array(1, value);
         computeStrides();
     }
 
     // Access element at a specific index (non-const version).
-    float & operator()(const std::vector<size_t>& indices) { return m_data[getIndex(indices)]; }
+    DataType & operator()(const Index & indices)     { return m_data[getIndex(indices)]; }
 
     // Access element at a specific index (const version).
-    float operator()(const std::vector<size_t>& indices) const { return m_data[getIndex(indices)]; }
+    DataType operator()(const Index & indices) const { return m_data[getIndex(indices)]; }
 
     // Get the shape of the tensor
-    const std::vector<size_t>& shape() const    { return m_shape; }
+    const Shape & shape() const    { return m_shape; }
 
     // Get the strides of the tensor
-    const std::vector<size_t>& strides() const  { return m_strides; }
+    const Shape & strides() const  { return m_strides; }
 
     // Get the raw data of the tensor
-    const std::vector<float>& data() const      { return m_data; }
+    const Array & data() const     { return m_data; }
 
 
     // Operators
 
     // Overload the + operator
-    TensorValue operator+(const TensorValue& other) const
+    TensorValue operator+(const TensorValue & other) const
     {
         // Check if the shapes of the two tensors are the same.
         validateShapes(m_shape, other.m_shape);
@@ -87,7 +100,7 @@ public:
     }
 
     // Overload the - operator
-    TensorValue operator-(const TensorValue& other) const
+    TensorValue operator-(const TensorValue & other) const
     {
         // Check if the shapes of the two tensors are the same.
         validateShapes(m_shape, other.m_shape);
@@ -103,7 +116,7 @@ public:
     }
 
     // Overload the * operator
-    TensorValue operator*(const TensorValue& other) const
+    TensorValue operator*(const TensorValue & other) const
     {
         // Check if the shapes of the two tensors are the same.
         validateShapes(m_shape, other.m_shape);
@@ -119,7 +132,7 @@ public:
     }
 
     // Overload the / operator
-    TensorValue operator/(const TensorValue& other) const
+    TensorValue operator/(const TensorValue & other) const
     {
         // Check if the shapes of the two tensors are the same.
         validateShapes(m_shape, other.m_shape);
@@ -147,7 +160,7 @@ public:
         return result;
     }
 
-    TensorValue operator+(float scalar) const
+    TensorValue operator+(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, m_shape);
@@ -159,7 +172,7 @@ public:
         return result;
     }
 
-    TensorValue operator-(float scalar) const
+    TensorValue operator-(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, m_shape);
@@ -171,7 +184,7 @@ public:
         return result;
     }
 
-    TensorValue operator+=(float scalar) const
+    TensorValue operator+=(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, m_shape);
@@ -183,7 +196,7 @@ public:
         return result;
     }
 
-    TensorValue operator-=(float scalar) const
+    TensorValue operator-=(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, m_shape);
@@ -195,7 +208,7 @@ public:
         return result;
     }
 
-    TensorValue operator*(float scalar) const
+    TensorValue operator*(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, m_shape);
@@ -207,7 +220,7 @@ public:
         return result;
     }
 
-    TensorValue operator/(float scalar) const
+    TensorValue operator/(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, m_shape);
@@ -219,7 +232,7 @@ public:
         return result;
     }
 
-    friend TensorValue operator*(float scalar, const TensorValue& tensor)
+    friend TensorValue operator*(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, tensor.m_shape);
@@ -231,7 +244,7 @@ public:
         return result;
     }
 
-    friend TensorValue operator/(float scalar, const TensorValue& tensor)
+    friend TensorValue operator/(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, tensor.m_shape);
@@ -243,7 +256,7 @@ public:
         return result;
     }
 
-    friend TensorValue operator+(float scalar, const TensorValue& tensor)
+    friend TensorValue operator+(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, tensor.m_shape);
@@ -255,7 +268,7 @@ public:
         return result;
     }
 
-    friend TensorValue operator-(float scalar, const TensorValue& tensor)
+    friend TensorValue operator-(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(0, tensor.m_shape);
@@ -267,20 +280,20 @@ public:
         return result;
     }
 
-    void fill(float value)
+    void fill(DataType value)
     {
-        for (float & i : m_data)
+        for (DataType & i : m_data)
         {
             i = value;
         }
     }
 
-    float mean() const
+    DataType mean() const
     {
-        if (m_data.empty()) return 0.0f; // Guard against division by zero for empty tensors
+        if (m_data.empty()) return 0.0f;
 
-        float sum = std::accumulate(m_data.begin(), m_data.end(), 0.0f);
-        return sum / static_cast<float>(m_data.size());
+        DataType sum = std::accumulate(m_data.begin(), m_data.end(), 0.0f);
+        return sum / static_cast<DataType>(m_data.size());
     }
 
     static TensorValue sqrt(const TensorValue & value)
@@ -351,7 +364,7 @@ public:
         size_t inner = a.shape()[1];    // Inner dimension
 
         // Resultant tensor shape
-        std::vector<size_t> resultShape = {m, n};
+        Shape resultShape = {m, n};
         TensorValue result(0.0f, resultShape);
 
         // Perform matrix multiplication
@@ -359,7 +372,7 @@ public:
         {
             for (size_t j = 0; j < n; ++j)
             {
-                float sum = 0.0f;
+                DataType sum = 0.0f;
                 for (size_t k = 0; k < inner; ++k)
                 {
                     sum += a({i, k}) * b({k, j});
@@ -410,7 +423,7 @@ private:
     }
 
     // Get the flat index from a vector of indices
-    size_t getIndex(const std::vector<size_t>& indices) const
+    size_t getIndex(const Index & indices) const
     {
         assert(indices.size() == m_shape.size());
         return std::inner_product(indices.begin(), indices.end(), m_strides.begin(), 0);
@@ -425,9 +438,9 @@ private:
     }
 
 private:
-    std::vector<float>  m_data;      // The flat array of tensor elements
-    std::vector<size_t> m_shape;     // The shape of the tensor
-    std::vector<size_t> m_strides;   // The strides for indexing the tensor
+    Array m_data;      // The flat array of tensor elements
+    Shape m_shape;     // The shape of the tensor
+    Index m_strides;   // The strides for indexing the tensor
 };
 
 
@@ -481,7 +494,7 @@ public:
     // Getters and setters for the tensor's value.
     const TensorValue & value() const        { return m_data->m_value; }
     void setValue(const TensorValue & value) { m_data->m_value = value; }
-    const std::vector<size_t> & shape() const { return m_data->m_value.shape(); }
+    const Shape & shape() const { return m_data->m_value.shape(); }
 
     // Gradient-related methods.
     const TensorValue & grad() const { return m_data->m_grad; }
@@ -629,7 +642,7 @@ public:
     {
         if (!node->m_a) return;
         // The gradient of the mean operation is distributed evenly across all elements. grad = 1/N
-        node->m_a->backward(seed / float(node->m_a->m_value.data().size()));
+        node->m_a->backward(seed / DataType(node->m_a->m_value.data().size()));
     }
 
     // Overload the + operator
@@ -727,7 +740,7 @@ namespace optim
 class SGDOptimizer
 {
 public:
-    explicit SGDOptimizer(const std::vector<Tensor> & parameters, float lr = 0.01f)
+    explicit SGDOptimizer(const std::vector<Tensor> & parameters, DataType lr = 0.01f)
         : m_parameters(parameters), m_lr(lr) {}
 
     void step()
@@ -751,7 +764,7 @@ public:
 
 private:
     std::vector<Tensor> m_parameters;
-    float m_lr;     // Learning rate
+    DataType m_lr;     // Learning rate
 };
 
 
@@ -759,7 +772,7 @@ class AdamOptimizer
 {
 public:
     explicit AdamOptimizer(const std::vector<Tensor> & parameters,
-                           float lr = 0.001f, float beta1 = 0.9f, float beta2 = 0.999f, float epsilon = 1e-8f)
+                           DataType lr = 0.001f, DataType beta1 = 0.9f, DataType beta2 = 0.999f, DataType epsilon = 1e-8f)
             : m_parameters(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
     {
         for (const auto & param : m_parameters)
@@ -777,16 +790,16 @@ public:
             if (m_parameters[i].isRequireGrad())
             {
                 // Update biased first moment estimate.
-                m_m[i] = m_beta1 * m_m[i] + (1.0f - m_beta1) * m_parameters[i].grad();
+                m_m[i] = m_beta1 * m_m[i] + DataType(1.0 - m_beta1) * m_parameters[i].grad();
 
                 // Update biased second raw moment estimate.
-                m_v[i] = m_beta2 * m_v[i] + (1.0f - m_beta2) * m_parameters[i].grad() * m_parameters[i].grad();
+                m_v[i] = m_beta2 * m_v[i] + DataType(1.0 - m_beta2) * m_parameters[i].grad() * m_parameters[i].grad();
 
                 // Compute bias-corrected first moment estimate.
-                TensorValue mHat = m_m[i] / float(1.0f - std::pow(m_beta1, m_timestep));
+                TensorValue mHat = m_m[i] / DataType(1.0 - std::pow(m_beta1, m_timestep));
 
                 // Compute bias-corrected second raw moment estimate.
-                TensorValue vHat = m_v[i] / float(1.0f - std::pow(m_beta2, m_timestep));
+                TensorValue vHat = m_v[i] / DataType(1.0 - std::pow(m_beta2, m_timestep));
 
                 // Update parameter.
                 m_parameters[i].setValue(m_parameters[i].value() -  m_lr * mHat / (TensorValue::sqrt(vHat) + m_epsilon));
@@ -804,11 +817,11 @@ public:
 
 private:
     std::vector<Tensor>  m_parameters;     // Neural Net's learnable parameters.
-    float m_lr;             // Learning rate.
-    float m_beta1;          // Exponential decay rate for the first moment estimates.
-    float m_beta2;          // Exponential decay rate for the second moment estimates.
-    float m_epsilon;        // Small constant for numerical stability.
-    size_t m_timestep{0};   // Time step.
+    DataType m_lr;             // Learning rate.
+    DataType m_beta1;          // Exponential decay rate for the first moment estimates.
+    DataType m_beta2;          // Exponential decay rate for the second moment estimates.
+    DataType m_epsilon;        // Small constant for numerical stability.
+    size_t m_timestep{0};      // Time step.
     std::vector<TensorValue>    m_m;    // First moment vector.
     std::vector<TensorValue>    m_v;    // Second moment vector.
 };
@@ -862,27 +875,27 @@ public:
 }   // namespace
 
 
-inline Tensor tensor(const std::vector<float>& data, const std::vector<size_t>& shape, bool requireGrad = false)
+inline Tensor tensor(const Array & data, const Shape & shape, bool requireGrad = false)
 {
     return Tensor{TensorValue{data, shape}, requireGrad};
 }
 
-inline Tensor tensor(const std::vector<float>& data, bool requireGrad = false)
+inline Tensor tensor(const Array & data, bool requireGrad = false)
 {
     return Tensor{TensorValue{data, {1, data.size()}}, requireGrad};
 }
 
-inline Tensor randn(const std::vector<size_t>& shape, bool requireGrad = false)
+inline Tensor randn(const Shape & shape, bool requireGrad = false)
 {
     static std::random_device randomDevice;
     static std::mt19937 randGen(randomDevice());
-    std::uniform_real_distribution<float> distr(-1, 1);
+    std::uniform_real_distribution<DataType> distr(-1, 1);
 
     size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
-    std::vector<float> rndData(totalSize);
+    Array rndData(totalSize);
 
     // Fill rndData with random numbers
-    std::generate(rndData.begin(), rndData.end(), [&distr]() -> float { return distr(randGen); });
+    std::generate(rndData.begin(), rndData.end(), [&distr]() -> DataType { return distr(randGen); });
 
     return Tensor{TensorValue{rndData, shape}, requireGrad};
 }

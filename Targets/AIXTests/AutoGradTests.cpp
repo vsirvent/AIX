@@ -19,11 +19,11 @@ using namespace aix;
 
 struct TestModel : public aix::nn::Module
 {
-    TestModel(const std::vector<float> & xData,
-              const std::vector<float> & yData,
-              const std::vector<float> & tData,
-              const std::vector<float> & uData,
-              const std::vector<size_t> & shape)
+    TestModel(const aix::Array & xData,
+              const aix::Array & yData,
+              const aix::Array & tData,
+              const aix::Array & uData,
+              const aix::Shape & shape)
     {
         m_x = aix::tensor(xData, shape, true);
         m_y = aix::tensor(yData, shape, true);
