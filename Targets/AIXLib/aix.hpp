@@ -35,6 +35,9 @@ using Array = std::vector<DataType>;
 using Shape = std::vector<size_t>;
 using Index = std::vector<size_t>;
 
+// Forward declarations
+class Tensor;
+
 
 class TensorValue
 {
@@ -444,8 +447,6 @@ private:
 };
 
 
-class Tensor;
-
 class TensorNode
 {
 public:
@@ -734,9 +735,39 @@ protected:
 };
 
 
-namespace optim
+inline Tensor tensor(const Array & data, const Shape & shape, bool requireGrad = false)
 {
+    return Tensor{TensorValue{data, shape}, requireGrad};
+}
 
+inline Tensor tensor(const Array & data, bool requireGrad = false)
+{
+    return Tensor{TensorValue{data, {1, data.size()}}, requireGrad};
+}
+
+inline Tensor randn(const Shape & shape, bool requireGrad = false)
+{
+    static std::random_device randomDevice;
+    static std::mt19937 randGen(randomDevice());
+    std::uniform_real_distribution<DataType> distr(-1, 1);
+
+    size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
+    Array rndData(totalSize);
+
+    // Fill rndData with random numbers
+    std::generate(rndData.begin(), rndData.end(), [&distr]() -> DataType { return distr(randGen); });
+
+    return Tensor{TensorValue{rndData, shape}, requireGrad};
+}
+
+}   // aix namespace
+
+
+// Optimizers Namespace
+
+
+namespace aix::optim
+{
 
 class Optimizer
 {
@@ -833,11 +864,13 @@ private:
     std::vector<TensorValue>    m_v;    // Second moment vector.
 };
 
-
 }   // optim namespace
 
 
-namespace nn
+// Neural Network Namespace
+
+
+namespace aix::nn
 {
 
 class Module
@@ -912,6 +945,45 @@ protected:
 };
 
 
+class Linear : public Module
+{
+public:
+    Linear() = default;
+
+    // Constructor
+    Linear(size_t numInputs, size_t numOutputs, size_t numSamples)
+    {
+        m_w1 = randn({numInputs, numOutputs},  true);  // A tensor filled with random numbers in [-1, 1].
+        m_b1 = randn({numSamples, numOutputs}, true);
+
+        // Register learnable parameters.
+        registerParameter(m_w1);
+        registerParameter(m_b1);
+    }
+
+    // Forward
+    Tensor forward(Tensor x) const override
+    {
+        // TODO: m_b1 needs to support broadcasting to remove numSamples params from constructor.
+        return Tensor::matmul(x, m_w1) + m_b1;
+    }
+
+    Tensor  m_w1;
+    Tensor  m_b1;
+};
+
+
+class Tanh : public Module
+{
+public:
+    // Forward
+    Tensor forward(Tensor x) const override
+    {
+        return Tensor::tanh(x);
+    }
+};
+
+
 class MSELoss
 {
 public:
@@ -924,32 +996,3 @@ public:
 };
 
 }   // nn namespace
-
-
-inline Tensor tensor(const Array & data, const Shape & shape, bool requireGrad = false)
-{
-    return Tensor{TensorValue{data, shape}, requireGrad};
-}
-
-inline Tensor tensor(const Array & data, bool requireGrad = false)
-{
-    return Tensor{TensorValue{data, {1, data.size()}}, requireGrad};
-}
-
-inline Tensor randn(const Shape & shape, bool requireGrad = false)
-{
-    static std::random_device randomDevice;
-    static std::mt19937 randGen(randomDevice());
-    std::uniform_real_distribution<DataType> distr(-1, 1);
-
-    size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
-    Array rndData(totalSize);
-
-    // Fill rndData with random numbers
-    std::generate(rndData.begin(), rndData.end(), [&distr]() -> DataType { return distr(randGen); });
-
-    return Tensor{TensorValue{rndData, shape}, requireGrad};
-}
-
-
-}   // aix namespace

@@ -9,7 +9,6 @@
 
 // Project includes
 #include <aix.hpp>
-#include <aixmodules.hpp>
 // External includes
 // System includes
 #include <iostream>
