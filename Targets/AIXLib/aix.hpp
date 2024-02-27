@@ -737,13 +737,38 @@ protected:
 namespace optim
 {
 
-class SGDOptimizer
+
+class Optimizer
+{
+public:
+    // Constructor
+    explicit Optimizer(const std::vector<Tensor> & parameters) : m_parameters(parameters) { }
+
+    // Destructor
+    virtual ~Optimizer() = default;
+
+    virtual void step() = 0;
+
+    virtual void zeroGrad()
+    {
+        for (auto & param : m_parameters)
+        {
+            param.zeroGrad();
+        }
+    }
+
+protected:
+    std::vector<Tensor> m_parameters;
+};
+
+
+class SGDOptimizer : public Optimizer
 {
 public:
     explicit SGDOptimizer(const std::vector<Tensor> & parameters, DataType lr = 0.01f)
-        : m_parameters(parameters), m_lr(lr) {}
+        : Optimizer(parameters), m_lr(lr) { }
 
-    void step()
+    void step() final
     {
         for (auto & param : m_parameters)
         {
@@ -754,26 +779,17 @@ public:
         }
     }
 
-    void zeroGrad()
-    {
-        for (auto & param : m_parameters)
-        {
-            param.zeroGrad();
-        }
-    }
-
 private:
-    std::vector<Tensor> m_parameters;
     DataType m_lr;     // Learning rate
 };
 
 
-class AdamOptimizer
+class AdamOptimizer : public Optimizer
 {
 public:
-    explicit AdamOptimizer(const std::vector<Tensor> & parameters,
-                           DataType lr = 0.001f, DataType beta1 = 0.9f, DataType beta2 = 0.999f, DataType epsilon = 1e-8f)
-            : m_parameters(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
+    explicit AdamOptimizer(const std::vector<Tensor> & parameters, DataType lr = 0.001f, DataType beta1 = 0.9f,
+                           DataType beta2 = 0.999f, DataType epsilon = 1e-8f)
+            : Optimizer(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
     {
         for (const auto & param : m_parameters)
         {
@@ -782,7 +798,7 @@ public:
         }
     }
 
-    void step()
+    void step() final
     {
         ++m_timestep;
         for (size_t i = 0; i < m_parameters.size(); ++i)
@@ -807,16 +823,7 @@ public:
         }
     }
 
-    void zeroGrad()
-    {
-        for (auto & param : m_parameters)
-        {
-            param.zeroGrad();
-        }
-    }
-
 private:
-    std::vector<Tensor>  m_parameters;     // Neural Net's learnable parameters.
     DataType m_lr;             // Learning rate.
     DataType m_beta1;          // Exponential decay rate for the first moment estimates.
     DataType m_beta2;          // Exponential decay rate for the second moment estimates.
