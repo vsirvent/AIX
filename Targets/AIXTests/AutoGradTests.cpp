@@ -36,7 +36,7 @@ struct TestModel : public aix::nn::Module
         registerParameter(m_u);
     }
 
-    Tensor forward() const
+    Tensor forward([[maybe_unused]] Tensor x) const final
     {
         auto z = m_x * (m_x + m_y) / m_t - Tensor::tanh(m_y * m_y);
         auto m = m_x * z + Tensor::sin(m_u) * m_u;
@@ -60,7 +60,7 @@ TEST_CASE("Auto Grad - Module Test - 1x1 Tensor")
                         {5},   // u
                         shape);
 
-    auto m = tm.forward();
+    auto m = tm.forward({});
     // Traverse the graph (starting from the end) to calculate all expression values.
     // This approach is known as lazy evaluation, meaning that values are not calculated
     // until the 'evaluate' function is called.
@@ -98,7 +98,7 @@ TEST_CASE("Auto Grad - Module Test - 1x2 Tensor")
                         {7, 8},   // u
                         shape);
 
-    auto m = tm.forward();
+    auto m = tm.forward({});
     // Traverse the graph (starting from the end) to calculate all expression values.
     // This approach is known as lazy evaluation, meaning that values are not calculated
     // until the 'evaluate' function is called.
@@ -136,7 +136,7 @@ TEST_CASE("Auto Grad - Module Test - 2x3 Tensor")
                         {19, 20, 21, 22, 23, 24},   // u
                         shape);
 
-    auto m = tm.forward();
+    auto m = tm.forward({});
     // Traverse the graph (starting from the end) to calculate all expression values.
     // This approach is known as lazy evaluation, meaning that values are not calculated
     // until the 'evaluate' function is called.

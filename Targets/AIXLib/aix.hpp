@@ -834,7 +834,7 @@ private:
 };
 
 
-}   // namespace
+}   // optim namespace
 
 
 namespace nn
@@ -844,6 +844,8 @@ class Module
 {
 public:
     virtual ~Module() = default;
+
+    virtual Tensor forward(Tensor x) const = 0;
 
     void registerParameter(Tensor & tensor)
     {
@@ -863,8 +865,50 @@ public:
         return m_parameters;
     }
 
+    // Returns the total number of elements (learnable parameters) in each Tensor.
+    size_t learnableParameters() const
+    {
+        size_t totalParams = 0;
+        for (const auto & param: m_parameters)
+        {
+            if (param.isRequireGrad())
+            {
+                totalParams += param.value().data().size();
+            }
+        }
+        return totalParams;
+    }
+
 private:
     std::vector<Tensor> m_parameters;
+};
+
+
+class Sequential : public Module
+{
+public:
+    Sequential() = default;
+
+    // Override the forward function.
+    Tensor forward(Tensor x) const override
+    {
+        for (const auto & module : m_modules)
+        {
+            x = module->forward(x);
+        }
+        return x;
+    }
+
+    // Function to add modules dynamically if needed.
+    void add(Module* module)
+    {
+        registerModule(*module);
+        m_modules.emplace_back(module);     // Use std::unique_ptr to take ownership of the module pointer.
+    }
+
+protected:
+    // Use std::unique_ptr for polymorphic containment.
+    std::vector<std::unique_ptr<Module>>  m_modules;
 };
 
 
@@ -879,7 +923,7 @@ public:
     }
 };
 
-}   // namespace
+}   // nn namespace
 
 
 inline Tensor tensor(const Array & data, const Shape & shape, bool requireGrad = false)
@@ -908,4 +952,4 @@ inline Tensor randn(const Shape & shape, bool requireGrad = false)
 }
 
 
-}   // namespace
+}   // aix namespace

@@ -42,7 +42,7 @@ TEST_CASE("Model Forward Test - XOR")
         }
 
         // Forward
-        aix::Tensor forward(aix::Tensor x)
+        aix::Tensor forward(aix::Tensor x) const final
         {
             x = aix::Tensor::tanh(aix::Tensor::matmul(x, m_w1) + m_b1);
             x = aix::Tensor::tanh(aix::Tensor::matmul(x, m_w2) + m_b2);

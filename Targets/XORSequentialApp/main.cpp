@@ -9,43 +9,12 @@
 
 // Project includes
 #include <aix.hpp>
+#include <aixmodules.hpp>
 // External includes
 // System includes
 #include <iostream>
-#include <chrono>
 
-
-class NeuralNet : public aix::nn::Module
-{
-public:
-    // Constructor
-    NeuralNet(size_t numInputs, size_t numOutputs, size_t numSamples)
-    {
-        constexpr size_t hlSize = 4;      // Hidden layer size.
-        m_w1 = aix::randn({numInputs,  hlSize},     true);
-        m_b1 = aix::randn({numSamples, hlSize},     true);
-        m_w2 = aix::randn({hlSize,     numOutputs}, true);
-        m_b2 = aix::randn({numSamples, numOutputs}, true);
-
-        // Register learnable parameters.
-        registerParameter(m_w1);
-        registerParameter(m_b1);
-        registerParameter(m_w2);
-        registerParameter(m_b2);
-    }
-
-    // Forward
-    aix::Tensor forward(aix::Tensor x) const override
-    {
-        x = aix::Tensor::tanh(aix::Tensor::matmul(x, m_w1) + m_b1);
-        x = aix::Tensor::matmul(x, m_w2) + m_b2;
-        return x;
-    }
-
-    aix::Tensor m_w1, m_b1;
-    aix::Tensor m_w2, m_b2;
-};
-
+// This application shows how to use sequential module to build a neural network with other modules easily.
 
 int main()
 {
@@ -68,8 +37,14 @@ int main()
                                 1.0,
                                 0.0}, {kNumSamples, kNumTargets});
 
-    // Create a model with a single hidden layer.
-    NeuralNet model(kNumInputs, kNumTargets, kNumSamples);
+    aix::nn::Sequential  model;
+    model.add(new aix::nn::Linear(kNumInputs, 8, kNumSamples));
+    model.add(new aix::nn::Tanh());
+    model.add(new aix::nn::Linear(8, 4, kNumSamples));
+    model.add(new aix::nn::Tanh());
+    model.add(new aix::nn::Linear(4, kNumTargets, kNumSamples));
+
+    std::cout << "Total parameters: " << model.learnableParameters() << std::endl;
 
     // Define a loss function and an optimizer.
     aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);
