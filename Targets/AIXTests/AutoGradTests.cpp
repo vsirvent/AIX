@@ -105,7 +105,7 @@ TEST_CASE("Auto Grad - Module Test - 1x2 Tensor")
     m.evaluate();
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
-    m.backward({{1, 1}, shape});   // ∂m/∂m = [1, 1]  1x2 tensor
+    m.backward();   // ∂m/∂m = [1, 1]  1x2 tensor
 
     // Check shapes
     CHECK(tm.m_x.grad().shape()  == shape);
@@ -143,7 +143,7 @@ TEST_CASE("Auto Grad - Module Test - 2x3 Tensor")
     m.evaluate();
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
-    m.backward({{1, 1, 1, 1, 1, 1}, shape});   // ∂m/∂m = [1,1,1,1,1,1]  2x3 tensor
+    m.backward();   // ∂m/∂m = [1,1,1,1,1,1]  2x3 tensor
 
     // Check shapes
     CHECK(tm.m_x.grad().shape()  == shape);

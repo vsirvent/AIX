@@ -111,7 +111,7 @@ int main()
         loss.evaluate();                                    // Compute all values in the graph.
 
         // Backward step.
-        loss.backward({1, {kNumSamples, kNumTargets}});     // Compute all gradients in the graph.
+        loss.backward();                                    // Compute all gradients in the graph.
 
         // Optimization step.
         optimizer.step();                                   // Update neural net's learnable parameters.

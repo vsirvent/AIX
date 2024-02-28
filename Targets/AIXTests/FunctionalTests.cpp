@@ -76,7 +76,7 @@ TEST_CASE("Model Forward Test - XOR")
     auto predictions = tm.forward(inputs);
     predictions.evaluate();
 
-    predictions.backward({{1, 1, 1, 1}, {kNumSamples, kNumTargets}});   // ∂m/∂m = [1,1,1,1]  4x1 tensor
+    predictions.backward();   // ∂m/∂m = [1,1,1,1]  4x1 tensor
 
     // Check shapes
     CHECK(predictions.value().shape() == std::vector<size_t>{kNumSamples, kNumTargets});

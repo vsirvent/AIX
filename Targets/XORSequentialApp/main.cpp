@@ -25,16 +25,7 @@ int main()
     constexpr float kLearningRate  = 0.05f;
     constexpr float kLossThreshold = 1e-5f;
 
-    // Example inputs and targets for demonstration purposes.
-    auto inputs  = aix::tensor({0.0, 0.0,
-                                0.0, 1.0,
-                                1.0, 0.0,
-                                1.0, 1.0}, {kNumSamples, kNumInputs});
-
-    auto targets = aix::tensor({0.0,
-                                1.0,
-                                1.0,
-                                0.0}, {kNumSamples, kNumTargets});
+    aix::Device  cpuDevice;    // aix framework can still work without device creation.
 
     aix::nn::Sequential  model;
     model.add(new aix::nn::Linear(kNumInputs, 8, kNumSamples));
@@ -43,9 +34,22 @@ int main()
     model.add(new aix::nn::Tanh());
     model.add(new aix::nn::Linear(4, kNumTargets, kNumSamples));
 
+    model.to(cpuDevice);
+
     std::cout << "Total parameters: " << model.learnableParameters() << std::endl;
 
-    // Define a loss function and an optimizer.
+    // Example inputs and targets for demonstration purposes.
+    auto inputs  = aix::tensor({0.0, 0.0,
+                                0.0, 1.0,
+                                1.0, 0.0,
+                                1.0, 1.0}, {kNumSamples, kNumInputs}).to(cpuDevice);
+
+    auto targets = aix::tensor({0.0,
+                                1.0,
+                                1.0,
+                                0.0}, {kNumSamples, kNumTargets}).to(cpuDevice);
+
+     // Define a loss function and an optimizer.
     aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);
 
     auto lossFunc = aix::nn::MSELoss();
@@ -62,7 +66,7 @@ int main()
         loss.evaluate();                                    // Compute all values in the graph.
 
         // Backward step.
-        loss.backward({1, {kNumSamples, kNumTargets}});     // Compute all gradients in the graph.
+        loss.backward();                                    // Compute all gradients in the graph.
 
         // Optimization step.
         optimizer.step();                                   // Update neural net's learnable parameters.

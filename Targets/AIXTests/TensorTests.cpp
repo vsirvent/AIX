@@ -16,11 +16,12 @@
 
 using namespace aix;
 
+Device  testDevice;     // Default CPU device.
 
 TEST_CASE("Simple TensorValue 1 dim - Add")
 {
-    auto x = TensorValue({1, 2, 3}, {1, 3});
-    auto y = TensorValue({4, 5, 6}, {1, 3});
+    auto x = TensorValue({1, 2, 3}, {1, 3}, &testDevice);
+    auto y = TensorValue({4, 5, 6}, {1, 3}, &testDevice);
 
     auto z = x + y;
 
@@ -31,8 +32,8 @@ TEST_CASE("Simple TensorValue 1 dim - Add")
 
 TEST_CASE("Simple TensorValue 2 dim - Add")
 {
-    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3});
-    auto y = TensorValue({7, 8, 9, 10, 11, 12}, {2, 3});
+    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3}, &testDevice);
+    auto y = TensorValue({7, 8, 9, 10, 11, 12}, {2, 3}, &testDevice);
 
     auto z = x + y;
 
@@ -43,8 +44,8 @@ TEST_CASE("Simple TensorValue 2 dim - Add")
 
 TEST_CASE("Simple TensorValue 2 dim - Sub")
 {
-    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3});
-    auto y = TensorValue({7, 8, 9, 10, 11, 12}, {2, 3});
+    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3}, &testDevice);
+    auto y = TensorValue({7, 8, 9, 10, 11, 12}, {2, 3}, &testDevice);
 
     auto z = x - y;
 
@@ -55,8 +56,8 @@ TEST_CASE("Simple TensorValue 2 dim - Sub")
 
 TEST_CASE("Simple TensorValue 2 dim - Mul")
 {
-    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3});
-    auto y = TensorValue({7, 8, 9, 10, 11, 12}, {2, 3});
+    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3}, &testDevice);
+    auto y = TensorValue({7, 8, 9, 10, 11, 12}, {2, 3}, &testDevice);
 
     auto z = x * y;
 
@@ -67,8 +68,8 @@ TEST_CASE("Simple TensorValue 2 dim - Mul")
 
 TEST_CASE("Simple TensorValue 2 dim - Div")
 {
-    auto x = TensorValue({-5, 0, 5, 10, 15, 20}, {2, 3});
-    auto y = TensorValue({5, 5, 5, 5, -5, -20},  {2, 3});
+    auto x = TensorValue({-5, 0, 5, 10, 15, 20}, {2, 3}, &testDevice);
+    auto y = TensorValue({5, 5, 5, 5, -5, -20},  {2, 3}, &testDevice);
 
     auto z = x / y;
 
@@ -79,7 +80,7 @@ TEST_CASE("Simple TensorValue 2 dim - Div")
 
 TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 {
-    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3});
+    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3}, &testDevice);
     auto z = x;
 
     CHECK(z.shape() == x.shape());
@@ -89,7 +90,7 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 
 TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 {
-    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3});
+    auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3}, &testDevice);
     auto copyTensor = [](TensorValue value) { return value; };
     auto z = copyTensor(x);
 
@@ -100,16 +101,16 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 
 TEST_CASE("TensorValue::tanh 2x2")
 {
-    auto x = TensorValue({0.1, 0.2, 0.3, 0.4}, {2, 2});
-    CheckVectorApproxValues(TensorValue::tanh(x).data(), {0.099668, 0.197375, 0.291313, 0.379949});
+    auto x = TensorValue({0.1, 0.2, 0.3, 0.4}, {2, 2}, &testDevice);
+    CheckVectorApproxValues(x.tanh().data(), {0.099668, 0.197375, 0.291313, 0.379949});
 }
 
 
 TEST_CASE("TensorValue::matmul 1x1 1x1")
 {
-    auto a = TensorValue(2, {1, 1});
-    auto b = TensorValue(3, {1, 1});
-    auto c = TensorValue::matmul(a, b);
+    auto a = TensorValue(2, {1, 1}, &testDevice);
+    auto b = TensorValue(3, {1, 1}, &testDevice);
+    auto c = a.matmul(b);
 
     CHECK(c.shape() == Shape{1, 1});
     CheckVectorApproxValues(c.data(), {6});
@@ -118,9 +119,9 @@ TEST_CASE("TensorValue::matmul 1x1 1x1")
 
 TEST_CASE("TensorValue::matmul 2x4 4x3")
 {
-    auto a = TensorValue({1,2,3,4,5,6,7,8},            {2, 4});
-    auto b = TensorValue({1,2,3,4,5,6,7,8,9,10,11,12}, {4, 3});
-    auto c = TensorValue::matmul(a, b);     // Result matrix.
+    auto a = TensorValue({1,2,3,4,5,6,7,8},            {2, 4}, &testDevice);
+    auto b = TensorValue({1,2,3,4,5,6,7,8,9,10,11,12}, {4, 3}, &testDevice);
+    auto c = a.matmul(b);     // Result matrix.
 
     CHECK(c.shape() == Shape{2, 3});
     CheckVectorApproxValues(c.data(), {70, 80, 90, 158, 184, 210});
@@ -129,7 +130,7 @@ TEST_CASE("TensorValue::matmul 2x4 4x3")
 
 TEST_CASE("TensorValue::transpose 1x1")
 {
-    auto a = TensorValue(2, {1, 1}).transpose();
+    auto a = TensorValue(2, {1, 1}, &testDevice).transpose();
     CHECK(a.shape() == Shape{1, 1});
     CheckVectorApproxValues(a.data(), {2});
 }
@@ -137,7 +138,7 @@ TEST_CASE("TensorValue::transpose 1x1")
 
 TEST_CASE("TensorValue::transpose 2x3")
 {
-    auto a = TensorValue({1, 2, 3, 4, 5, 6}, {2, 3}).transpose();
+    auto a = TensorValue({1, 2, 3, 4, 5, 6}, {2, 3}, &testDevice).transpose();
     CHECK(a.shape() == Shape{3, 2});
     CheckVectorApproxValues(a.data(), {1, 4, 2, 5, 3, 6});
 }

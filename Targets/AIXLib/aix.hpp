@@ -39,22 +39,212 @@ using Index = std::vector<size_t>;
 class Tensor;
 
 
+enum class DeviceType
+{
+    kCPU,
+};
+
+
+class Device
+{
+public:
+    explicit Device() : m_type(DeviceType::kCPU) {}
+
+    DeviceType type() const { return m_type; }
+
+    virtual void add(const Array & a1, const Array & a2, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a1[i] + a2[i];
+        }
+    }
+
+    virtual void sub(const Array & a1, const Array & a2, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a1[i] - a2[i];
+        }
+    }
+
+    virtual void mul(const Array & a1, const Array & a2, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a1[i] * a2[i];
+        }
+    }
+
+    virtual void div(const Array & a1, const Array & a2, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a1[i] / a2[i];
+        }
+    }
+
+    // Scalar operations
+
+    virtual void add(const Array & a, DataType scalar, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a[i] + scalar;
+        }
+    }
+
+    virtual void sub(const Array & a, DataType scalar, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a[i] - scalar;
+        }
+    }
+
+    virtual void sub(DataType scalar, const Array & a, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = scalar - a[i];
+        }
+    }
+
+    virtual void mul(const Array & a, DataType scalar, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a[i] * scalar;
+        }
+    }
+
+    virtual void div(const Array & a, DataType scalar, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = a[i] / scalar;
+        }
+    }
+
+    virtual void div(DataType scalar, const Array & a, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = scalar / a[i];
+        }
+    }
+
+    virtual void unary(const Array & a, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = -a[i];
+        }
+    }
+
+    virtual void fill(DataType value, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = value;
+        }
+    }
+
+    virtual void mean(const Array & a, const size_t size, DataType & result)
+    {
+        DataType sum = std::accumulate(a.begin(), a.end(), 0);
+        result = sum / static_cast<DataType>(size);
+    }
+
+    virtual void sqrt(const Array & a, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = std::sqrt(a[i]);
+        }
+    }
+
+    virtual void sin(const Array & a, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = std::sin(a[i]);
+        }
+    }
+
+    virtual void cos(const Array & a, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = std::cos(a[i]);
+        }
+    }
+
+    virtual void tanh(const Array & a, const size_t size, Array & result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = std::tanh(a[i]);
+        }
+    }
+
+    virtual void matmul(const Array & a1, const Shape & s1, const Array & a2, const Shape & s2, Array & result)
+    {
+        // NOTE: Since TensorValue validated the parameters, device method do not validate again.
+        size_t m = s1[0];        // Rows of the first matrix
+        size_t n = s2[1];        // Columns of the second matrix
+        size_t inner = s1[1];    // Inner dimension
+
+        // Perform matrix multiplication
+        for (size_t i = 0; i < m; ++i)
+        {
+            for (size_t j = 0; j < n; ++j)
+            {
+                DataType sum = 0;
+                for (size_t k = 0; k < inner; ++k)
+                {
+                    sum += a1[i * s1[1] + k] * a2[k * n + j];
+                }
+                result[i * n + j] = sum;
+            }
+        }
+    }
+
+    virtual void transpose(const Array & a, const Shape & shape, Array & result)
+    {
+        // Perform the transpose operation.
+        for (size_t i = 0; i < shape[0]; ++i)
+        {
+            for (size_t j = 0; j < shape[1]; ++j)
+            {
+                // Swap the indices for the transposition.
+                result[j * shape[0] + i] = a[i * shape[1] + j];
+            }
+        }
+    };
+
+protected:
+    DeviceType  m_type;
+};
+
+
+// Default device.
+static Device defaultDevice;      // TODO: default CPU device needs to move to a global context.
+
+
 class TensorValue
 {
 public:
     // Constructor
-    TensorValue() = default;
-
-    // Constructor
-    TensorValue(Array data, Shape shape)
-            : m_data(std::move(data)), m_shape(std::move(shape))
+    TensorValue(Array data, Shape shape, Device * device)
+            : m_data(std::move(data)), m_shape(std::move(shape)), m_device(device)
     {
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
     }
 
     // Constructor
-    TensorValue(DataType value, Shape shape) : m_shape(std::move(shape))
+    TensorValue(DataType value, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
         size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         m_data = Array(totalSize, value);
@@ -62,7 +252,7 @@ public:
     }
 
     // Constructor
-    TensorValue(DataType value) : m_shape{Shape{1, 1}}
+    TensorValue(DataType value, Device * device) : m_shape{Shape{1, 1}}, m_device(device)
     {
         m_data = Array(1, value);
         computeStrides();
@@ -83,6 +273,12 @@ public:
     // Get the raw data of the tensor
     const Array & data() const     { return m_data; }
 
+    // Get the device
+    Device * device() const        { return m_device; }
+
+    // Set the device
+    void device(Device * device)   { m_device = device; }
+
 
     // Operators
 
@@ -93,12 +289,8 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] + other.m_data[i];
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->add(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
 
@@ -109,12 +301,8 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] - other.m_data[i];
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->sub(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
 
@@ -125,12 +313,8 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] * other.m_data[i];
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->mul(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
 
@@ -141,12 +325,8 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] / other.m_data[i];
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->div(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
 
@@ -154,236 +334,155 @@ public:
     TensorValue operator-() const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = -m_data[i];
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->unary(m_data, m_data.size(), result.m_data);
         return result;
     }
 
     TensorValue operator+(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] + scalar;
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->add(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
 
     TensorValue operator-(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] - scalar;
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->sub(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
 
     TensorValue operator+=(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] += scalar;
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->add(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
 
     TensorValue operator-=(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] -= scalar;
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->sub(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
 
     TensorValue operator*(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] * scalar;
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->mul(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
 
     TensorValue operator/(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape);
-        for (size_t i = 0; i < m_data.size(); ++i)
-        {
-            result.m_data[i] = m_data[i] / scalar;
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->div(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
 
     friend TensorValue operator*(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape);
-        for (size_t i = 0; i < tensor.m_data.size(); ++i)
-        {
-            result.m_data[i] = scalar * tensor.m_data[i];
-        }
-
+        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        tensor.m_device->mul(tensor.m_data, scalar, tensor.m_data.size(), result.m_data);
         return result;
     }
 
     friend TensorValue operator/(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape);
-        for (size_t i = 0; i < tensor.m_data.size(); ++i)
-        {
-            result.m_data[i] = scalar / tensor.m_data[i];
-        }
-
+        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        tensor.m_device->div(scalar, tensor.m_data, tensor.m_data.size(), result.m_data);
         return result;
     }
 
     friend TensorValue operator+(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape);
-        for (size_t i = 0; i < tensor.m_data.size(); ++i)
-        {
-            result.m_data[i] = scalar + tensor.m_data[i];
-        }
-
+        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        tensor.m_device->add(tensor.m_data, scalar, tensor.m_data.size(), result.m_data);
         return result;
     }
 
     friend TensorValue operator-(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape);
-        for (size_t i = 0; i < tensor.m_data.size(); ++i)
-        {
-            result.m_data[i] = scalar - tensor.m_data[i];
-        }
-
+        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        tensor.m_device->sub(scalar, tensor.m_data, tensor.m_data.size(), result.m_data);
         return result;
     }
 
     void fill(DataType value)
     {
-        for (DataType & i : m_data)
-        {
-            i = value;
-        }
+        m_device->fill(value, m_data.size(), m_data);
     }
 
     DataType mean() const
     {
-        if (m_data.empty()) return 0.0f;
-
-        DataType sum = std::accumulate(m_data.begin(), m_data.end(), 0.0f);
-        return sum / static_cast<DataType>(m_data.size());
-    }
-
-    static TensorValue sqrt(const TensorValue & value)
-    {
-        // Perform element-wise sin.
-        TensorValue result(0, value.shape());
-        for (size_t i = 0; i < value.data().size(); ++i)
-        {
-            result.m_data[i] = std::sqrt(value.m_data[i]);
-        }
-
+        if (m_data.empty()) return 0;
+        DataType result;
+        m_device->mean(m_data, m_data.size(), result);
         return result;
     }
 
-    static TensorValue sin(const TensorValue & value)
+    TensorValue sqrt()
     {
         // Perform element-wise sin.
-        TensorValue result(0, value.shape());
-        for (size_t i = 0; i < value.data().size(); ++i)
-        {
-            result.m_data[i] = std::sin(value.m_data[i]);
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->sqrt(m_data, m_data.size(), result.m_data);
         return result;
     }
 
-    static TensorValue cos(const TensorValue & value)
+    TensorValue sin()
+    {
+        // Perform element-wise sin.
+        TensorValue result(0, m_shape, m_device);
+        m_device->sin(m_data, m_data.size(), result.m_data);
+        return result;
+    }
+
+    TensorValue cos()
     {
         // Perform element-wise cos.
-        TensorValue result(0, value.shape());
-        for (size_t i = 0; i < value.data().size(); ++i)
-        {
-            result.m_data[i] = std::cos(value.m_data[i]);
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->cos(m_data, m_data.size(), result.m_data);
         return result;
     }
 
-    static TensorValue tanh(const TensorValue & value)
+    TensorValue tanh()
     {
         // Perform element-wise tanh.
-        TensorValue result(0, value.shape());
-        for (size_t i = 0; i < value.data().size(); ++i)
-        {
-            result.m_data[i] = std::tanh(value.m_data[i]);
-        }
-
+        TensorValue result(0, m_shape, m_device);
+        m_device->tanh(m_data, m_data.size(), result.m_data);
         return result;
     }
 
     // Matrix multiplication for 2D tensors.
-    static TensorValue matmul(const TensorValue & a, const TensorValue & b)
+    TensorValue matmul(const TensorValue & b) const
     {
         // Ensure both tensors are 2D or can be treated as such.
-        if (a.shape().size() != 2 || b.shape().size() != 2)
+        if (m_shape.size() != 2 || b.shape().size() != 2)
         {
             throw std::invalid_argument("Both tensors must be 2D for matrix multiplication.");
         }
 
         // Check if the inner dimensions match.
-        if (a.shape()[1] != b.shape()[0])
+        if (m_shape[1] != b.shape()[0])
         {
             throw std::invalid_argument("The inner dimensions of the tensors do not match.");
         }
 
-        size_t m = a.shape()[0];        // Rows of the first matrix
-        size_t n = b.shape()[1];        // Columns of the second matrix
-        size_t inner = a.shape()[1];    // Inner dimension
-
         // Resultant tensor shape
-        Shape resultShape = {m, n};
-        TensorValue result(0.0f, resultShape);
-
-        // Perform matrix multiplication
-        for (size_t i = 0; i < m; ++i)
-        {
-            for (size_t j = 0; j < n; ++j)
-            {
-                DataType sum = 0.0f;
-                for (size_t k = 0; k < inner; ++k)
-                {
-                    sum += a({i, k}) * b({k, j});
-                }
-                result({i, j}) = sum;
-            }
-        }
-
+        Shape resultShape = {m_shape[0], b.shape()[1]};
+        TensorValue result(0, resultShape, m_device);
+        m_device->matmul(m_data, m_shape, b.m_data, b.m_shape, result.m_data);
         return result;
     }
 
@@ -397,18 +496,8 @@ public:
         }
 
         // The shape of the transposed tensor will have swapped dimensions.
-        TensorValue transposed(0.0f, {m_shape[1], m_shape[0]});
-
-        // Perform the transpose operation.
-        for (size_t i = 0; i < m_shape[0]; ++i)
-        {
-            for (size_t j = 0; j < m_shape[1]; ++j)
-            {
-                // Swap the indices for the transposition.
-                transposed({j, i}) = (*this)({i, j});
-            }
-        }
-
+        TensorValue transposed(0, {m_shape[1], m_shape[0]}, m_device);
+        m_device->transpose(m_data, m_shape, transposed.m_data);
         return transposed;
     }
 
@@ -444,6 +533,7 @@ private:
     Array m_data;      // The flat array of tensor elements
     Shape m_shape;     // The shape of the tensor
     Index m_strides;   // The strides for indexing the tensor
+    Device *  m_device{nullptr};
 };
 
 
@@ -451,7 +541,7 @@ class TensorNode
 {
 public:
     explicit TensorNode(const TensorValue & value, bool requireGrad = false)
-            :  m_value{value}, m_grad{0, value.shape()}, m_requireGrad{requireGrad}
+            :  m_value{value}, m_grad{0, value.shape(), value.device()}, m_requireGrad{requireGrad}
     {
     }
 
@@ -460,6 +550,9 @@ public:
 
     // Perform backpropagation to calculate gradients recursively.
     void backward(const TensorValue & seed)  { m_backwardFunc(this, seed); }
+
+    Device * device()                { return m_value.device(); }
+    void device(Device * device)     { m_value.device(device); m_grad.device(device); }
 
     TensorValue  m_value;
     TensorValue  m_grad;
@@ -478,10 +571,19 @@ public:
     Tensor() = default;
 
     // Constructor.
-    explicit Tensor(const TensorValue & value, bool requireGrad = false)
+    explicit Tensor(const Array & data, const Shape & shape, bool requireGrad = false)
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(value, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{data, shape, &defaultDevice}, requireGrad);
+        m_data->m_evaluateFunc = defaultEvaluation;
+        m_data->m_backwardFunc = defaultBackward;
+    }
+
+    // Constructor.
+    explicit Tensor(DataType value, const Shape & shape, bool requireGrad = false)
+    {
+        // Create a new Tensor Graph Node.
+        m_data = std::make_shared<TensorNode>(TensorValue{value, shape, &defaultDevice}, requireGrad);
         m_data->m_evaluateFunc = defaultEvaluation;
         m_data->m_backwardFunc = defaultBackward;
     }
@@ -490,7 +592,7 @@ public:
     void evaluate()  { m_data->evaluate(); }
 
     // Perform backpropagation to calculate gradients recursively.
-    void backward(const TensorValue & seed)  { m_data->backward(seed); }
+    void backward(DataType value=1)  { m_data->backward(TensorValue{value, m_data->m_a->m_grad.shape(), m_data->device()}); }
 
     // Getters and setters for the tensor's value.
     const TensorValue & value() const        { return m_data->m_value; }
@@ -501,6 +603,9 @@ public:
     const TensorValue & grad() const { return m_data->m_grad; }
     void zeroGrad()                  { m_data->m_grad.fill(0); }
     bool isRequireGrad() const       { return m_data->m_requireGrad; }
+
+    // Set operation device for the tensor.
+    Tensor & to(Device & device)     { m_data->device(&device); return *this; }
 
     static void defaultEvaluation([[maybe_unused]] TensorNode * node) { }
     static void defaultBackward(TensorNode * node, const TensorValue & seed)
@@ -584,7 +689,7 @@ public:
     {
         if (!node->m_a) return;
         node->m_a->evaluate();
-        node->m_value = TensorValue::sin(node->m_a->m_value);
+        node->m_value = node->m_a->m_value.sin();
     }
 
     static void sinBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -592,14 +697,14 @@ public:
         if (!node->m_a) return;
         // The derivative of sin(a) with respect to 'a' is cos(a).
         // Therefore, the gradient of the input is multiplied by cos(a).
-        node->m_a->backward(TensorValue::cos(node->m_a->m_value) * seed);   // ∂f/∂a = cos(a)
+        node->m_a->backward(node->m_a->m_value.cos() * seed);   // ∂f/∂a = cos(a)
     }
 
     static void tanhEvaluateFunc(TensorNode * node)
     {
         if (!node->m_a) return;
         node->m_a->evaluate();
-        node->m_value = TensorValue::tanh(node->m_a->m_value);
+        node->m_value = node->m_a->m_value.tanh();
     }
 
     static void tanhBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -607,8 +712,8 @@ public:
         if (!node->m_a) return;
         // The derivative of tanh(a) with respect to 'a' is 1 - tanh^2(a).
         // Therefore, the gradient of the input is multiplied by (1 - tanh^2(a)).
-        auto tanhValue = TensorValue::tanh(node->m_a->m_value);
-        auto oneTensor = TensorValue(1.0, tanhValue.shape());
+        auto tanhValue = node->m_a->m_value.tanh();
+        auto oneTensor = TensorValue(1.0, tanhValue.shape(), node->device());
         node->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
     }
 
@@ -617,7 +722,7 @@ public:
         if (!node->m_a || !node->m_b) return;
         node->m_a->evaluate();
         node->m_b->evaluate();
-        node->m_value = TensorValue::matmul(node->m_a->m_value, node->m_b->m_value);
+        node->m_value = node->m_a->m_value.matmul(node->m_b->m_value);
     }
 
     static void matmulBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -628,15 +733,15 @@ public:
         // Compute gradients with respect to a and b
 
         // Corrected to use matrix multiplication for backward pass calculations
-        node->m_a->backward(TensorValue::matmul(seed, node->m_b->m_value.transpose()));      // ∂E/∂a = ∂E/∂c * b^T
-        node->m_b->backward(TensorValue::matmul(node->m_a->m_value.transpose(), seed));      // ∂E/∂b = a^T * ∂E/∂c
+        node->m_a->backward(seed.matmul(node->m_b->m_value.transpose()));      // ∂E/∂a = ∂E/∂c * b^T
+        node->m_b->backward(node->m_a->m_value.transpose().matmul(seed));      // ∂E/∂b = a^T * ∂E/∂c
     }
 
     static void meanEvaluateFunc(TensorNode * node)
     {
         if (!node->m_a) return;
         node->m_a->evaluate();
-        node->m_value = TensorValue(node->m_a->m_value.mean(), {1, 1});
+        node->m_value = TensorValue(node->m_a->m_value.mean(), {1, 1}, node->device());
     }
 
     static void meanBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -649,7 +754,7 @@ public:
     // Overload the + operator
     Tensor operator+(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = addEvaluateFunc;
@@ -660,7 +765,7 @@ public:
     // Overload the - operator
     Tensor operator-(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = subEvaluateFunc;
@@ -671,7 +776,7 @@ public:
     // Overload the * operator
     Tensor operator*(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = mulEvaluateFunc;
@@ -682,7 +787,7 @@ public:
     // Overload the / operator
     Tensor operator/(const Tensor & rhsTensor) const
     {
-        Tensor result({0, {shape()}}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = divEvaluateFunc;
@@ -692,7 +797,7 @@ public:
 
     static Tensor sin(const Tensor & rhsTensor)
     {
-        Tensor result({0, {rhsTensor.shape()}}, rhsTensor.m_data->m_requireGrad);
+        Tensor result(0, {rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = sinEvaluateFunc;
@@ -702,7 +807,7 @@ public:
 
     static Tensor tanh(const Tensor & rhsTensor)
     {
-        Tensor result({0, {rhsTensor.shape()}}, rhsTensor.m_data->m_requireGrad);
+        Tensor result(0, {rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = tanhEvaluateFunc;
@@ -712,7 +817,7 @@ public:
 
     static Tensor matmul(const Tensor & a, const Tensor & b)
     {
-        Tensor result({0, {a.shape()[0], b.shape()[1]}}, a.m_data->m_requireGrad || b.m_data->m_requireGrad);
+        Tensor result(0, {a.shape()[0], b.shape()[1]}, a.m_data->m_requireGrad || b.m_data->m_requireGrad);
         result.m_data->m_a = a.m_data;
         result.m_data->m_b = b.m_data;
         result.m_data->m_evaluateFunc = matmulEvaluateFunc;
@@ -722,7 +827,7 @@ public:
 
     Tensor mean() const
     {
-        Tensor result({0, {1, 1}}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
+        Tensor result(0, {1, 1}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = meanEvaluateFunc;
@@ -737,12 +842,12 @@ protected:
 
 inline Tensor tensor(const Array & data, const Shape & shape, bool requireGrad = false)
 {
-    return Tensor{TensorValue{data, shape}, requireGrad};
+    return Tensor{data, shape, requireGrad};
 }
 
 inline Tensor tensor(const Array & data, bool requireGrad = false)
 {
-    return Tensor{TensorValue{data, {1, data.size()}}, requireGrad};
+    return Tensor{data, {1, data.size()}, requireGrad};
 }
 
 inline Tensor randn(const Shape & shape, bool requireGrad = false)
@@ -757,7 +862,7 @@ inline Tensor randn(const Shape & shape, bool requireGrad = false)
     // Fill rndData with random numbers
     std::generate(rndData.begin(), rndData.end(), [&distr]() -> DataType { return distr(randGen); });
 
-    return Tensor{TensorValue{rndData, shape}, requireGrad};
+    return Tensor{rndData, shape, requireGrad};
 }
 
 }   // aix namespace
@@ -824,8 +929,8 @@ public:
     {
         for (const auto & param : m_parameters)
         {
-            m_m.emplace_back(0, param.shape());
-            m_v.emplace_back(0, param.shape());
+            m_m.emplace_back(0, param.shape(), param.value().device());
+            m_v.emplace_back(0, param.shape(), param.value().device());
         }
     }
 
@@ -849,7 +954,7 @@ public:
                 TensorValue vHat = m_v[i] / DataType(1.0 - std::pow(m_beta2, m_timestep));
 
                 // Update parameter.
-                m_parameters[i].setValue(m_parameters[i].value() -  m_lr * mHat / (TensorValue::sqrt(vHat) + m_epsilon));
+                m_parameters[i].setValue(m_parameters[i].value() -  m_lr * mHat / (vHat.sqrt() + m_epsilon));
             }
         }
     }
@@ -910,6 +1015,14 @@ public:
             }
         }
         return totalParams;
+    }
+
+    void to(Device & device)
+    {
+        for (auto & param : parameters())
+        {
+            param.to(device);
+        }
     }
 
 private:
