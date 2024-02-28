@@ -152,7 +152,7 @@ public:
 
     virtual void mean(const Array & a, const size_t size, DataType & result)
     {
-        DataType sum = std::accumulate(a.begin(), a.end(), 0);
+        DataType sum = std::accumulate(a.begin(), a.end(), DataType(0));
         result = sum / static_cast<DataType>(size);
     }
 
