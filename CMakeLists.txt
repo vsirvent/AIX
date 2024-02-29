@@ -20,7 +20,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic-errors -Wall -Wextra")    # Common parameters for debug and release
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")    # Common parameters for debug and release
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_CCOV "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
@@ -44,3 +44,8 @@ add_subdirectory(Targets/AIXTests)
 add_subdirectory(Targets/XORApp)
 add_subdirectory(Targets/XORLayerApp)
 add_subdirectory(Targets/XORSequentialApp)
+
+# Build the following targets only on macOS with Apple Silicon.
+if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    add_subdirectory(Targets/XORMetalApp)
+endif()

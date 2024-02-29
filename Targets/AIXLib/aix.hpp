@@ -42,15 +42,14 @@ class Tensor;
 enum class DeviceType
 {
     kCPU,
+    kGPU_METAL,
 };
 
 
 class Device
 {
 public:
-    explicit Device() : m_type(DeviceType::kCPU) {}
-
-    DeviceType type() const { return m_type; }
+    virtual DeviceType type() const { return DeviceType::kCPU; }
 
     virtual void add(const Array & a1, const Array & a2, const size_t size, Array & result)
     {
@@ -222,9 +221,6 @@ public:
             }
         }
     };
-
-protected:
-    DeviceType  m_type;
 };
 
 

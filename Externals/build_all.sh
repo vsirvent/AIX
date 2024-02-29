@@ -5,3 +5,4 @@
 #
 
 ./build_doctest.sh
+./build_metalcpp.sh
