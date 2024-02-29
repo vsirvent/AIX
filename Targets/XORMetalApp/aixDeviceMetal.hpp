@@ -97,9 +97,6 @@ public:
         m_bufResult = m_mtlDevice->newBuffer(static_cast<void*>(result.data()), matResultSize * sizeof(DataType),
                                              MTL::ResourceStorageModeShared);
 
-        setBufData(m_buf1, a1, mat1Size);
-        setBufData(m_buf2, a2, mat2Size);
-
         m_buf1Size.rows = s1[0];
         m_buf1Size.cols = s1[1];
         m_buf2Size.rows = s2[0];
@@ -125,8 +122,6 @@ public:
 
         m_bufResult = m_mtlDevice->newBuffer(static_cast<void*>(result.data()), matSize * sizeof(DataType),
                                              MTL::ResourceStorageModeShared);
-
-        setBufData(m_buf1, a, matSize);
 
         m_buf1Size.rows = shape[0];
         m_buf1Size.cols = shape[1];
@@ -185,15 +180,6 @@ protected:
         }
 
         return compFuncPSO;
-    }
-
-    void setBufData(MTL::Buffer* buffer, const Array & data, size_t size)
-    {
-        auto dataPtr = static_cast<DataType*>(buffer->contents());
-        for (size_t i=0; i < size; ++i)
-        {
-            dataPtr[i] = data[i];
-        }
     }
 
     void encodeComputeCommandSingleBuffer(MTL::ComputeCommandEncoder * computeEncoder,
