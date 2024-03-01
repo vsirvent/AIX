@@ -134,6 +134,8 @@ public:
         MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = Final matrix size
         sendComputeCommandDoubleBuffer(m_compFuncPSOAdd, gridSize, threadsPerThreadGroup);
 
+        freeTemporaryBuffer(m_buf1, a1);
+        freeTemporaryBuffer(m_buf2, a2);
         // Never release buffers since they will be in use by Arrays.
         m_buf1 = nullptr;
         m_buf2 = nullptr;
@@ -160,6 +162,8 @@ public:
         MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = Final matrix size
         sendComputeCommandDoubleBuffer(m_compFuncPSOSub, gridSize, threadsPerThreadGroup);
 
+        freeTemporaryBuffer(m_buf1, a1);
+        freeTemporaryBuffer(m_buf2, a2);
         // Never release buffers since they will be in use by Arrays.
         m_buf1 = nullptr;
         m_buf2 = nullptr;
@@ -186,6 +190,8 @@ public:
         MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = Final matrix size
         sendComputeCommandDoubleBuffer(m_compFuncPSOMul, gridSize, threadsPerThreadGroup);
 
+        freeTemporaryBuffer(m_buf1, a1);
+        freeTemporaryBuffer(m_buf2, a2);
         // Never release buffers since they will be in use by Arrays.
         m_buf1 = nullptr;
         m_buf2 = nullptr;
@@ -212,6 +218,8 @@ public:
         MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = Final matrix size
         sendComputeCommandDoubleBuffer(m_compFuncPSODiv, gridSize, threadsPerThreadGroup);
 
+        freeTemporaryBuffer(m_buf1, a1);
+        freeTemporaryBuffer(m_buf2, a2);
         // Never release buffers since they will be in use by Arrays.
         m_buf1 = nullptr;
         m_buf2 = nullptr;
@@ -263,6 +271,8 @@ public:
         MTL::Size gridSize = MTL::Size(m_buf2Size.cols, m_buf1Size.rows, 1);    // gridSize = Final matrix size
         sendComputeCommandDoubleBuffer(m_compFuncPSOMatMul, gridSize, threadsPerThreadGroup);
 
+        freeTemporaryBuffer(m_buf1, a1);
+        freeTemporaryBuffer(m_buf2, a2);
         // Never release buffers since they will be in use by Arrays.
         m_buf1 = nullptr;
         m_buf2 = nullptr;
@@ -292,7 +302,7 @@ public:
         MTL::Size gridSize = MTL::Size(m_buf1Size.rows, m_buf1Size.cols, 1);
         sendComputeCommandSingleBuffer(m_compFuncPSOMatTranspose, gridSize, threadsPerThreadGroup);
 
-        // Never release buffers since they will be in use by Arrays.
+        freeTemporaryBuffer(m_buf1, mat);
         m_buf1 = nullptr;
         m_bufResult = nullptr;
     }
@@ -300,13 +310,22 @@ public:
 protected:
     inline MTL::Buffer* getReadOnlyMTLBuffer(const Array & a)
     {
-        // Memory could be a GPU allocated memory or system memory.
+        // Memory could be from other devices. Create a temporary buffer for read only case.
         if (m_allocMap.find(a.data()) == m_allocMap.end())
         {
             return m_mtlDevice->newBuffer(a.data(), a.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
         }
 
-        return m_allocMap[a.data()];
+        return m_allocMap[a.data()];    // Return MTL Buffer if the memory is from the current device.
+    }
+
+    inline void freeTemporaryBuffer(MTL::Buffer * buffer, const Array & a)
+    {
+        // Release only temporary buffer.
+        if (m_allocMap.find(a.data()) == m_allocMap.end())
+        {
+            buffer->release();
+        }
     }
 
     MTL::Library* loadLibrary(const std::string & libName)
