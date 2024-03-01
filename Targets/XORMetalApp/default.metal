@@ -27,18 +27,15 @@ kernel void matrix_mul(device const T* inA,
                        constant MatrixSize& matBSize,
                        uint2 gid [[thread_position_in_grid]])
 {
-    if (gid.x < matBSize.cols && gid.y < matASize.rows)
+    T sum = 0.0;
+    for (uint k = 0; k < matASize.cols; k++)
     {
-        T sum = 0.0;
-        for (uint k = 0; k < matASize.cols; k++)
-        {
-            uint aIndex = gid.y * matASize.cols + k;
-            uint bIndex = k * matBSize.cols + gid.x;
-            sum += inA[aIndex] * inB[bIndex];
-        }
-
-        result[gid.y * matBSize.cols + gid.x] = sum;
+        uint aIndex = gid.y * matASize.cols + k;
+        uint bIndex = k * matBSize.cols + gid.x;
+        sum += inA[aIndex] * inB[bIndex];
     }
+
+    result[gid.y * matBSize.cols + gid.x] = sum;
 }
 
 // -----------------------------------------------------------------
