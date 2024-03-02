@@ -300,6 +300,15 @@ public:
     }
 
     // Constructor
+    TensorValue(Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
+    {
+        size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
+        // Each tensor array must use device specific memory allocator.
+        m_data = Array(totalSize, Allocator<DataType>(device->createMemoryAllocator()));
+        computeStrides();
+    }
+
+    // Constructor
     TensorValue(DataType value, Device * device) : m_shape{Shape{1, 1}}, m_device(device)
     {
         // Each tensor array must use device specific memory allocator.
@@ -338,7 +347,7 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->add(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -350,7 +359,7 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->sub(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -362,7 +371,7 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->mul(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -374,7 +383,7 @@ public:
         validateShapes(m_shape, other.m_shape);
 
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->div(m_data, other.m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -383,7 +392,7 @@ public:
     TensorValue operator-() const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->unary(m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -391,7 +400,7 @@ public:
     TensorValue operator+(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->add(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
@@ -399,7 +408,7 @@ public:
     TensorValue operator-(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->sub(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
@@ -407,7 +416,7 @@ public:
     TensorValue operator+=(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->add(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
@@ -415,7 +424,7 @@ public:
     TensorValue operator-=(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->sub(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
@@ -423,7 +432,7 @@ public:
     TensorValue operator*(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->mul(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
@@ -431,7 +440,7 @@ public:
     TensorValue operator/(DataType scalar) const
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->div(m_data, scalar, m_data.size(), result.m_data);
         return result;
     }
@@ -439,7 +448,7 @@ public:
     friend TensorValue operator*(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        TensorValue result(tensor.m_shape, tensor.m_device);
         tensor.m_device->mul(tensor.m_data, scalar, tensor.m_data.size(), result.m_data);
         return result;
     }
@@ -447,7 +456,7 @@ public:
     friend TensorValue operator/(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        TensorValue result(tensor.m_shape, tensor.m_device);
         tensor.m_device->div(scalar, tensor.m_data, tensor.m_data.size(), result.m_data);
         return result;
     }
@@ -455,7 +464,7 @@ public:
     friend TensorValue operator+(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        TensorValue result(tensor.m_shape, tensor.m_device);
         tensor.m_device->add(tensor.m_data, scalar, tensor.m_data.size(), result.m_data);
         return result;
     }
@@ -463,7 +472,7 @@ public:
     friend TensorValue operator-(DataType scalar, const TensorValue & tensor)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(0, tensor.m_shape, tensor.m_device);
+        TensorValue result(tensor.m_shape, tensor.m_device);
         tensor.m_device->sub(scalar, tensor.m_data, tensor.m_data.size(), result.m_data);
         return result;
     }
@@ -484,7 +493,7 @@ public:
     TensorValue sqrt()
     {
         // Perform element-wise sin.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->sqrt(m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -492,7 +501,7 @@ public:
     TensorValue sin()
     {
         // Perform element-wise sin.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->sin(m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -500,7 +509,7 @@ public:
     TensorValue cos()
     {
         // Perform element-wise cos.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->cos(m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -508,7 +517,7 @@ public:
     TensorValue tanh()
     {
         // Perform element-wise tanh.
-        TensorValue result(0, m_shape, m_device);
+        TensorValue result(m_shape, m_device);
         m_device->tanh(m_data, m_data.size(), result.m_data);
         return result;
     }
@@ -530,7 +539,7 @@ public:
 
         // Resultant tensor shape
         Shape resultShape = {m_shape[0], b.shape()[1]};
-        TensorValue result(0, resultShape, m_device);
+        TensorValue result(resultShape, m_device);
         m_device->matmul(m_data, m_shape, b.m_data, b.m_shape, result.m_data);
         return result;
     }
@@ -545,7 +554,7 @@ public:
         }
 
         // The shape of the transposed tensor will have swapped dimensions.
-        TensorValue transposed(0, {m_shape[1], m_shape[0]}, m_device);
+        TensorValue transposed({m_shape[1], m_shape[0]}, m_device);
         m_device->transpose(m_data, m_shape, transposed.m_data);
         return transposed;
     }
@@ -590,7 +599,7 @@ class TensorNode
 {
 public:
     explicit TensorNode(const TensorValue & value, bool requireGrad = false)
-            :  m_value{value}, m_grad{0, value.shape(), value.device()}, m_requireGrad{requireGrad}
+            :  m_value{value}, m_grad{value.shape(), value.device()}, m_requireGrad{requireGrad}
     {
     }
 
@@ -633,6 +642,15 @@ public:
     {
         // Create a new Tensor Graph Node.
         m_data = std::make_shared<TensorNode>(TensorValue{value, shape, &defaultDevice}, requireGrad);
+        m_data->m_evaluateFunc = defaultEvaluation;
+        m_data->m_backwardFunc = defaultBackward;
+    }
+
+    // Constructor.
+    explicit Tensor(const Shape & shape, bool requireGrad = false)
+    {
+        // Create a new Tensor Graph Node.
+        m_data = std::make_shared<TensorNode>(TensorValue{shape, &defaultDevice}, requireGrad);
         m_data->m_evaluateFunc = defaultEvaluation;
         m_data->m_backwardFunc = defaultBackward;
     }
@@ -803,7 +821,7 @@ public:
     // Overload the + operator
     Tensor operator+(const Tensor & rhsTensor) const
     {
-        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = addEvaluateFunc;
@@ -814,7 +832,7 @@ public:
     // Overload the - operator
     Tensor operator-(const Tensor & rhsTensor) const
     {
-        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = subEvaluateFunc;
@@ -825,7 +843,7 @@ public:
     // Overload the * operator
     Tensor operator*(const Tensor & rhsTensor) const
     {
-        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = mulEvaluateFunc;
@@ -836,7 +854,7 @@ public:
     // Overload the / operator
     Tensor operator/(const Tensor & rhsTensor) const
     {
-        Tensor result(0, {shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_evaluateFunc = divEvaluateFunc;
@@ -846,7 +864,7 @@ public:
 
     static Tensor sin(const Tensor & rhsTensor)
     {
-        Tensor result(0, {rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = sinEvaluateFunc;
@@ -856,7 +874,7 @@ public:
 
     static Tensor tanh(const Tensor & rhsTensor)
     {
-        Tensor result(0, {rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = tanhEvaluateFunc;
@@ -866,7 +884,7 @@ public:
 
     static Tensor matmul(const Tensor & a, const Tensor & b)
     {
-        Tensor result(0, {a.shape()[0], b.shape()[1]}, a.m_data->m_requireGrad || b.m_data->m_requireGrad);
+        Tensor result({a.shape()[0], b.shape()[1]}, a.m_data->m_requireGrad || b.m_data->m_requireGrad);
         result.m_data->m_a = a.m_data;
         result.m_data->m_b = b.m_data;
         result.m_data->m_evaluateFunc = matmulEvaluateFunc;
@@ -876,7 +894,7 @@ public:
 
     Tensor mean() const
     {
-        Tensor result(0, {1, 1}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
+        Tensor result({1, 1}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_evaluateFunc = meanEvaluateFunc;
