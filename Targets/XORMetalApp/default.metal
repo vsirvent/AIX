@@ -16,6 +16,63 @@ struct MatrixSize
     uint cols;
 };
 
+
+// -----------------------------------------------------------------
+// Add - Two Arrays
+// -----------------------------------------------------------------
+template<typename T>
+kernel void add(device const T* inA,
+                device const T* inB,
+                device T* result,
+                constant MatrixSize& aSize,
+                constant MatrixSize& bSize,
+                uint index [[thread_position_in_grid]])
+{
+    result[index] = inA[index] + inB[index];
+}
+
+// -----------------------------------------------------------------
+// Sub - Two Arrays
+// -----------------------------------------------------------------
+template<typename T>
+kernel void sub(device const T* inA,
+                device const T* inB,
+                device T* result,
+                constant MatrixSize& aSize,
+                constant MatrixSize& bSize,
+                uint index [[thread_position_in_grid]])
+{
+    result[index] = inA[index] - inB[index];
+}
+
+// -----------------------------------------------------------------
+// Mul - Two Arrays
+// -----------------------------------------------------------------
+template<typename T>
+kernel void mul(device const T* inA,
+                device const T* inB,
+                device T* result,
+                constant MatrixSize& aSize,
+                constant MatrixSize& bSize,
+                uint index [[thread_position_in_grid]])
+{
+    result[index] = inA[index] * inB[index];
+}
+
+// -----------------------------------------------------------------
+// Div - Two Arrays
+// -----------------------------------------------------------------
+template<typename T>
+kernel void div(device const T* inA,
+                device const T* inB,
+                device T* result,
+                constant MatrixSize& aSize,
+                constant MatrixSize& bSize,
+                uint index [[thread_position_in_grid]])
+{
+    result[index] = inA[index] / inB[index];
+}
+
 // -----------------------------------------------------------------
 // Matrix Multiply - Naive implementation
 // -----------------------------------------------------------------
@@ -55,6 +112,42 @@ kernel void matrix_transpose(constant const T* mat,
 
 
 // Templates
+
+
+template [[ host_name("add_float") ]]
+kernel void add(device const float*,
+                device const float*,
+                device float*,
+                constant MatrixSize&,
+                constant MatrixSize&,
+                uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("sub_float") ]]
+kernel void sub(device const float*,
+                device const float*,
+                device float*,
+                constant MatrixSize&,
+                constant MatrixSize&,
+                uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("mul_float") ]]
+kernel void mul(device const float*,
+                device const float*,
+                device float*,
+                constant MatrixSize&,
+                constant MatrixSize&,
+                uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("div_float") ]]
+kernel void div(device const float*,
+                device const float*,
+                device float*,
+                constant MatrixSize&,
+                constant MatrixSize&,
+                uint index [[thread_position_in_grid]]);
 
 
 template [[ host_name("matrix_mul_float") ]]
