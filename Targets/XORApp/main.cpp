@@ -85,7 +85,6 @@ int main()
         // Forward step.
         auto predictions = model.forward(inputs);
         auto loss = lossFunc(predictions, targets);         // Loss calculations are still part of computation graph.
-        loss.evaluate();                                    // Compute all values in the graph.
 
         // Backward step.
         loss.backward();                                    // Compute all gradients in the graph.
@@ -108,7 +107,6 @@ int main()
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);
-    finalPredictions.evaluate();
 
     std::cout << "Final Predictions: " << std::endl;
     std::cout << finalPredictions.value().data()[0] << std::endl;

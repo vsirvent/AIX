@@ -61,10 +61,6 @@ TEST_CASE("Auto Grad - Module Test - 1x1 Tensor")
                         shape);
 
     auto m = tm.forward({});
-    // Traverse the graph (starting from the end) to calculate all expression values.
-    // This approach is known as lazy evaluation, meaning that values are not calculated
-    // until the 'evaluate' function is called.
-    m.evaluate();
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
     m.backward(1);      // ∂m/∂m = [1]  1x1 tensor.
@@ -99,10 +95,6 @@ TEST_CASE("Auto Grad - Module Test - 1x2 Tensor")
                         shape);
 
     auto m = tm.forward({});
-    // Traverse the graph (starting from the end) to calculate all expression values.
-    // This approach is known as lazy evaluation, meaning that values are not calculated
-    // until the 'evaluate' function is called.
-    m.evaluate();
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
     m.backward();   // ∂m/∂m = [1, 1]  1x2 tensor
@@ -137,10 +129,6 @@ TEST_CASE("Auto Grad - Module Test - 2x3 Tensor")
                         shape);
 
     auto m = tm.forward({});
-    // Traverse the graph (starting from the end) to calculate all expression values.
-    // This approach is known as lazy evaluation, meaning that values are not calculated
-    // until the 'evaluate' function is called.
-    m.evaluate();
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
     m.backward();   // ∂m/∂m = [1,1,1,1,1,1]  2x3 tensor

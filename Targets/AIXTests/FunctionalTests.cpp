@@ -74,7 +74,6 @@ TEST_CASE("Model Forward Test - XOR")
                                 0.0}, {kNumSamples, kNumTargets});
 
     auto predictions = tm.forward(inputs);
-    predictions.evaluate();
 
     predictions.backward();   // ∂m/∂m = [1,1,1,1]  4x1 tensor
 

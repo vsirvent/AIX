@@ -603,9 +603,6 @@ public:
     {
     }
 
-    // Calculate all values in the graph recursively.
-    void evaluate()  { m_evaluateFunc(this); }
-
     // Perform backpropagation to calculate gradients recursively.
     void backward(const TensorValue & seed)  { m_backwardFunc(this, seed); }
 
@@ -617,7 +614,6 @@ public:
     bool  m_requireGrad;
     std::shared_ptr<TensorNode>  m_a{nullptr};
     std::shared_ptr<TensorNode>  m_b{nullptr};
-    std::function<void(TensorNode * tensor)>                            m_evaluateFunc{nullptr};
     std::function<void(TensorNode * tensor, const TensorValue & seed)>  m_backwardFunc{nullptr};
 };
 
@@ -633,7 +629,6 @@ public:
     {
         // Create a new Tensor Graph Node.
         m_data = std::make_shared<TensorNode>(TensorValue{data, shape, &defaultDevice}, requireGrad);
-        m_data->m_evaluateFunc = defaultEvaluation;
         m_data->m_backwardFunc = defaultBackward;
     }
 
@@ -642,7 +637,6 @@ public:
     {
         // Create a new Tensor Graph Node.
         m_data = std::make_shared<TensorNode>(TensorValue{value, shape, &defaultDevice}, requireGrad);
-        m_data->m_evaluateFunc = defaultEvaluation;
         m_data->m_backwardFunc = defaultBackward;
     }
 
@@ -651,12 +645,8 @@ public:
     {
         // Create a new Tensor Graph Node.
         m_data = std::make_shared<TensorNode>(TensorValue{shape, &defaultDevice}, requireGrad);
-        m_data->m_evaluateFunc = defaultEvaluation;
         m_data->m_backwardFunc = defaultBackward;
     }
-
-    // Calculate all values in the graph recursively.
-    void evaluate()  { m_data->evaluate(); }
 
     // Perform backpropagation to calculate gradients recursively.
     void backward(DataType value=1)  { m_data->backward(TensorValue{value, m_data->m_a->m_grad.shape(), m_data->device()}); }
@@ -674,22 +664,12 @@ public:
     // Set operation device for the tensor.
     Tensor & to(Device & device)     { m_data->device(&device); return *this; }
 
-    static void defaultEvaluation([[maybe_unused]] TensorNode * node) { }
     static void defaultBackward(TensorNode * node, const TensorValue & seed)
     {
         if (node->m_requireGrad)
         {
             node->m_grad = node->m_grad + seed;
         }
-    }
-
-    // Auto gradient methods for add operation.
-    static void addEvaluateFunc(TensorNode * node)
-    {
-        if (!node->m_a || !node->m_b) return;
-        node->m_a->evaluate();
-        node->m_b->evaluate();
-        node->m_value = node->m_a->m_value + node->m_b->m_value;
     }
 
     static void addBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -700,30 +680,12 @@ public:
         node->m_b->backward(seed);
     }
 
-    // Auto gradient methods for sub operation.
-    static void subEvaluateFunc(TensorNode * node)
-    {
-        if (!node->m_a || !node->m_b) return;
-        node->m_a->evaluate();
-        node->m_b->evaluate();
-        node->m_value = node->m_a->m_value - node->m_b->m_value;
-    }
-
     static void subBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a || !node->m_b) return;
         // Calculate gradients.
         node->m_a->backward(seed);
         node->m_b->backward(-seed);
-    }
-
-    // Auto gradient methods for mul operation.
-    static void mulEvaluateFunc(TensorNode * node)
-    {
-        if (!node->m_a || !node->m_b) return;
-        node->m_a->evaluate();
-        node->m_b->evaluate();
-        node->m_value = node->m_a->m_value * node->m_b->m_value;
     }
 
     static void mulBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -734,29 +696,12 @@ public:
         node->m_b->backward(node->m_a->m_value * seed);
     }
 
-    // Auto gradient methods for div operation.
-    static void divEvaluateFunc(TensorNode * node)
-    {
-        if (!node->m_a || !node->m_b) return;
-        node->m_a->evaluate();
-        node->m_b->evaluate();
-        node->m_value = node->m_a->m_value / node->m_b->m_value;
-    }
-
     static void divBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a || !node->m_b) return;
         // Calculate gradients.
         node->m_a->backward(seed / node->m_b->m_value);                                               // ∂f/∂a = 1 / b
         node->m_b->backward(-node->m_a->m_value * seed / (node->m_b->m_value * node->m_b->m_value));  // ∂f/∂b = -a / b^2
-    }
-
-    // Auto gradient methods for sin operation.
-    static void sinEvaluateFunc(TensorNode * node)
-    {
-        if (!node->m_a) return;
-        node->m_a->evaluate();
-        node->m_value = node->m_a->m_value.sin();
     }
 
     static void sinBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -767,13 +712,6 @@ public:
         node->m_a->backward(node->m_a->m_value.cos() * seed);   // ∂f/∂a = cos(a)
     }
 
-    static void tanhEvaluateFunc(TensorNode * node)
-    {
-        if (!node->m_a) return;
-        node->m_a->evaluate();
-        node->m_value = node->m_a->m_value.tanh();
-    }
-
     static void tanhBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a) return;
@@ -782,14 +720,6 @@ public:
         auto tanhValue = node->m_a->m_value.tanh();
         auto oneTensor = TensorValue(1.0, tanhValue.shape(), node->device());
         node->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
-    }
-
-    static void matmulEvaluateFunc(TensorNode *node)
-    {
-        if (!node->m_a || !node->m_b) return;
-        node->m_a->evaluate();
-        node->m_b->evaluate();
-        node->m_value = node->m_a->m_value.matmul(node->m_b->m_value);
     }
 
     static void matmulBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -804,13 +734,6 @@ public:
         node->m_b->backward(node->m_a->m_value.transpose().matmul(seed));      // ∂E/∂b = a^T * ∂E/∂c
     }
 
-    static void meanEvaluateFunc(TensorNode * node)
-    {
-        if (!node->m_a) return;
-        node->m_a->evaluate();
-        node->m_value = TensorValue(node->m_a->m_value.mean(), {1, 1}, node->device());
-    }
-
     static void meanBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a) return;
@@ -822,9 +745,9 @@ public:
     Tensor operator+(const Tensor & rhsTensor) const
     {
         Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        result.m_data->m_value = m_data->m_value + rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
-        result.m_data->m_evaluateFunc = addEvaluateFunc;
         result.m_data->m_backwardFunc = addBackwardFunc;
         return result;
     }
@@ -833,9 +756,9 @@ public:
     Tensor operator-(const Tensor & rhsTensor) const
     {
         Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        result.m_data->m_value = m_data->m_value - rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
-        result.m_data->m_evaluateFunc = subEvaluateFunc;
         result.m_data->m_backwardFunc = subBackwardFunc;
         return result;
     }
@@ -844,9 +767,9 @@ public:
     Tensor operator*(const Tensor & rhsTensor) const
     {
         Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        result.m_data->m_value = m_data->m_value * rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
-        result.m_data->m_evaluateFunc = mulEvaluateFunc;
         result.m_data->m_backwardFunc = mulBackwardFunc;
         return result;
     }
@@ -855,9 +778,9 @@ public:
     Tensor operator/(const Tensor & rhsTensor) const
     {
         Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        result.m_data->m_value = m_data->m_value / rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
-        result.m_data->m_evaluateFunc = divEvaluateFunc;
         result.m_data->m_backwardFunc = divBackwardFunc;
         return result;
     }
@@ -865,9 +788,9 @@ public:
     static Tensor sin(const Tensor & rhsTensor)
     {
         Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        result.m_data->m_value = rhsTensor.m_data->m_value.sin();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
-        result.m_data->m_evaluateFunc = sinEvaluateFunc;
         result.m_data->m_backwardFunc = sinBackwardFunc;
         return result;
     };
@@ -875,9 +798,9 @@ public:
     static Tensor tanh(const Tensor & rhsTensor)
     {
         Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        result.m_data->m_value = rhsTensor.m_data->m_value.tanh();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
-        result.m_data->m_evaluateFunc = tanhEvaluateFunc;
         result.m_data->m_backwardFunc = tanhBackwardFunc;
         return result;
     };
@@ -885,9 +808,9 @@ public:
     static Tensor matmul(const Tensor & a, const Tensor & b)
     {
         Tensor result({a.shape()[0], b.shape()[1]}, a.m_data->m_requireGrad || b.m_data->m_requireGrad);
+        result.m_data->m_value = a.m_data->m_value.matmul(b.m_data->m_value);
         result.m_data->m_a = a.m_data;
         result.m_data->m_b = b.m_data;
-        result.m_data->m_evaluateFunc = matmulEvaluateFunc;
         result.m_data->m_backwardFunc = matmulBackwardFunc;
         return result;
     }
@@ -895,9 +818,9 @@ public:
     Tensor mean() const
     {
         Tensor result({1, 1}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
+        result.m_data->m_value = TensorValue(m_data->m_value.mean(), {1, 1}, m_data->device());
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
-        result.m_data->m_evaluateFunc = meanEvaluateFunc;
         result.m_data->m_backwardFunc = meanBackwardFunc;
         return result;
     }

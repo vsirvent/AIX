@@ -27,10 +27,7 @@ TEST_CASE("Simple optimizer test")
     auto z = x * (x + y) / t - y * y;
     auto m = x * z + Tensor::sin(u) * u;
 
-    // Traverse the graph (starting from the end) to calculate all expression values.
-    // This approach is known as lazy evaluation, meaning that values are not calculated
-    // until the 'evaluate' function is called.
-    m.evaluate();
+
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
     m.backward(1);      // ∂m/∂m = 1.
