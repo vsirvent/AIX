@@ -31,10 +31,6 @@ namespace aix
     using DataType = float;     // Default data type.
 #endif
 
-using Array = std::vector<DataType>;
-using Shape = std::vector<size_t>;
-using Index = std::vector<size_t>;
-
 // Forward declarations
 class Tensor;
 
@@ -46,10 +42,64 @@ enum class DeviceType
 };
 
 
+class DeviceAllocator
+{
+public:
+    // Destructor
+    virtual ~DeviceAllocator() = default;
+
+    virtual void* allocate(std::size_t size)                              { return std::malloc(size); }
+    virtual void  deallocate(void* p, [[maybe_unused]] std::size_t size)  { std::free(p); }
+};
+
+
+template<typename T>
+class Allocator : public std::allocator<T>
+{
+public:
+    Allocator()     { m_allocator = std::make_shared<DeviceAllocator>(); }
+
+    explicit Allocator(std::shared_ptr<DeviceAllocator> alloc) : m_allocator(std::move(alloc)) {}
+
+    T* allocate(std::size_t n)
+    {
+        return static_cast<T*>(m_allocator->allocate(n * sizeof(T)));
+    }
+
+    void deallocate(T* p, std::size_t n)
+    {
+        m_allocator->deallocate(p, n * sizeof(T));
+    }
+
+private:
+    std::shared_ptr<DeviceAllocator>  m_allocator{nullptr};
+};
+
+
+using Array = std::vector<DataType, Allocator<DataType>>;
+using Shape = std::vector<size_t>;
+using Index = std::vector<size_t>;
+
+
 class Device
 {
 public:
     virtual DeviceType type() const { return DeviceType::kCPU; }
+
+    virtual std::shared_ptr<DeviceAllocator> createMemoryAllocator()
+    {
+        return std::make_shared<DeviceAllocator>();
+    }
+
+    virtual void * allocate(size_t size)
+    {
+        return std::malloc(size);
+    }
+
+    virtual void deallocate(void * memory)
+    {
+        return std::free(memory);
+    }
 
     virtual void add(const Array & a1, const Array & a2, const size_t size, Array & result)
     {
@@ -232,9 +282,10 @@ class TensorValue
 {
 public:
     // Constructor
-    TensorValue(Array data, Shape shape, Device * device)
-            : m_data(std::move(data)), m_shape(std::move(shape)), m_device(device)
+    TensorValue(Array data, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
+        // Each tensor array must use device specific memory allocator.
+        m_data = Array(std::move(data), Allocator<DataType>(device->createMemoryAllocator()));
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
     }
@@ -243,14 +294,16 @@ public:
     TensorValue(DataType value, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
         size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
-        m_data = Array(totalSize, value);
+        // Each tensor array must use device specific memory allocator.
+        m_data = Array(totalSize, value, Allocator<DataType>(device->createMemoryAllocator()));
         computeStrides();
     }
 
     // Constructor
     TensorValue(DataType value, Device * device) : m_shape{Shape{1, 1}}, m_device(device)
     {
-        m_data = Array(1, value);
+        // Each tensor array must use device specific memory allocator.
+        m_data = Array(1, value, Allocator<DataType>(device->createMemoryAllocator()));
         computeStrides();
     }
 
@@ -547,7 +600,7 @@ public:
     // Perform backpropagation to calculate gradients recursively.
     void backward(const TensorValue & seed)  { m_backwardFunc(this, seed); }
 
-    Device * device()                { return m_value.device(); }
+    Device * device() const          { return m_value.device(); }
     void device(Device * device)     { m_value.device(device); m_grad.device(device); }
 
     TensorValue  m_value;

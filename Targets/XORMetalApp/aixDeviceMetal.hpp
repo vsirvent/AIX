@@ -23,6 +23,28 @@
 namespace aix
 {
 
+// Uses device to asl allocate/deallocate memory.
+class MetalGPUMemoryAllocator : public DeviceAllocator
+{
+public:
+    explicit MetalGPUMemoryAllocator(Device * device) : m_device(device) {}
+
+    void* allocate(std::size_t n) override
+    {
+        if (!m_device) throw std::runtime_error("Allocate() : No device has been set in allocator.");
+        return m_device->allocate(n);
+    }
+
+    void deallocate(void* p, [[maybe_unused]] std::size_t size) override
+    {
+        if (!m_device) throw std::runtime_error("Deallocate() : No device has been set in allocator.");
+        m_device->deallocate(p);
+    }
+
+private:
+    Device* m_device{nullptr};
+};
+
 
 class DeviceMetal : public aix::Device
 {
@@ -52,10 +74,37 @@ public:
         m_compFuncPSOMatMul->release();
         m_compFuncPSOMatTranspose->release();
         m_mtlDevice->release();
+        // No need to release MTL Buffer objects in m_allocMap.
         m_pool->release();
     }
 
     DeviceType type() const override { return DeviceType::kGPU_METAL; }
+
+    // Return an allocator to be used by aix::Array.
+    std::shared_ptr<DeviceAllocator> createMemoryAllocator() override
+    {
+        return std::make_shared<MetalGPUMemoryAllocator>(this);
+    }
+
+    // Allocate GPU memory and return MTL Buffer contents and keeps MTL Buffer pointers in a hashmap.
+    void * allocate(size_t size) override
+    {
+        // Allocate GPU memory and save the mtl buffer to be used later.
+        auto mtlBuf = m_mtlDevice->newBuffer(size * sizeof(DataType), MTL::ResourceStorageModeShared);
+        auto contentPtr = mtlBuf->contents();
+        m_allocMap[contentPtr] = mtlBuf;
+        return contentPtr;
+    }
+
+    // Deallocate GPU memory if it's allocated by current device.
+    void deallocate(void * memory) override
+    {
+        if (m_allocMap.find(memory) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::deallocate() - Found different type of memory to free.");
+        auto mtlBuf = m_allocMap[memory];
+        m_allocMap.erase(memory);
+        mtlBuf->release();
+    }
 
 /*
     // TODO: Add GPU support for the following device methods.
@@ -85,10 +134,13 @@ public:
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::matmul(a1,s1,a2,s2,result); return;
 
-        // Allocate three buffers to hold our initial data and the result.
-        m_buf1 = m_mtlDevice->newBuffer(a1.data(), a1.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
-        m_buf2 = m_mtlDevice->newBuffer(a2.data(), a2.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
-        m_bufResult = m_mtlDevice->newBuffer(result.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
+
+        m_buf1 = getReadOnlyMTLBuffer(a1);  // Memory could be a GPU allocated memory or system memory.
+        m_buf2 = getReadOnlyMTLBuffer(a2);  // Memory could be a GPU allocated memory or system memory.
+        m_bufResult = m_allocMap[result.data()];
 
         m_buf1Size.rows = s1[0];
         m_buf1Size.cols = s1[1];
@@ -102,12 +154,11 @@ public:
         MTL::Size threadsPerThreadGroup = MTL::Size(w, h, 1);
         MTL::Size gridSize = MTL::Size(m_buf2Size.cols, m_buf1Size.rows, 1);    // gridSize = Final matrix size
         sendComputeCommandDoubleBuffer(m_compFuncPSOMatMul, gridSize, threadsPerThreadGroup);
-        // Copy gpu results
-        std::memcpy(static_cast<void*>(result.data()), m_bufResult->contents(), result.size() * sizeof(DataType));
 
-        m_buf1->release();
-        m_buf2->release();
-        m_bufResult->release();
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_buf2 = nullptr;
+        m_bufResult = nullptr;
     }
 
     void transpose(const Array & mat, const Shape & shape, Array & result) override
@@ -115,8 +166,13 @@ public:
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::transpose(a, shape, result); return;
 
-        m_buf1 = m_mtlDevice->newBuffer(mat.data(), mat.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
-        m_bufResult = m_mtlDevice->newBuffer(mat.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
+
+        // Memory could be a GPU allocated memory or system memory.
+        m_buf1 = getReadOnlyMTLBuffer(mat);
+        m_bufResult = m_allocMap[result.data()];
 
         m_buf1Size.rows = shape[0];
         m_buf1Size.cols = shape[1];
@@ -127,14 +183,24 @@ public:
         MTL::Size threadsPerThreadGroup = MTL::Size(w, h, 1);
         MTL::Size gridSize = MTL::Size(m_buf1Size.rows, m_buf1Size.cols, 1);
         sendComputeCommandSingleBuffer(m_compFuncPSOMatTranspose, gridSize, threadsPerThreadGroup);
-        // Copy gpu results
-        std::memcpy(static_cast<void*>(result.data()), m_bufResult->contents(), result.size() * sizeof(DataType));
 
-        m_buf1->release();
-        m_bufResult->release();
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
     }
 
 protected:
+    inline MTL::Buffer* getReadOnlyMTLBuffer(const Array & a)
+    {
+        // Memory could be a GPU allocated memory or system memory.
+        if (m_allocMap.find(a.data()) == m_allocMap.end())
+        {
+            return m_mtlDevice->newBuffer(a.data(), a.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
+        }
+
+        return m_allocMap[a.data()];
+    }
+
     MTL::Library* loadLibrary(const std::string & libName)
     {
         NS::Error* error = nullptr;
@@ -249,6 +315,7 @@ protected:
     MTL::Buffer*   m_bufResult{nullptr};
     MatrixSize     m_buf1Size{0, 0};
     MatrixSize     m_buf2Size{0, 0};
+    std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
 };
 
 }   // namespace
