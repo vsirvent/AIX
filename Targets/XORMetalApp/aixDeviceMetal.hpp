@@ -62,6 +62,15 @@ public:
             m_compFuncPSOSub          = createComputeFuncPSO(defaultLibrary, "sub_float");
             m_compFuncPSOMul          = createComputeFuncPSO(defaultLibrary, "mul_float");
             m_compFuncPSODiv          = createComputeFuncPSO(defaultLibrary, "div_float");
+            m_compFuncPSOAdd_A_S      = createComputeFuncPSO(defaultLibrary, "add_a_s_float");
+            m_compFuncPSOSub_S_A      = createComputeFuncPSO(defaultLibrary, "sub_s_a_float");
+            m_compFuncPSOMul_A_S      = createComputeFuncPSO(defaultLibrary, "mul_a_s_float");
+            m_compFuncPSODiv_A_S      = createComputeFuncPSO(defaultLibrary, "div_a_s_float");
+            m_compFuncPSODiv_S_A      = createComputeFuncPSO(defaultLibrary, "div_s_a_float");
+            m_compFuncPSOSqrt         = createComputeFuncPSO(defaultLibrary, "sqrt_a_float");
+            m_compFuncPSOSin          = createComputeFuncPSO(defaultLibrary, "sin_a_float");
+            m_compFuncPSOCos          = createComputeFuncPSO(defaultLibrary, "cos_a_float");
+            m_compFuncPSOTanh         = createComputeFuncPSO(defaultLibrary, "tanh_a_float");
             m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
             m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "matrix_transpose_float");
         }
@@ -79,6 +88,15 @@ public:
         m_compFuncPSOSub->release();
         m_compFuncPSOMul->release();
         m_compFuncPSODiv->release();
+        m_compFuncPSOAdd_A_S->release();
+        m_compFuncPSOSub_S_A->release();
+        m_compFuncPSOMul_A_S->release();
+        m_compFuncPSODiv_A_S->release();
+        m_compFuncPSODiv_S_A->release();
+        m_compFuncPSOSqrt->release();
+        m_compFuncPSOSin->release();
+        m_compFuncPSOCos->release();
+        m_compFuncPSOTanh->release();
         m_compFuncPSOMatMul->release();
         m_compFuncPSOMatTranspose->release();
         m_mtlDevice->release();
@@ -226,24 +244,286 @@ public:
         m_bufResult = nullptr;
     }
 
+    void add(const Array & a, DataType scalar, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::add(a, scalar, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::add() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = scalar;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOAdd_A_S->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOAdd_A_S, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    // TODO: This should be handled in TensorValue.
+    void sub(const Array & a, DataType scalar, const size_t size, Array & result) override
+    {
+        add(a, -scalar, size, result);
+    }
+
+    void sub(DataType scalar, const Array & a, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::sub(scalar, a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::sub() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = scalar;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOSub_S_A->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOSub_S_A, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void mul(const Array & a, DataType scalar, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::mul(a, scalar, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::mul() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = scalar;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOMul_A_S->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOMul_A_S, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void div(const Array & a, DataType scalar, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::div(a, scalar, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::div() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = scalar;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSODiv_A_S->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSODiv_A_S, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void div(DataType scalar, const Array & a, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::mul(scalar, a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::div() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = scalar;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSODiv_S_A->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSODiv_S_A, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void unary(const Array & a, const size_t size, Array & result) override
+    {
+        mul(a, DataType(-1), size, result);
+    }
+
 /*
     // TODO: Add GPU support for the following device methods.
     // Unimplemented GPU implementations will use CPU by default and be called from base Device.
 
-    void add(const Array & a, DataType scalar, const size_t size, Array & result) override {}
-    void sub(const Array & a, DataType scalar, const size_t size, Array & result) override {}
-    void sub(DataType scalar, const Array & a, const size_t size, Array & result) override {}
-    void mul(const Array & a, DataType scalar, const size_t size, Array & result) override {}
-    void div(const Array & a, DataType scalar, const size_t size, Array & result) override {}
-    void div(DataType scalar, const Array & a, const size_t size, Array & result) override {}
-    void unary(const Array & a, const size_t size, Array & result) override {}
     void fill(DataType value, const size_t size, Array & result) override {}
     void mean(const Array & a, const size_t size, DataType & result) override {}
-    void sqrt(const Array & a, const size_t size, Array & result) override {}
-    void sin(const Array & a, const size_t size, Array & result) override {}
-    void cos(const Array & a, const size_t size, Array & result) override {}
-    void tanh(const Array & a, const size_t size, Array & result) override {}
 */
+
+    void sqrt(const Array & a, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::sqrt(a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::sqrt() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = 0;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOSqrt->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOSqrt, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void sin(const Array & a, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::sin(a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::sin() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = 0;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOSin->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOSin, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void cos(const Array & a, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::cos(a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::cos() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = 0;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOCos->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOCos, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void tanh(const Array & a, const size_t size, Array & result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::tanh(a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::tanh() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_scalar = 0;
+        m_bufResult = m_allocMap[result.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOTanh->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOTanh, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
 
     void matmul(const Array & a1, const Shape & s1, const Array & a2, const Shape & s2, Array & result) override
     {
@@ -402,6 +682,19 @@ protected:
         computeEncoder->dispatchThreads(gridSize, threadsPerTG);
     }
 
+    void encodeComputeCommandArrayScalar(MTL::ComputeCommandEncoder*  computeEncoder,
+                                         MTL::ComputePipelineState*  compFuncPSO, MTL::Size & gridSize,
+                                         MTL::Size & threadsPerTG) const
+    {
+        // Encode the pipeline state object and its parameters.
+        computeEncoder->setComputePipelineState(compFuncPSO);
+        computeEncoder->setBuffer(m_buf1, 0, 0);
+        computeEncoder->setBytes(&m_scalar, sizeof(DeviceType), 1);
+        computeEncoder->setBytes(&m_buf1Size, sizeof(MatrixSize), 2);
+        computeEncoder->setBuffer(m_bufResult, 0, 3);
+        computeEncoder->dispatchThreads(gridSize, threadsPerTG);
+    }
+
     void sendComputeCommandSingleBuffer(MTL::ComputePipelineState*  compFuncPSO, MTL::Size & gridSize,
                                         MTL::Size & threadsPerTG)
     {
@@ -426,6 +719,18 @@ protected:
         cmdBuffer->waitUntilCompleted();    // Wait until the work is done
     }
 
+    void sendComputeCommandArrayScalar(MTL::ComputePipelineState* compFuncPSO, MTL::Size & gridSize,
+                                       MTL::Size & threadsPerTG)
+    {
+        MTL::CommandBuffer* cmdBuffer = m_cmdQueue->commandBuffer();                    // Create a command buffer
+        MTL::ComputeCommandEncoder* compEncoder = cmdBuffer->computeCommandEncoder();   // Start a compute pass
+        // Serialize resource and states to be called by GPU
+        encodeComputeCommandArrayScalar(compEncoder, compFuncPSO, gridSize, threadsPerTG);
+        compEncoder->endEncoding();         // End the compute pass
+        cmdBuffer->commit();                // Execute the command
+        cmdBuffer->waitUntilCompleted();    // Wait until the work is done
+    }
+
     struct MatrixSize
     {
         uint rows;
@@ -439,6 +744,15 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOSub{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMul{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSODiv{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOAdd_A_S{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOSub_S_A{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOMul_A_S{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSODiv_A_S{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSODiv_S_A{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOSqrt{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOSin{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOCos{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOTanh{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatMul{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::Buffer*   m_buf1{nullptr};
@@ -446,6 +760,7 @@ protected:
     MTL::Buffer*   m_bufResult{nullptr};
     MatrixSize     m_buf1Size{0, 0};
     MatrixSize     m_buf2Size{0, 0};
+    DataType       m_scalar{0};
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
 };
 

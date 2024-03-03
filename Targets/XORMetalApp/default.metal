@@ -74,6 +74,123 @@ kernel void div(device const T* inA,
 }
 
 // -----------------------------------------------------------------
+// Add - Array + Scalar
+// -----------------------------------------------------------------
+template<typename T>
+kernel void add_a_s(device const T* inA,
+                    constant const T& scalar,
+                    constant MatrixSize& aSize,
+                    device T* result,
+                    uint index [[thread_position_in_grid]])
+{
+    result[index] = inA[index] + scalar;
+}
+
+// -----------------------------------------------------------------
+// Sub - Scalar - Array
+// -----------------------------------------------------------------
+template<typename T>
+kernel void sub_s_a(device const T* inA,
+                    constant const T& scalar,
+                    constant MatrixSize& aSize,
+                    device T* result,
+                    uint index [[thread_position_in_grid]])
+{
+    result[index] = scalar - inA[index];
+}
+
+// -----------------------------------------------------------------
+// Mul - Array * Scalar
+// -----------------------------------------------------------------
+template<typename T>
+kernel void mul_a_s(device const T* inA,
+                    constant const T& scalar,
+                    constant MatrixSize& aSize,
+                    device T* result,
+                    uint index [[thread_position_in_grid]])
+{
+    result[index] = inA[index] * scalar;
+}
+
+// -----------------------------------------------------------------
+// Div - Array / Scalar
+// -----------------------------------------------------------------
+template<typename T>
+kernel void div_a_s(device const T* inA,
+                    constant const T& scalar,
+                    constant MatrixSize& aSize,
+                    device T* result,
+                    uint index [[thread_position_in_grid]])
+{
+    result[index] = inA[index] / scalar;
+}
+
+// -----------------------------------------------------------------
+// Div - Scalar / Array
+// -----------------------------------------------------------------
+template<typename T>
+kernel void div_s_a(device const T* inA,
+                    constant const T& scalar,
+                    constant MatrixSize& aSize,
+                    device T* result,
+                    uint index [[thread_position_in_grid]])
+{
+    result[index] = scalar / inA[index];
+}
+
+// -----------------------------------------------------------------
+// Sqrt - sqrt(Array)
+// -----------------------------------------------------------------
+template<typename T>
+kernel void sqrt_a(device const T* inA,
+                   constant const T& scalar,
+                   constant MatrixSize& aSize,
+                   device T* result,
+                   uint index [[thread_position_in_grid]])
+{
+    result[index] = sqrt(inA[index]);
+}
+
+// -----------------------------------------------------------------
+// Sin - sin(Array)
+// -----------------------------------------------------------------
+template<typename T>
+kernel void sin_a(device const T* inA,
+                  constant const T& scalar,
+                  constant MatrixSize& aSize,
+                  device T* result,
+                  uint index [[thread_position_in_grid]])
+{
+    result[index] = sin(inA[index]);
+}
+
+// -----------------------------------------------------------------
+// Cos - cos(Array)
+// -----------------------------------------------------------------
+template<typename T>
+kernel void cos_a(device const T* inA,
+                   constant const T& scalar,
+                   constant MatrixSize& aSize,
+                   device T* result,
+                   uint index [[thread_position_in_grid]])
+{
+    result[index] = cos(inA[index]);
+}
+
+// -----------------------------------------------------------------
+// Tanh - tanh(Array)
+// -----------------------------------------------------------------
+template<typename T>
+kernel void tanh_a(device const T* inA,
+                   constant const T& scalar,
+                   constant MatrixSize& aSize,
+                   device T* result,
+                   uint index [[thread_position_in_grid]])
+{
+    result[index] = tanh(inA[index]);
+}
+
+// -----------------------------------------------------------------
 // Matrix Multiply - Naive implementation
 // -----------------------------------------------------------------
 template<typename T>
@@ -148,6 +265,78 @@ kernel void div(device const float*,
                 constant MatrixSize&,
                 constant MatrixSize&,
                 uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("add_a_s_float") ]]
+kernel void add_a_s(device const float*,
+                    constant const float&,
+                    constant MatrixSize&,
+                    device float*,
+                    uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("sub_s_a_float") ]]
+kernel void sub_s_a(device const float*,
+                    constant const float&,
+                    constant MatrixSize&,
+                    device float*,
+                    uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("mul_a_s_float") ]]
+kernel void mul_a_s(device const float*,
+                    constant const float&,
+                    constant MatrixSize&,
+                    device float*,
+                    uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("div_a_s_float") ]]
+kernel void div_a_s(device const float*,
+                    constant const float&,
+                    constant MatrixSize&,
+                    device float*,
+                    uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("div_s_a_float") ]]
+kernel void div_s_a(device const float*,
+                    constant const float&,
+                    constant MatrixSize&,
+                    device float*,
+                    uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("sqrt_a_float") ]]
+kernel void sqrt_a(device const float*,
+                   constant const float&,
+                   constant MatrixSize&,
+                   device float*,
+                   uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("sin_a_float") ]]
+kernel void sin_a(device const float*,
+                  constant const float&,
+                  constant MatrixSize&,
+                  device float*,
+                  uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("cos_a_float") ]]
+kernel void cos_a(device const float*,
+                  constant const float&,
+                  constant MatrixSize&,
+                  device float*,
+                  uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("tanh_a_float") ]]
+kernel void tanh_a(device const float*,
+                   constant const float&,
+                   constant MatrixSize&,
+                   device float*,
+                   uint index [[thread_position_in_grid]]);
 
 
 template [[ host_name("matrix_mul_float") ]]
