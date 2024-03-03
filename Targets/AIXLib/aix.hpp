@@ -721,9 +721,8 @@ public:
         if (!node->m_a) return;
         // The derivative of tanh(a) with respect to 'a' is 1 - tanh^2(a).
         // Therefore, the gradient of the input is multiplied by (1 - tanh^2(a)).
-        auto tanhValue = node->m_a->m_value.tanh();
-        auto oneTensor = TensorValue(1.0, tanhValue.shape(), node->device());
-        node->m_a->backward((oneTensor - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
+        const auto & tanhValue = node->m_a->m_value.tanh();
+        node->m_a->backward((DataType(1) - tanhValue * tanhValue) * seed);  // ∂f/∂a = (1 - tanh^2(a))
     }
 
     static void matmulBackwardFunc(TensorNode * node, const TensorValue & seed)
