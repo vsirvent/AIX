@@ -335,8 +335,12 @@ public:
     Device * device() const        { return m_device; }
 
     // Set the device
-    void device(Device * device)   { m_device = device; }
-
+    void device(Device * device)
+    {
+        // Move data to the new device. Create a new data with new device and copy the data. Deallocate the old data.
+        m_data = Array(m_data, Allocator<DataType>(device->createMemoryAllocator()));
+        m_device = device;
+    }
 
     // Operators
 
