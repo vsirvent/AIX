@@ -270,7 +270,12 @@ public:
                 result[j * shape[0] + i] = a[i * shape[1] + j];
             }
         }
-    };
+    }
+
+    virtual void copy(const Array & src, Array & dst, size_t size)
+    {
+        std::memcpy(dst.data(), src.data(), size * sizeof(DataType));
+    }
 };
 
 

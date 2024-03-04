@@ -73,6 +73,7 @@ public:
             m_compFuncPSOTanh         = createComputeFuncPSO(defaultLibrary, "tanh_a_float");
             m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
             m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "matrix_transpose_float");
+            m_compFuncPSOCopy_A_A     = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
         }
         else
             throw std::invalid_argument("Metal device supports only float data type for now.");
@@ -99,6 +100,7 @@ public:
         m_compFuncPSOTanh->release();
         m_compFuncPSOMatMul->release();
         m_compFuncPSOMatTranspose->release();
+        m_compFuncPSOCopy_A_A->release();
         m_mtlDevice->release();
         // No need to release MTL Buffer objects in m_allocMap.
         m_pool->release();
@@ -587,6 +589,34 @@ public:
         m_bufResult = nullptr;
     }
 
+    void copy(const Array & src, Array & dst, size_t size) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        //Device::copy(src, dst, size); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(dst.data()) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::copy() result must have GPU memory.");
+
+        // Memory could be a GPU allocated memory or system memory.
+        m_buf1 = getReadOnlyMTLBuffer(src);
+        m_bufResult = m_allocMap[dst.data()];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOCopy_A_A->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandSingleBuffer(m_compFuncPSOCopy_A_A, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, src);
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
 protected:
     inline MTL::Buffer* getReadOnlyMTLBuffer(const Array & a)
     {
@@ -755,6 +785,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOTanh{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatMul{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};
     MTL::Buffer*   m_buf1{nullptr};
     MTL::Buffer*   m_buf2{nullptr};
     MTL::Buffer*   m_bufResult{nullptr};

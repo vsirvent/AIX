@@ -227,6 +227,17 @@ kernel void matrix_transpose(constant const T* mat,
     result[ofs1] = mat[ofs2];
 }
 
+// -----------------------------------------------------------------
+// Copy - Src To Dst
+// -----------------------------------------------------------------
+template<typename T>
+kernel void copy_a_a(device const T* src,
+                     device T* dst,
+                     constant MatrixSize& size,
+                     uint index [[thread_position_in_grid]])
+{
+    dst[index] = src[index];
+}
 
 // Templates
 
@@ -354,3 +365,10 @@ kernel void matrix_transpose(constant const float*,
                              constant MatrixSize&,
                              uint2 gid,
                              uint2 tid);
+
+
+template [[ host_name("copy_a_a_float") ]]
+kernel void copy_a_a(device const float*,
+                     device float*,
+                     constant MatrixSize&,
+                     uint index);
