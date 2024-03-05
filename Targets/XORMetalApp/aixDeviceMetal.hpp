@@ -51,6 +51,7 @@ public:
             m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
             m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "matrix_transpose_float");
             m_compFuncPSOCopy_A_A     = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
+            m_compFuncPSOCopy_S_A     = createComputeFuncPSO(defaultLibrary, "copy_s_a_float");
         }
         else
             throw std::invalid_argument("Metal device supports only float data type for now.");
@@ -78,6 +79,7 @@ public:
         m_compFuncPSOMatMul->release();
         m_compFuncPSOMatTranspose->release();
         m_compFuncPSOCopy_A_A->release();
+        m_compFuncPSOCopy_S_A->release();
         m_mtlDevice->release();
         // No need to release MTL Buffer objects in m_allocMap.
         m_pool->release();
@@ -373,11 +375,38 @@ public:
         mul(a, DataType(-1), size, result);
     }
 
+    void fill(DataType scalar, const size_t size, DataType * result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::fill(scalar, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::div() result must have GPU memory.");
+
+        m_buf1   = nullptr;
+        m_scalar = scalar;
+        m_bufResult = m_allocMap[result];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOCopy_S_A->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOCopy_S_A, gridSize, threadsPerThreadGroup);
+
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
 /*
     // TODO: Add GPU support for the following device methods.
     // Unimplemented GPU implementations will use CPU by default and be called from base Device.
 
-    void fill(DataType value, const size_t size, DataType * result) override {}
     void mean(const DataType * a, const size_t size, DataType & result) override {}
 */
 
@@ -757,6 +786,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOMatMul{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOCopy_S_A{nullptr};
     MTL::Buffer*   m_buf1{nullptr};
     MTL::Buffer*   m_buf2{nullptr};
     MTL::Buffer*   m_bufResult{nullptr};

@@ -151,11 +151,11 @@ public:
         }
     }
 
-    virtual void fill(DataType value, const size_t size, DataType* result)
+    virtual void fill(DataType scalar, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
-            result[i] = value;
+            result[i] = scalar;
         }
     }
 

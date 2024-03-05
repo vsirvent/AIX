@@ -239,6 +239,20 @@ kernel void copy_a_a(device const T* src,
     dst[index] = src[index];
 }
 
+// -----------------------------------------------------------------
+// Copy - Scalar To Array
+// -----------------------------------------------------------------
+template<typename T>
+kernel void copy_s_a(device const T* inA,
+                     constant const T& scalar,
+                     constant MatrixSize& aSize,
+                     device T* result,
+                     uint index [[thread_position_in_grid]])
+{
+    result[index] = scalar;
+}
+
+
 // Templates
 
 
@@ -372,3 +386,11 @@ kernel void copy_a_a(device const float*,
                      device float*,
                      constant MatrixSize&,
                      uint index);
+
+
+template [[ host_name("copy_s_a_float") ]]
+kernel void copy_s_a(device const float*,
+                     constant const float&,
+                     constant MatrixSize&,
+                     device float*,
+                     uint index [[thread_position_in_grid]]);
