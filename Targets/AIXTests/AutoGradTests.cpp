@@ -19,16 +19,16 @@ using namespace aix;
 
 struct TestModel : public aix::nn::Module
 {
-    TestModel(const aix::Array & xData,
-              const aix::Array & yData,
-              const aix::Array & tData,
-              const aix::Array & uData,
-              const aix::Shape & shape)
+    TestModel(const std::vector<DataType> & xData,
+              const std::vector<DataType> & yData,
+              const std::vector<DataType> & tData,
+              const std::vector<DataType> & uData,
+              const Shape & shape)
     {
-        m_x = aix::tensor(xData, shape, true);
-        m_y = aix::tensor(yData, shape, true);
-        m_t = aix::tensor(tData, shape, true);
-        m_u = aix::tensor(uData, shape, true);
+        m_x = tensor(xData, shape, true);
+        m_y = tensor(yData, shape, true);
+        m_t = tensor(tData, shape, true);
+        m_u = tensor(uData, shape, true);
 
         registerParameter(m_x);
         registerParameter(m_y);
@@ -110,11 +110,11 @@ TEST_CASE("Auto Grad - Module Test - 1x2 Tensor")
     CHECK(tm.m_u.value().shape() == shape);
     CHECK(m.value().shape()      == shape);
 
-    CheckVectorApproxValues(tm.m_x.grad().data(), {0.8, 3.66667});
-    CheckVectorApproxValues(tm.m_y.grad().data(), {0.199999, 0.666667});
-    CheckVectorApproxValues(tm.m_t.grad().data(), {-0.16, -0.666667});
-    CheckVectorApproxValues(tm.m_u.grad().data(), {5.9343, -0.174642});
-    CheckVectorApproxValues(m.value().data(),     {4.39891, 9.91487});
+    CheckVectorApproxValues(tm.m_x.grad(), tensor({0.8, 3.66667},       shape).value());
+    CheckVectorApproxValues(tm.m_y.grad(), tensor({0.199999, 0.666667}, shape).value());
+    CheckVectorApproxValues(tm.m_t.grad(), tensor({-0.16, -0.666667},   shape).value());
+    CheckVectorApproxValues(tm.m_u.grad(), tensor({5.9343, -0.174642},  shape).value());
+    CheckVectorApproxValues(m.value(),     tensor({4.39891, 9.91487},   shape).value());
 }
 
 
@@ -144,9 +144,9 @@ TEST_CASE("Auto Grad - Module Test - 2x3 Tensor")
     CHECK(tm.m_u.value().shape() == shape);
     CHECK(m.value().shape()      == shape);
 
-    CheckVectorApproxValues(tm.m_x.grad().data(), {0.307692, 2.14286, 4.4, 7, 9.88235, 13});
-    CheckVectorApproxValues(tm.m_y.grad().data(), {0.0769231, 0.285714, 0.6, 1, 1.47059, 2});
-    CheckVectorApproxValues(tm.m_t.grad().data(), {-0.0473373, -0.204082, -0.48, -0.875, -1.38408, -2});
-    CheckVectorApproxValues(tm.m_u.grad().data(), {18.9353, 9.07459, -10.6657, -22.008, -13.1014, 9.27472});
-    CheckVectorApproxValues(m.value().data(),     {2.46305, 19.116, 21.7698, 9.80527, -0.933655, 8.26612});
+    CheckVectorApproxValues(tm.m_x.grad(), tensor({0.307692, 2.14286, 4.4, 7, 9.88235, 13}, shape).value());
+    CheckVectorApproxValues(tm.m_y.grad(), tensor({0.0769231, 0.285714, 0.6, 1, 1.47059, 2}, shape).value());
+    CheckVectorApproxValues(tm.m_t.grad(), tensor({-0.0473373, -0.204082, -0.48, -0.875, -1.38408, -2}, shape).value());
+    CheckVectorApproxValues(tm.m_u.grad(), tensor({18.9353, 9.07459, -10.6657, -22.008, -13.1014, 9.27472}, shape).value());
+    CheckVectorApproxValues(m.value(),     tensor({2.46305, 19.116, 21.7698, 9.80527, -0.933655, 8.26612}, shape).value());
 }

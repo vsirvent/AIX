@@ -22,10 +22,10 @@ inline auto Approx(auto value)
     return doctest::Approx(value).epsilon(EPSILON);
 }
 
-inline void CheckVectorApproxValues(const aix::Array & source, const aix::Array & values)
+inline void CheckVectorApproxValues(const aix::TensorValue & source, const aix::TensorValue & values)
 {
     for (size_t i=0; i<values.size(); ++i)
     {
-        CHECK(source[i] == Approx(values[i]));
+        CHECK(source.data()[i] == Approx(values.data()[i]));
     }
 }

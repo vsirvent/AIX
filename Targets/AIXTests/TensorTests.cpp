@@ -26,7 +26,7 @@ TEST_CASE("Simple TensorValue 1 dim - Add")
     auto z = x + y;
 
     CHECK(z.shape() == Shape{1, 3});
-    CHECK(z.data() == Array{5, 7, 9});
+    CheckVectorApproxValues(z, TensorValue({5, 7, 9}, z.shape(), &testDevice));
 }
 
 
@@ -38,7 +38,7 @@ TEST_CASE("Simple TensorValue 2 dim - Add")
     auto z = x + y;
 
     CHECK(z.shape() == Shape{2, 3});
-    CHECK(z.data() == Array{8, 10, 12, 14, 16, 18});
+    CheckVectorApproxValues(z, TensorValue({8, 10, 12, 14, 16, 18}, z.shape(), &testDevice));
 }
 
 
@@ -50,7 +50,7 @@ TEST_CASE("Simple TensorValue 2 dim - Sub")
     auto z = x - y;
 
     CHECK(z.shape() == Shape{2, 3});
-    CHECK(z.data() == Array{-6, -6, -6, -6, -6, -6});
+    CheckVectorApproxValues(z, TensorValue({-6, -6, -6, -6, -6, -6}, z.shape(), &testDevice));
 }
 
 
@@ -62,7 +62,7 @@ TEST_CASE("Simple TensorValue 2 dim - Mul")
     auto z = x * y;
 
     CHECK(z.shape() == Shape{2, 3});
-    CHECK(z.data() == Array{7, 16, 27, 40, 55, 72});
+    CheckVectorApproxValues(z, TensorValue({7, 16, 27, 40, 55, 72}, z.shape(), &testDevice));
 }
 
 
@@ -74,7 +74,7 @@ TEST_CASE("Simple TensorValue 2 dim - Div")
     auto z = x / y;
 
     CHECK(z.shape() == Shape{2, 3});
-    CHECK(z.data() == Array{-1, 0, 1, 2, -3, -1});
+    CheckVectorApproxValues(z, TensorValue({-1, 0, 1, 2, -3, -1}, z.shape(), &testDevice));
 }
 
 
@@ -82,9 +82,10 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 {
     auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3}, &testDevice);
     auto z = x;
+    z.data()[0] = 1;
 
     CHECK(z.shape() == x.shape());
-    CHECK(z.data()  == x.data());
+    CheckVectorApproxValues(z, x);
 }
 
 
@@ -95,14 +96,14 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
     auto z = copyTensor(x);
 
     CHECK(z.shape() == x.shape());
-    CHECK(z.data()  == x.data());
+    CheckVectorApproxValues(z, x);
 }
 
 
 TEST_CASE("TensorValue::tanh 2x2")
 {
     auto x = TensorValue({0.1, 0.2, 0.3, 0.4}, {2, 2}, &testDevice);
-    CheckVectorApproxValues(x.tanh().data(), {0.099668, 0.197375, 0.291313, 0.379949});
+    CheckVectorApproxValues(x.tanh(), TensorValue({0.099668, 0.197375, 0.291313, 0.379949}, x.shape(), &testDevice));
 }
 
 
@@ -113,7 +114,7 @@ TEST_CASE("TensorValue::matmul 1x1 1x1")
     auto c = a.matmul(b);
 
     CHECK(c.shape() == Shape{1, 1});
-    CheckVectorApproxValues(c.data(), {6});
+    CheckVectorApproxValues(c, TensorValue(6, c.shape(), &testDevice));
 }
 
 
@@ -124,7 +125,7 @@ TEST_CASE("TensorValue::matmul 2x4 4x3")
     auto c = a.matmul(b);     // Result matrix.
 
     CHECK(c.shape() == Shape{2, 3});
-    CheckVectorApproxValues(c.data(), {70, 80, 90, 158, 184, 210});
+    CheckVectorApproxValues(c, TensorValue({70, 80, 90, 158, 184, 210}, c.shape(), &testDevice));
 }
 
 
@@ -132,7 +133,7 @@ TEST_CASE("TensorValue::transpose 1x1")
 {
     auto a = TensorValue(2, {1, 1}, &testDevice).transpose();
     CHECK(a.shape() == Shape{1, 1});
-    CheckVectorApproxValues(a.data(), {2});
+    CheckVectorApproxValues(a, TensorValue(2, a.shape(), &testDevice));
 }
 
 
@@ -140,5 +141,5 @@ TEST_CASE("TensorValue::transpose 2x3")
 {
     auto a = TensorValue({1, 2, 3, 4, 5, 6}, {2, 3}, &testDevice).transpose();
     CHECK(a.shape() == Shape{3, 2});
-    CheckVectorApproxValues(a.data(), {1, 4, 2, 5, 3, 6});
+    CheckVectorApproxValues(a, TensorValue({1, 4, 2, 5, 3, 6}, a.shape(), &testDevice));
 }

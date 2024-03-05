@@ -23,29 +23,6 @@
 namespace aix
 {
 
-// Uses device to asl allocate/deallocate memory.
-class MetalGPUMemoryAllocator : public DeviceAllocator
-{
-public:
-    explicit MetalGPUMemoryAllocator(Device * device) : m_device(device) {}
-
-    void* allocate(std::size_t n) override
-    {
-        if (!m_device) throw std::runtime_error("Allocate() : No device has been set in allocator.");
-        return m_device->allocate(n);
-    }
-
-    void deallocate(void* p, [[maybe_unused]] std::size_t size) override
-    {
-        if (!m_device) throw std::runtime_error("Deallocate() : No device has been set in allocator.");
-        m_device->deallocate(p);
-    }
-
-private:
-    Device* m_device{nullptr};
-};
-
-
 class DeviceMetal : public aix::Device
 {
 public:
@@ -108,17 +85,11 @@ public:
 
     DeviceType type() const override { return DeviceType::kGPU_METAL; }
 
-    // Return an allocator to be used by aix::Array.
-    std::shared_ptr<DeviceAllocator> createMemoryAllocator() override
-    {
-        return std::make_shared<MetalGPUMemoryAllocator>(this);
-    }
-
     // Allocate GPU memory and return MTL Buffer contents and keeps MTL Buffer pointers in a hashmap.
     void * allocate(size_t size) override
     {
         // Allocate GPU memory and save the mtl buffer to be used later.
-        auto mtlBuf = m_mtlDevice->newBuffer(size * sizeof(DataType), MTL::ResourceStorageModeShared);
+        auto mtlBuf = m_mtlDevice->newBuffer(size, MTL::ResourceStorageModeShared);
         auto contentPtr = mtlBuf->contents();
         m_allocMap[contentPtr] = mtlBuf;
         return contentPtr;
@@ -134,18 +105,18 @@ public:
         mtlBuf->release();
     }
 
-    void add(const Array & a1, const Array & a2, const size_t size, Array & result) override
+    void add(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::add(a1, a2, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::add() result must have GPU memory.");
 
-        m_buf1 = getReadOnlyMTLBuffer(a1);      // Memory could be a GPU allocated memory or system memory.
-        m_buf2 = getReadOnlyMTLBuffer(a2);      // Memory could be a GPU allocated memory or system memory.
-        m_bufResult = m_allocMap[result.data()];
+        m_buf1 = getReadOnlyMTLBuffer(a1, size);      // Memory could be a GPU allocated memory or system memory.
+        m_buf2 = getReadOnlyMTLBuffer(a2, size);      // Memory could be a GPU allocated memory or system memory.
+        m_bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = std::min(size, m_compFuncPSOAdd->maxTotalThreadsPerThreadgroup());
@@ -162,18 +133,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void sub(const Array & a1, const Array & a2, const size_t size, Array & result) override
+    void sub(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::sub(a1, a2, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::sub() result must have GPU memory.");
 
-        m_buf1 = getReadOnlyMTLBuffer(a1);      // Memory could be a GPU allocated memory or system memory.
-        m_buf2 = getReadOnlyMTLBuffer(a2);      // Memory could be a GPU allocated memory or system memory.
-        m_bufResult = m_allocMap[result.data()];
+        m_buf1 = getReadOnlyMTLBuffer(a1, size);      // Memory could be a GPU allocated memory or system memory.
+        m_buf2 = getReadOnlyMTLBuffer(a2, size);      // Memory could be a GPU allocated memory or system memory.
+        m_bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = std::min(size, m_compFuncPSOSub->maxTotalThreadsPerThreadgroup());
@@ -190,18 +161,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void mul(const Array & a1, const Array & a2, const size_t size, Array & result) override
+    void mul(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::mul(a1, a2, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::mul() result must have GPU memory.");
 
-        m_buf1 = getReadOnlyMTLBuffer(a1);      // Memory could be a GPU allocated memory or system memory.
-        m_buf2 = getReadOnlyMTLBuffer(a2);      // Memory could be a GPU allocated memory or system memory.
-        m_bufResult = m_allocMap[result.data()];
+        m_buf1 = getReadOnlyMTLBuffer(a1, size);      // Memory could be a GPU allocated memory or system memory.
+        m_buf2 = getReadOnlyMTLBuffer(a2, size);      // Memory could be a GPU allocated memory or system memory.
+        m_bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = std::min(size, m_compFuncPSOMul->maxTotalThreadsPerThreadgroup());
@@ -218,18 +189,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void div(const Array & a1, const Array & a2, const size_t size, Array & result) override
+    void div(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::div(a1, a2, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::div() result must have GPU memory.");
 
-        m_buf1 = getReadOnlyMTLBuffer(a1);      // Memory could be a GPU allocated memory or system memory.
-        m_buf2 = getReadOnlyMTLBuffer(a2);      // Memory could be a GPU allocated memory or system memory.
-        m_bufResult = m_allocMap[result.data()];
+        m_buf1 = getReadOnlyMTLBuffer(a1, size);      // Memory could be a GPU allocated memory or system memory.
+        m_buf2 = getReadOnlyMTLBuffer(a2, size);      // Memory could be a GPU allocated memory or system memory.
+        m_bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = std::min(size, m_compFuncPSODiv->maxTotalThreadsPerThreadgroup());
@@ -246,18 +217,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void add(const Array & a, DataType scalar, const size_t size, Array & result) override
+    void add(const DataType * a, DataType scalar, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::add(a, scalar, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::add() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = scalar;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -276,23 +247,23 @@ public:
     }
 
     // TODO: This should be handled in TensorValue.
-    void sub(const Array & a, DataType scalar, const size_t size, Array & result) override
+    void sub(const DataType * a, DataType scalar, const size_t size, DataType * result) override
     {
         add(a, -scalar, size, result);
     }
 
-    void sub(DataType scalar, const Array & a, const size_t size, Array & result) override
+    void sub(DataType scalar, const DataType * a, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::sub(scalar, a, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::sub() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = scalar;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -310,18 +281,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void mul(const Array & a, DataType scalar, const size_t size, Array & result) override
+    void mul(const DataType * a, DataType scalar, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::mul(a, scalar, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::mul() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = scalar;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -339,18 +310,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void div(const Array & a, DataType scalar, const size_t size, Array & result) override
+    void div(const DataType * a, DataType scalar, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::div(a, scalar, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::div() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = scalar;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -368,18 +339,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void div(DataType scalar, const Array & a, const size_t size, Array & result) override
+    void div(DataType scalar, const DataType * a, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::mul(scalar, a, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::div() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = scalar;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -397,7 +368,7 @@ public:
         m_bufResult = nullptr;
     }
 
-    void unary(const Array & a, const size_t size, Array & result) override
+    void unary(const DataType * a, const size_t size, DataType * result) override
     {
         mul(a, DataType(-1), size, result);
     }
@@ -406,22 +377,22 @@ public:
     // TODO: Add GPU support for the following device methods.
     // Unimplemented GPU implementations will use CPU by default and be called from base Device.
 
-    void fill(DataType value, const size_t size, Array & result) override {}
-    void mean(const Array & a, const size_t size, DataType & result) override {}
+    void fill(DataType value, const size_t size, DataType * result) override {}
+    void mean(const DataType * a, const size_t size, DataType & result) override {}
 */
 
-    void sqrt(const Array & a, const size_t size, Array & result) override
+    void sqrt(const DataType * a, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::sqrt(a, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::sqrt() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = 0;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -439,18 +410,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void sin(const Array & a, const size_t size, Array & result) override
+    void sin(const DataType * a, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::sin(a, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::sin() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = 0;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -468,18 +439,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void cos(const Array & a, const size_t size, Array & result) override
+    void cos(const DataType * a, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::cos(a, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::cos() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = 0;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -497,18 +468,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void tanh(const Array & a, const size_t size, Array & result) override
+    void tanh(const DataType * a, const size_t size, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::tanh(a, size, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::tanh() result must have GPU memory.");
 
-        m_buf1   = getReadOnlyMTLBuffer(a);
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
         m_scalar = 0;
-        m_bufResult = m_allocMap[result.data()];
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -527,18 +498,18 @@ public:
     }
 
 
-    void matmul(const Array & a1, const Shape & s1, const Array & a2, const Shape & s2, Array & result) override
+    void matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::matmul(a1,s1,a2,s2,result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
-        m_buf1 = getReadOnlyMTLBuffer(a1);  // Memory could be a GPU allocated memory or system memory.
-        m_buf2 = getReadOnlyMTLBuffer(a2);  // Memory could be a GPU allocated memory or system memory.
-        m_bufResult = m_allocMap[result.data()];
+        m_buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1]);  // Memory could be a GPU allocated memory or system memory.
+        m_buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1]);  // Memory could be a GPU allocated memory or system memory.
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = s1[0];
         m_buf1Size.cols = s1[1];
@@ -561,18 +532,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void transpose(const Array & mat, const Shape & shape, Array & result) override
+    void transpose(const DataType * mat, const Shape & shape, DataType * result) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         // Device::transpose(a, shape, result); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(result.data()) == m_allocMap.end())
+        if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
         // Memory could be a GPU allocated memory or system memory.
-        m_buf1 = getReadOnlyMTLBuffer(mat);
-        m_bufResult = m_allocMap[result.data()];
+        m_buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1]);
+        m_bufResult = m_allocMap[result];
 
         m_buf1Size.rows = shape[0];
         m_buf1Size.cols = shape[1];
@@ -589,18 +560,18 @@ public:
         m_bufResult = nullptr;
     }
 
-    void copy(const Array & src, Array & dst, size_t size) override
+    void copy(const DataType * src, DataType * dst, size_t size) override
     {
         // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
         //Device::copy(src, dst, size); return;
 
         // Result buffer has to be allocated in advance and has to be a GPU memory.
-        if (m_allocMap.find(dst.data()) == m_allocMap.end())
+        if (m_allocMap.find(dst) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::copy() result must have GPU memory.");
 
         // Memory could be a GPU allocated memory or system memory.
-        m_buf1 = getReadOnlyMTLBuffer(src);
-        m_bufResult = m_allocMap[dst.data()];
+        m_buf1 = getReadOnlyMTLBuffer(src, size);
+        m_bufResult = m_allocMap[dst];
 
         m_buf1Size.rows = 1;
         m_buf1Size.cols = size;
@@ -618,21 +589,21 @@ public:
     }
 
 protected:
-    inline MTL::Buffer* getReadOnlyMTLBuffer(const Array & a)
+    inline MTL::Buffer* getReadOnlyMTLBuffer(const DataType * address, size_t size)
     {
         // Memory could be from other devices. Create a temporary buffer for read only case.
-        if (m_allocMap.find(a.data()) == m_allocMap.end())
+        if (m_allocMap.find(address) == m_allocMap.end())
         {
-            return m_mtlDevice->newBuffer(a.data(), a.size() * sizeof(DataType), MTL::ResourceStorageModeShared);
+            return m_mtlDevice->newBuffer(address, size * sizeof(DataType), MTL::ResourceStorageModeShared);
         }
 
-        return m_allocMap[a.data()];    // Return MTL Buffer if the memory is from the current device.
+        return m_allocMap[address];    // Return MTL Buffer if the memory is from the current device.
     }
 
-    inline void freeTemporaryBuffer(MTL::Buffer * buffer, const Array & a)
+    inline void freeTemporaryBuffer(MTL::Buffer * buffer, const DataType * address)
     {
         // Release only temporary buffer.
-        if (m_allocMap.find(a.data()) == m_allocMap.end())
+        if (m_allocMap.find(address) == m_allocMap.end())
         {
             buffer->release();
         }

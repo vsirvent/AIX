@@ -19,10 +19,10 @@ using namespace aix;
 
 TEST_CASE("Simple optimizer test")
 {
-    auto x = aix::tensor({2}, {1,1}, true);
-    auto y = aix::tensor({3}, {1,1}, true);
-    auto t = aix::tensor({4}, {1,1}, true);
-    auto u = aix::tensor({5}, {1,1}, true);
+    auto x = tensor({2}, {1,1}, true);
+    auto y = tensor({3}, {1,1}, true);
+    auto t = tensor({4}, {1,1}, true);
+    auto u = tensor({5}, {1,1}, true);
 
     auto z = x * (x + y) / t - y * y;
     auto m = x * z + Tensor::sin(u) * u;

@@ -42,41 +42,6 @@ enum class DeviceType
 };
 
 
-class DeviceAllocator
-{
-public:
-    // Destructor
-    virtual ~DeviceAllocator() = default;
-
-    virtual void* allocate(std::size_t size)                              { return std::malloc(size); }
-    virtual void  deallocate(void* p, [[maybe_unused]] std::size_t size)  { std::free(p); }
-};
-
-
-template<typename T>
-class Allocator : public std::allocator<T>
-{
-public:
-    Allocator()     { m_allocator = std::make_shared<DeviceAllocator>(); }
-
-    explicit Allocator(std::shared_ptr<DeviceAllocator> alloc) : m_allocator(std::move(alloc)) {}
-
-    T* allocate(std::size_t n)
-    {
-        return static_cast<T*>(m_allocator->allocate(n * sizeof(T)));
-    }
-
-    void deallocate(T* p, std::size_t n)
-    {
-        m_allocator->deallocate(p, n * sizeof(T));
-    }
-
-private:
-    std::shared_ptr<DeviceAllocator>  m_allocator{nullptr};
-};
-
-
-using Array = std::vector<DataType, Allocator<DataType>>;
 using Shape = std::vector<size_t>;
 using Index = std::vector<size_t>;
 
@@ -85,11 +50,6 @@ class Device
 {
 public:
     virtual DeviceType type() const { return DeviceType::kCPU; }
-
-    virtual std::shared_ptr<DeviceAllocator> createMemoryAllocator()
-    {
-        return std::make_shared<DeviceAllocator>();
-    }
 
     virtual void * allocate(size_t size)
     {
@@ -101,7 +61,7 @@ public:
         return std::free(memory);
     }
 
-    virtual void add(const Array & a1, const Array & a2, const size_t size, Array & result)
+    virtual void add(const DataType* a1, const DataType* a2, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -109,7 +69,7 @@ public:
         }
     }
 
-    virtual void sub(const Array & a1, const Array & a2, const size_t size, Array & result)
+    virtual void sub(const DataType* a1, const DataType* a2, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -117,7 +77,7 @@ public:
         }
     }
 
-    virtual void mul(const Array & a1, const Array & a2, const size_t size, Array & result)
+    virtual void mul(const DataType* a1, const DataType* a2, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -125,7 +85,7 @@ public:
         }
     }
 
-    virtual void div(const Array & a1, const Array & a2, const size_t size, Array & result)
+    virtual void div(const DataType* a1, const DataType* a2, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -135,7 +95,7 @@ public:
 
     // Scalar operations
 
-    virtual void add(const Array & a, DataType scalar, const size_t size, Array & result)
+    virtual void add(const DataType* a, DataType scalar, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -143,7 +103,7 @@ public:
         }
     }
 
-    virtual void sub(const Array & a, DataType scalar, const size_t size, Array & result)
+    virtual void sub(const DataType* a, DataType scalar, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -151,7 +111,7 @@ public:
         }
     }
 
-    virtual void sub(DataType scalar, const Array & a, const size_t size, Array & result)
+    virtual void sub(DataType scalar, const DataType* a, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -159,7 +119,7 @@ public:
         }
     }
 
-    virtual void mul(const Array & a, DataType scalar, const size_t size, Array & result)
+    virtual void mul(const DataType* a, DataType scalar, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -167,7 +127,7 @@ public:
         }
     }
 
-    virtual void div(const Array & a, DataType scalar, const size_t size, Array & result)
+    virtual void div(const DataType* a, DataType scalar, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -175,7 +135,7 @@ public:
         }
     }
 
-    virtual void div(DataType scalar, const Array & a, const size_t size, Array & result)
+    virtual void div(DataType scalar, const DataType* a, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -183,7 +143,7 @@ public:
         }
     }
 
-    virtual void unary(const Array & a, const size_t size, Array & result)
+    virtual void unary(const DataType* a, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -191,7 +151,7 @@ public:
         }
     }
 
-    virtual void fill(DataType value, const size_t size, Array & result)
+    virtual void fill(DataType value, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -199,13 +159,17 @@ public:
         }
     }
 
-    virtual void mean(const Array & a, const size_t size, DataType & result)
+    virtual void mean(const DataType* a, const size_t size, DataType & result)
     {
-        DataType sum = std::accumulate(a.begin(), a.end(), DataType(0));
+        DataType sum = 0;
+        for (size_t i = 0; i < size; ++i)
+        {
+            sum += a[i];
+        }
         result = sum / static_cast<DataType>(size);
     }
 
-    virtual void sqrt(const Array & a, const size_t size, Array & result)
+    virtual void sqrt(const DataType* a, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -213,7 +177,7 @@ public:
         }
     }
 
-    virtual void sin(const Array & a, const size_t size, Array & result)
+    virtual void sin(const DataType* a, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -221,7 +185,7 @@ public:
         }
     }
 
-    virtual void cos(const Array & a, const size_t size, Array & result)
+    virtual void cos(const DataType* a, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -229,7 +193,7 @@ public:
         }
     }
 
-    virtual void tanh(const Array & a, const size_t size, Array & result)
+    virtual void tanh(const DataType* a, const size_t size, DataType* result)
     {
         for (size_t i = 0; i < size; ++i)
         {
@@ -237,7 +201,7 @@ public:
         }
     }
 
-    virtual void matmul(const Array & a1, const Shape & s1, const Array & a2, const Shape & s2, Array & result)
+    virtual void matmul(const DataType* a1, const Shape & s1, const DataType* a2, const Shape & s2, DataType* result)
     {
         // NOTE: Since TensorValue validated the parameters, device method do not validate again.
         size_t m = s1[0];        // Rows of the first matrix
@@ -259,7 +223,7 @@ public:
         }
     }
 
-    virtual void transpose(const Array & a, const Shape & shape, Array & result)
+    virtual void transpose(const DataType* a, const Shape & shape, DataType* result)
     {
         // Perform the transpose operation.
         for (size_t i = 0; i < shape[0]; ++i)
@@ -272,9 +236,9 @@ public:
         }
     }
 
-    virtual void copy(const Array & src, Array & dst, size_t size)
+    virtual void copy(const DataType* src, DataType* dst, size_t size)
     {
-        std::memcpy(dst.data(), src.data(), size * sizeof(DataType));
+        std::memcpy(dst, src, size * sizeof(DataType));
     }
 };
 
@@ -287,10 +251,21 @@ class TensorValue
 {
 public:
     // Constructor
-    TensorValue(Array data, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
+    TensorValue(const DataType* data, size_t size, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
-        // Each tensor array must use device specific memory allocator.
-        m_data = Array(std::move(data), Allocator<DataType>(device->createMemoryAllocator()));
+        m_data = static_cast<DataType*>(device->allocate(size * sizeof(DeviceType)));
+        device->copy(data, m_data, size);
+        m_size = size;
+        // Compute the strides for indexing multi-dimensional data.
+        computeStrides();
+    }
+
+    // Constructor
+    TensorValue(const std::vector<DataType> & data, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
+    {
+        m_data = static_cast<DataType*>(device->allocate(data.size() * sizeof(DeviceType)));
+        device->copy(data.data(), m_data, data.size());
+        m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
     }
@@ -298,18 +273,20 @@ public:
     // Constructor
     TensorValue(DataType value, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
-        size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
+        m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
-        m_data = Array(totalSize, value, Allocator<DataType>(device->createMemoryAllocator()));
+        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DeviceType)));
+        // initialize data.
+        for (size_t i=0; i<m_size; ++i) m_data[i] = value;
         computeStrides();
     }
 
     // Constructor
     TensorValue(Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
-        size_t totalSize = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
+        m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
-        m_data = Array(totalSize, Allocator<DataType>(device->createMemoryAllocator()));
+        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DeviceType)));
         computeStrides();
     }
 
@@ -317,8 +294,79 @@ public:
     TensorValue(DataType value, Device * device) : m_shape{Shape{1, 1}}, m_device(device)
     {
         // Each tensor array must use device specific memory allocator.
-        m_data = Array(1, value, Allocator<DataType>(device->createMemoryAllocator()));
+        m_size = 1;
+        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DeviceType)));
+        for(size_t i=0; i<m_size; ++i) m_data[i] = value;
         computeStrides();
+    }
+
+    // Destructor
+    ~TensorValue()
+    {
+        if (m_data) m_device->deallocate(m_data);
+        m_data = nullptr;
+        m_device = nullptr;
+    }
+
+    // Copy constructor
+    TensorValue(const TensorValue& other) noexcept
+    {
+        m_shape = other.m_shape;
+        m_size = other.m_size;
+        m_strides = other.m_strides;
+        m_device = other.m_device;
+        m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
+        m_device->copy(other.m_data, m_data, other.m_size);
+    }
+
+    // Copy assignment operator
+    TensorValue& operator=(const TensorValue& other) noexcept
+    {
+        if (this != &other)     // Protect against self-assignment
+        {
+            m_device->deallocate(m_data);
+            m_shape = other.m_shape;
+            m_size = other.m_size;
+            m_strides = other.m_strides;
+            m_device = other.m_device;
+            m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
+            m_device->copy(other.m_data, m_data, other.m_size);
+        }
+
+        return *this;
+    }
+
+    // Move constructor
+    TensorValue(TensorValue&& other) noexcept
+    {
+        m_data = other.m_data;
+        m_shape = other.m_shape;
+        m_size = other.m_size;
+        m_strides = other.m_strides;
+        m_device = other.m_device;
+
+        other.m_size = 0;
+        other.m_data = nullptr;             // Avoid double deletion
+        other.m_device = nullptr;
+    }
+
+    // Move assignment operator
+    TensorValue& operator=(TensorValue&& other) noexcept
+    {
+        if (this != &other)
+        {
+            m_device->deallocate(m_data);   // Free existing resource
+            m_data = other.m_data;
+            m_shape = other.m_shape;
+            m_size = other.m_size;
+            m_strides = other.m_strides;
+            m_device = other.m_device;
+            other.m_size = 0;
+            other.m_data = nullptr;         // Avoid double deletion
+            other.m_device = nullptr;
+        }
+
+        return *this;
     }
 
     // Access element at a specific index (non-const version).
@@ -334,7 +382,11 @@ public:
     const Shape & strides() const  { return m_strides; }
 
     // Get the raw data of the tensor
-    const Array & data() const     { return m_data; }
+    const DataType* data() const   { return m_data; }
+    DataType* data()               { return m_data; }
+
+    // Get the size of the data
+    size_t size() const             { return m_size; }
 
     // Get the device
     Device * device() const        { return m_device; }
@@ -343,7 +395,14 @@ public:
     void device(Device * device)
     {
         // Move data to the new device. Create a new data with new device and copy the data. Deallocate the old data.
-        m_data = Array(m_data, Allocator<DataType>(device->createMemoryAllocator()));
+        // Create a new array from the new device.
+        auto newData = static_cast<DataType*>(device->allocate(m_size * sizeof(DeviceType)));
+        // Copy old data to the new array.
+        device->copy(m_data, newData, m_size);
+        // Delete old data from old device.
+        m_device->deallocate(m_data);
+        // Set new data and the new device.
+        m_data = newData;
         m_device = device;
     }
 
@@ -357,7 +416,7 @@ public:
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->add(m_data, other.m_data, m_data.size(), result.m_data);
+        m_device->add(m_data, other.m_data, m_size, result.m_data);
         return result;
     }
 
@@ -369,7 +428,7 @@ public:
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->sub(m_data, other.m_data, m_data.size(), result.m_data);
+        m_device->sub(m_data, other.m_data, m_size, result.m_data);
         return result;
     }
 
@@ -381,7 +440,7 @@ public:
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->mul(m_data, other.m_data, m_data.size(), result.m_data);
+        m_device->mul(m_data, other.m_data, m_size, result.m_data);
         return result;
     }
 
@@ -393,7 +452,7 @@ public:
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->div(m_data, other.m_data, m_data.size(), result.m_data);
+        m_device->div(m_data, other.m_data, m_size, result.m_data);
         return result;
     }
 
@@ -402,7 +461,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->unary(m_data, m_data.size(), result.m_data);
+        m_device->unary(m_data, m_size, result.m_data);
         return result;
     }
 
@@ -410,7 +469,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->add(m_data, scalar, m_data.size(), result.m_data);
+        m_device->add(m_data, scalar, m_size, result.m_data);
         return result;
     }
 
@@ -418,7 +477,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->sub(m_data, scalar, m_data.size(), result.m_data);
+        m_device->sub(m_data, scalar, m_size, result.m_data);
         return result;
     }
 
@@ -426,7 +485,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->add(m_data, scalar, m_data.size(), result.m_data);
+        m_device->add(m_data, scalar, m_size, result.m_data);
         return result;
     }
 
@@ -434,7 +493,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->sub(m_data, scalar, m_data.size(), result.m_data);
+        m_device->sub(m_data, scalar, m_size, result.m_data);
         return result;
     }
 
@@ -442,7 +501,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->mul(m_data, scalar, m_data.size(), result.m_data);
+        m_device->mul(m_data, scalar, m_size, result.m_data);
         return result;
     }
 
@@ -450,7 +509,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
-        m_device->div(m_data, scalar, m_data.size(), result.m_data);
+        m_device->div(m_data, scalar, m_size, result.m_data);
         return result;
     }
 
@@ -458,7 +517,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(tensor.m_shape, tensor.m_device);
-        tensor.m_device->mul(tensor.m_data, scalar, tensor.m_data.size(), result.m_data);
+        tensor.m_device->mul(tensor.m_data, scalar, tensor.m_size, result.m_data);
         return result;
     }
 
@@ -466,7 +525,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(tensor.m_shape, tensor.m_device);
-        tensor.m_device->div(scalar, tensor.m_data, tensor.m_data.size(), result.m_data);
+        tensor.m_device->div(scalar, tensor.m_data, tensor.m_size, result.m_data);
         return result;
     }
 
@@ -474,7 +533,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(tensor.m_shape, tensor.m_device);
-        tensor.m_device->add(tensor.m_data, scalar, tensor.m_data.size(), result.m_data);
+        tensor.m_device->add(tensor.m_data, scalar, tensor.m_size, result.m_data);
         return result;
     }
 
@@ -482,20 +541,20 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(tensor.m_shape, tensor.m_device);
-        tensor.m_device->sub(scalar, tensor.m_data, tensor.m_data.size(), result.m_data);
+        tensor.m_device->sub(scalar, tensor.m_data, tensor.m_size, result.m_data);
         return result;
     }
 
     void fill(DataType value)
     {
-        m_device->fill(value, m_data.size(), m_data);
+        m_device->fill(value, m_size, m_data);
     }
 
     DataType mean() const
     {
-        if (m_data.empty()) return 0;
+        if (m_size == 0) return 0;
         DataType result;
-        m_device->mean(m_data, m_data.size(), result);
+        m_device->mean(m_data, m_size, result);
         return result;
     }
 
@@ -503,7 +562,7 @@ public:
     {
         // Perform element-wise sin.
         TensorValue result(m_shape, m_device);
-        m_device->sqrt(m_data, m_data.size(), result.m_data);
+        m_device->sqrt(m_data, m_size, result.m_data);
         return result;
     }
 
@@ -511,7 +570,7 @@ public:
     {
         // Perform element-wise sin.
         TensorValue result(m_shape, m_device);
-        m_device->sin(m_data, m_data.size(), result.m_data);
+        m_device->sin(m_data, m_size, result.m_data);
         return result;
     }
 
@@ -519,7 +578,7 @@ public:
     {
         // Perform element-wise cos.
         TensorValue result(m_shape, m_device);
-        m_device->cos(m_data, m_data.size(), result.m_data);
+        m_device->cos(m_data, m_size, result.m_data);
         return result;
     }
 
@@ -527,7 +586,7 @@ public:
     {
         // Perform element-wise tanh.
         TensorValue result(m_shape, m_device);
-        m_device->tanh(m_data, m_data.size(), result.m_data);
+        m_device->tanh(m_data, m_size, result.m_data);
         return result;
     }
 
@@ -597,9 +656,10 @@ private:
     }
 
 private:
-    Array m_data;      // The flat array of tensor elements
-    Shape m_shape;     // The shape of the tensor
-    Index m_strides;   // The strides for indexing the tensor
+    DataType* m_data{nullptr};  // The flat array of tensor elements.
+    size_t    m_size;           // Number of DataType elements.
+    Shape     m_shape;          // The shape of the tensor.
+    Index     m_strides;        // The strides for indexing the tensor.
     Device *  m_device{nullptr};
 };
 
@@ -634,10 +694,10 @@ public:
     Tensor() = default;
 
     // Constructor.
-    explicit Tensor(const Array & data, const Shape & shape, bool requireGrad = false)
+    explicit Tensor(const DataType* data, size_t size, const Shape & shape, bool requireGrad = false)
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{data, shape, &defaultDevice}, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{data, size, shape, &defaultDevice}, requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
@@ -746,7 +806,7 @@ public:
     {
         if (!node->m_a) return;
         // The gradient of the mean operation is distributed evenly across all elements. grad = 1/N
-        node->m_a->backward(seed / DataType(node->m_a->m_value.data().size()));
+        node->m_a->backward(seed / DataType(node->m_a->m_value.size()));
     }
 
     // Overload the + operator
@@ -838,14 +898,14 @@ protected:
 };
 
 
-inline Tensor tensor(const Array & data, const Shape & shape, bool requireGrad = false)
+inline Tensor tensor(const std::vector<DataType> & data, const Shape & shape, bool requireGrad = false)
 {
-    return Tensor{data, shape, requireGrad};
+    return Tensor{data.data(), data.size(), shape, requireGrad};
 }
 
-inline Tensor tensor(const Array & data, bool requireGrad = false)
+inline Tensor tensor(const std::vector<DataType> & data, bool requireGrad = false)
 {
-    return Tensor{data, {1, data.size()}, requireGrad};
+    return Tensor{data.data(), data.size(), {1, data.size()}, requireGrad};
 }
 
 inline Tensor randn(const Shape & shape, bool requireGrad = false)
@@ -855,12 +915,12 @@ inline Tensor randn(const Shape & shape, bool requireGrad = false)
     std::uniform_real_distribution<DataType> distr(-1, 1);
 
     size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
-    Array rndData(totalSize);
+    std::vector<DataType> rndData(totalSize);
 
     // Fill rndData with random numbers
     std::generate(rndData.begin(), rndData.end(), [&distr]() -> DataType { return distr(randGen); });
 
-    return Tensor{rndData, shape, requireGrad};
+    return Tensor{rndData.data(), rndData.size(), shape, requireGrad};
 }
 
 }   // aix namespace
@@ -1009,7 +1069,7 @@ public:
         {
             if (param.isRequireGrad())
             {
-                totalParams += param.value().data().size();
+                totalParams += param.value().size();
             }
         }
         return totalParams;
