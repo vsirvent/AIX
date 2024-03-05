@@ -481,20 +481,18 @@ public:
         return result;
     }
 
-    TensorValue operator+=(DataType scalar) const
+    TensorValue& operator+=(DataType scalar)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(m_shape, m_device);
-        m_device->add(m_data, scalar, m_size, result.m_data);
-        return result;
+        m_device->add(m_data, scalar, m_size, m_data);
+        return *this;
     }
 
-    TensorValue operator-=(DataType scalar) const
+    TensorValue& operator-=(DataType scalar)
     {
         // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(m_shape, m_device);
-        m_device->sub(m_data, scalar, m_size, result.m_data);
-        return result;
+        m_device->sub(m_data, scalar, m_size, m_data);
+        return *this;
     }
 
     TensorValue operator*(DataType scalar) const

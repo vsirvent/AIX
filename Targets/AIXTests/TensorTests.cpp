@@ -143,3 +143,100 @@ TEST_CASE("TensorValue::transpose 2x3")
     CHECK(a.shape() == Shape{3, 2});
     CheckVectorApproxValues(a, TensorValue({1, 4, 2, 5, 3, 6}, a.shape(), &testDevice));
 }
+
+
+TEST_CASE("TensorValue - In-place Add with Scalar")
+{
+    auto x = TensorValue({1, 2, 3}, {1, 3}, &testDevice);
+    DataType scalar = 5;
+    x += scalar;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({6, 7, 8}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - In-place Sub with Scalar")
+{
+    auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
+    DataType scalar = 5;
+    x -= scalar;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({1, 2, 3}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - Unary Minus")
+{
+    auto x = TensorValue({1, -2, 3}, {1, 3}, &testDevice);
+    auto y = -x;
+
+    CHECK(y.shape() == Shape{1, 3});
+    CheckVectorApproxValues(y, TensorValue({-1, 2, -3}, y.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - Fill")
+{
+    auto x = TensorValue({1, 1, 1}, {1, 3}, &testDevice);
+    DataType fillValue = 7;
+    x.fill(fillValue);
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({7, 7, 7}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - Mean")
+{
+    auto x = TensorValue({1, 2, 3, 4}, {2, 2}, &testDevice);
+
+    CHECK(x.mean() == Approx(2.5));
+}
+
+
+TEST_CASE("TensorValue - Sqrt")
+{
+    auto x = TensorValue({4, 9, 16}, {1, 3}, &testDevice);
+    auto y = x.sqrt();
+
+    CHECK(y.shape() == Shape{1, 3});
+    CheckVectorApproxValues(y, TensorValue({2, 3, 4}, y.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - Sin")
+{
+    auto x = TensorValue({0.5, 0.0, -0.5}, {1, 3}, &testDevice);
+    auto y = x.sin();
+
+    CHECK(y.shape() == Shape{1, 3});
+    CheckVectorApproxValues(y, TensorValue({DataType(std::sin(0.5)),
+                                            DataType(std::sin(0)),
+                                            DataType(std::sin(-0.5))}, y.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - Cos")
+{
+    auto x = TensorValue({0.5, 0.0, -0.5}, {1, 3}, &testDevice);
+    auto y = x.cos();
+
+    CHECK(y.shape() == Shape{1, 3});
+    CheckVectorApproxValues(y, TensorValue({DataType(std::cos(0.5)),
+                                            DataType(std::cos(0)),
+                                            DataType(std::cos(-0.5))}, y.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - Device Switch")
+{
+    auto x = TensorValue({1, 2, 3}, {1, 3}, &testDevice);
+
+    Device  newDevice;
+    x.device(&newDevice);
+
+    CHECK(x.device() == &newDevice);
+    CheckVectorApproxValues(x, TensorValue({1, 2, 3}, x.shape(), &newDevice));
+}
