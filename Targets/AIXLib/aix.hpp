@@ -456,6 +456,50 @@ public:
         return result;
     }
 
+    // Overload the += operator - In-place operation.
+    TensorValue & operator+=(const TensorValue & other)
+    {
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
+
+        // Perform element-wise.
+        m_device->add(m_data, other.m_data, m_size, m_data);
+        return *this;
+    }
+
+    // Overload the -= operator - In-place operation.
+    TensorValue & operator-=(const TensorValue & other)
+    {
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
+
+        // Perform element-wise.
+        m_device->sub(m_data, other.m_data, m_size, m_data);
+        return *this;
+    }
+
+    // Overload the *= operator - In-place operation.
+    TensorValue & operator*=(const TensorValue & other)
+    {
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
+
+        // Perform element-wise.
+        m_device->mul(m_data, other.m_data, m_size, m_data);
+        return *this;
+    }
+
+    // Overload the /= operator - In-place operation.
+    TensorValue & operator/=(const TensorValue & other)
+    {
+        // Check if the shapes of the two tensors are the same.
+        validateShapes(m_shape, other.m_shape);
+
+        // Perform element-wise.
+        m_device->div(m_data, other.m_data, m_size, m_data);
+        return *this;
+    }
+
     // Overload the unary - operator
     TensorValue operator-() const
     {
@@ -483,15 +527,29 @@ public:
 
     TensorValue& operator+=(DataType scalar)
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
+        // Perform element-wise.
         m_device->add(m_data, scalar, m_size, m_data);
         return *this;
     }
 
     TensorValue& operator-=(DataType scalar)
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
+        // Perform element-wise.
         m_device->sub(m_data, scalar, m_size, m_data);
+        return *this;
+    }
+
+    TensorValue& operator*=(DataType scalar)
+    {
+        // Perform element-wise.
+        m_device->mul(m_data, scalar, m_size, m_data);
+        return *this;
+    }
+
+    TensorValue& operator/=(DataType scalar)
+    {
+        // Perform element-wise.
+        m_device->div(m_data, scalar, m_size, m_data);
         return *this;
     }
 
@@ -720,7 +778,7 @@ public:
 
     // Getters and setters for the tensor's value.
     const TensorValue & value() const        { return m_data->m_value; }
-    void setValue(const TensorValue & value) { m_data->m_value = value; }
+    TensorValue & value()                    { return m_data->m_value; }
     const Shape & shape() const { return m_data->m_value.shape(); }
 
     // Gradient-related methods.
@@ -966,7 +1024,7 @@ public:
         {
             if (param.isRequireGrad())
             {
-                param.setValue(param.value() - param.grad() * m_lr);   // w' = w - lr * w_gradient.
+                param.value() -= param.grad() * m_lr;   // w' = w - lr * w_gradient.
             }
         }
     }
@@ -1010,7 +1068,7 @@ public:
                 TensorValue vHat = m_v[i] / DataType(1.0 - std::pow(m_beta2, m_timestep));
 
                 // Update parameter.
-                m_parameters[i].setValue(m_parameters[i].value() -  m_lr * mHat / (vHat.sqrt() + m_epsilon));
+                m_parameters[i].value() -= m_lr * mHat / (vHat.sqrt() + m_epsilon);
             }
         }
     }

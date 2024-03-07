@@ -167,6 +167,72 @@ TEST_CASE("TensorValue - In-place Sub with Scalar")
 }
 
 
+TEST_CASE("TensorValue - In-place Mul with Scalar")
+{
+    auto x = TensorValue({1, 2, 3}, {1, 3}, &testDevice);
+    DataType scalar = 5;
+    x *= scalar;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({5, 10, 15}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - In-place Div with Scalar")
+{
+    auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
+    DataType scalar = 2;
+    x /= scalar;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({3, 3.5, 4}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - In-place Add with TensorValue")
+{
+    auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
+    auto y = TensorValue({1, 2, -1}, {1, 3}, &testDevice);
+    x += y;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({7, 9, 7}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - In-place Sub with TensorValue")
+{
+    auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
+    auto y = TensorValue({1, 2, -1}, {1, 3}, &testDevice);
+    x -= y;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({5, 5, 9}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - In-place Mul with TensorValue")
+{
+    auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
+    auto y = TensorValue({2, 3, -2}, {1, 3}, &testDevice);
+    x *= y;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({12, 21, -16}, x.shape(), &testDevice));
+}
+
+
+TEST_CASE("TensorValue - In-place Div with TensorValue")
+{
+    auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
+    auto y = TensorValue({2, 2, -2}, {1, 3}, &testDevice);
+    x /= y;
+
+    CHECK(x.shape() == Shape{1, 3});
+    CheckVectorApproxValues(x, TensorValue({3, 3.5, -4}, x.shape(), &testDevice));
+}
+
+
 TEST_CASE("TensorValue - Unary Minus")
 {
     auto x = TensorValue({1, -2, 3}, {1, 3}, &testDevice);
