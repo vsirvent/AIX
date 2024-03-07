@@ -78,7 +78,8 @@ int main()
     auto timeStart = std::chrono::steady_clock::now();
 
     // Training loop.
-    for (size_t epoch = 0; epoch < kNumEpochs; ++epoch)
+    size_t epoch;
+    for (epoch = 0; epoch < kNumEpochs; ++epoch)
     {
         optimizer.zeroGrad();                               // Zero the gradients before backward pass.
 
@@ -103,7 +104,9 @@ int main()
     std::cout << std::endl;
 
     auto timeEnd = std::chrono::steady_clock::now();
-    std::cout << "Training on CPU: " << std::chrono::duration<double, std::milli>(timeEnd - timeStart).count() << " ms.\n";
+    auto duration = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
+    std::cout << "Training: " << duration << " ms"
+              << " - Avg Iteration: " << duration/double(epoch) << " ms\n";
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);

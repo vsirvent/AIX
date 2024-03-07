@@ -85,7 +85,7 @@ int main()
     auto timeEnd = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
     std::cout << "Training: " << duration << " ms"
-              << " - Iteration: " << duration/double(epoch+1) << " ms\n";
+              << " - Avg Iteration: " << duration/double(epoch) << " ms\n";
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);
