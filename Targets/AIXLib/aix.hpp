@@ -975,12 +975,36 @@ public:
         return result;
     }
 
+    friend Tensor operator+(DataType scalar, const Tensor & rhsTensor)
+    {
+        // TODO: Can it be refactored? Is there a better way?
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        tensor.to(*rhsTensor.value().device());
+        return tensor + rhsTensor;
+    }
+
     friend Tensor operator-(DataType scalar, const Tensor & rhsTensor)
     {
         // TODO: Can it be refactored? Is there a better way?
         Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
         tensor.to(*rhsTensor.value().device());
         return tensor - rhsTensor;
+    }
+
+    friend Tensor operator*(DataType scalar, const Tensor & rhsTensor)
+    {
+        // TODO: Can it be refactored? Is there a better way?
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        tensor.to(*rhsTensor.value().device());
+        return tensor * rhsTensor;
+    }
+
+    friend Tensor operator/(DataType scalar, const Tensor & rhsTensor)
+    {
+        // TODO: Can it be refactored? Is there a better way?
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        tensor.to(*rhsTensor.value().device());
+        return tensor / rhsTensor;
     }
 
     static Tensor sin(const Tensor & rhsTensor)
