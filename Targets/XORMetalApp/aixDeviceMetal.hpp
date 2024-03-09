@@ -48,6 +48,8 @@ public:
             m_compFuncPSOSin          = createComputeFuncPSO(defaultLibrary, "sin_a_float");
             m_compFuncPSOCos          = createComputeFuncPSO(defaultLibrary, "cos_a_float");
             m_compFuncPSOTanh         = createComputeFuncPSO(defaultLibrary, "tanh_a_float");
+            m_compFuncPSOLog          = createComputeFuncPSO(defaultLibrary, "log_a_float");
+            m_compFuncPSOExp          = createComputeFuncPSO(defaultLibrary, "exp_a_float");
             m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
             m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "matrix_transpose_float");
             m_compFuncPSOCopy_A_A     = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
@@ -76,6 +78,8 @@ public:
         m_compFuncPSOSin->release();
         m_compFuncPSOCos->release();
         m_compFuncPSOTanh->release();
+        m_compFuncPSOLog->release();
+        m_compFuncPSOExp->release();
         m_compFuncPSOMatMul->release();
         m_compFuncPSOMatTranspose->release();
         m_compFuncPSOCopy_A_A->release();
@@ -526,6 +530,63 @@ public:
         m_bufResult = nullptr;
     }
 
+    void log(const DataType* a, const size_t size, DataType* result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::log(a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::log() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
+        m_scalar = 0;
+        m_bufResult = m_allocMap[result];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOLog->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOLog, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
+
+    void exp(const DataType* a, const size_t size, DataType* result) override
+    {
+        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
+        // Device::exp(a, size, result); return;
+
+        // Result buffer has to be allocated in advance and has to be a GPU memory.
+        if (m_allocMap.find(result) == m_allocMap.end())
+            throw std::invalid_argument("DeviceMetal::exp() result must have GPU memory.");
+
+        m_buf1   = getReadOnlyMTLBuffer(a, size);
+        m_scalar = 0;
+        m_bufResult = m_allocMap[result];
+
+        m_buf1Size.rows = 1;
+        m_buf1Size.cols = size;
+
+        // Calculate maximum thread group dimensions
+        NS::UInteger w = std::min(size, m_compFuncPSOExp->maxTotalThreadsPerThreadgroup());
+        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
+        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
+        sendComputeCommandArrayScalar(m_compFuncPSOExp, gridSize, threadsPerThreadGroup);
+
+        freeTemporaryBuffer(m_buf1, a);
+        // Never release buffers since they will be in use by Arrays.
+        m_buf1 = nullptr;
+        m_bufResult = nullptr;
+    }
 
     void matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result) override
     {
@@ -783,6 +844,8 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOSin{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCos{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOTanh{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOLog{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOExp{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatMul{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};

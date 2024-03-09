@@ -191,6 +191,32 @@ kernel void tanh_a(device const T* inA,
 }
 
 // -----------------------------------------------------------------
+// Log - log(Array)
+// -----------------------------------------------------------------
+template<typename T>
+kernel void log_a(device const T* inA,
+                  constant const T& scalar,
+                  constant MatrixSize& aSize,
+                  device T* result,
+                  uint index [[thread_position_in_grid]])
+{
+    result[index] = log(inA[index]);
+}
+
+// -----------------------------------------------------------------
+// Exp - exp(Array)
+// -----------------------------------------------------------------
+template<typename T>
+kernel void exp_a(device const T* inA,
+                  constant const T& scalar,
+                  constant MatrixSize& aSize,
+                  device T* result,
+                  uint index [[thread_position_in_grid]])
+{
+    result[index] = exp(inA[index]);
+}
+
+// -----------------------------------------------------------------
 // Matrix Multiply - Naive implementation
 // -----------------------------------------------------------------
 template<typename T>
@@ -362,6 +388,22 @@ kernel void tanh_a(device const float*,
                    constant MatrixSize&,
                    device float*,
                    uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("log_a_float") ]]
+kernel void log_a(device const float*,
+                  constant const float&,
+                  constant MatrixSize&,
+                  device float*,
+                  uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("exp_a_float") ]]
+kernel void exp_a(device const float*,
+                  constant const float&,
+                  constant MatrixSize&,
+                  device float*,
+                  uint index [[thread_position_in_grid]]);
 
 
 template [[ host_name("matrix_mul_float") ]]
