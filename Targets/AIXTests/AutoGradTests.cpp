@@ -164,3 +164,17 @@ TEST_CASE("Auto Grad - log Test - 2x2")
     CHECK(x.grad().shape() == shape);
     CheckVectorApproxValues(x.grad(), tensor({10, 5, 3.33333, 2.5}, shape).value());
 }
+
+
+TEST_CASE("Auto Grad - exp Test - 2x2")
+{
+    aix::Shape shape{2,2};
+
+    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
+    auto z = aix::Tensor::exp(x);
+    z.backward();
+
+    // Check shapes
+    CHECK(x.grad().shape() == shape);
+    CheckVectorApproxValues(x.grad(), tensor({1.10517, 1.2214, 1.34986, 1.49182}, shape).value());
+}

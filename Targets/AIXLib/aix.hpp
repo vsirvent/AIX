@@ -209,6 +209,14 @@ public:
         }
     }
 
+    virtual void exp(const DataType* a, const size_t size, DataType* result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = std::exp(a[i]);
+        }
+    }
+
     virtual void matmul(const DataType* a1, const Shape & s1, const DataType* a2, const Shape & s2, DataType* result)
     {
         // NOTE: Since TensorValue validated the parameters, device method do not validate again.
@@ -663,6 +671,14 @@ public:
         return result;
     }
 
+    TensorValue exp()
+    {
+        // Perform element-wise exp.
+        TensorValue result(m_shape, m_device);
+        m_device->exp(m_data, m_size, result.m_data);
+        return result;
+    }
+
     // Matrix multiplication for 2D tensors.
     TensorValue matmul(const TensorValue & b) const
     {
@@ -879,6 +895,13 @@ public:
         node->m_a->backward(seed / node->m_a->m_value);  // ∂f/∂a = 1/a
     }
 
+    static void expBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // The derivative of exp(a) with respect to 'a' is exp(a), itself.
+        node->m_a->backward(seed * node->m_a->m_value.exp());  // ∂f/∂a = exp(a)
+    }
+
     static void matmulBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a || !node->m_b) return;
@@ -987,6 +1010,16 @@ public:
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = logBackwardFunc;
+        return result;
+    };
+
+    static Tensor exp(const Tensor & rhsTensor)
+    {
+        Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        result.m_data->m_value = rhsTensor.m_data->m_value.exp();
+        result.m_data->m_a = rhsTensor.m_data;
+        result.m_data->m_b = nullptr;
+        result.m_data->m_backwardFunc = expBackwardFunc;
         return result;
     };
 
