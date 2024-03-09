@@ -1329,6 +1329,17 @@ public:
 };
 
 
+class Sigmoid : public Module
+{
+public:
+    // Forward
+    Tensor forward(Tensor x) const override
+    {
+        return 1 / (1 + Tensor::exp(-x));
+    }
+};
+
+
 class MSELoss
 {
 public:

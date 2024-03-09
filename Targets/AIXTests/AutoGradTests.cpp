@@ -178,3 +178,17 @@ TEST_CASE("Auto Grad - exp Test - 2x2")
     CHECK(x.grad().shape() == shape);
     CheckVectorApproxValues(x.grad(), tensor({1.10517, 1.2214, 1.34986, 1.49182}, shape).value());
 }
+
+
+TEST_CASE("Auto Grad - sigmoid Test - 2x2")
+{
+    aix::Shape shape{2,2};
+
+    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
+    auto z = aix::nn::Sigmoid().forward(x);
+    z.backward();
+
+    // Check shapes
+    CHECK(x.grad().shape() == shape);
+    CheckVectorApproxValues(x.grad(), tensor({0.249376, 0.247517, 0.244458, 0.240261}, shape).value());
+}
