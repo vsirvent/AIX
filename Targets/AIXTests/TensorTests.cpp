@@ -107,6 +107,13 @@ TEST_CASE("TensorValue::tanh 2x2")
 }
 
 
+TEST_CASE("TensorValue::log 2x2")
+{
+    auto x = TensorValue({0.1, 0.2, 0.3, 0.4}, {2, 2}, &testDevice);
+    CheckVectorApproxValues(x.log(), TensorValue({-2.30259, -1.60944, -1.20397, -0.916291}, x.shape(), &testDevice));
+}
+
+
 TEST_CASE("TensorValue::matmul 1x1 1x1")
 {
     auto a = TensorValue(2, {1, 1}, &testDevice);
