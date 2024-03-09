@@ -402,6 +402,7 @@ public:
     // Set the device
     void device(Device * device)
     {
+        if (m_device == device) return;
         // Move data to the new device. Create a new data with new device and copy the data. Deallocate the old data.
         // Create a new array from the new device.
         auto newData = static_cast<DataType*>(device->allocate(m_size * sizeof(DeviceType)));
@@ -791,6 +792,7 @@ public:
 
     // Perform backpropagation to calculate gradients recursively.
     void backward(DataType value=1)  { m_data->backward(TensorValue{value, m_data->m_a->m_grad.shape(), m_data->device()}); }
+    void backward(DataType value, const Shape & gradShape)  { m_data->backward(TensorValue{value, gradShape, m_data->device()}); }
 
     // Getters and setters for the tensor's value.
     const TensorValue & value() const        { return m_data->m_value; }
@@ -843,6 +845,13 @@ public:
         // Calculate gradients.
         node->m_a->backward(seed / node->m_b->m_value);                                               // ∂f/∂a = 1 / b
         node->m_b->backward(-node->m_a->m_value * seed / (node->m_b->m_value * node->m_b->m_value));  // ∂f/∂b = -a / b^2
+    }
+
+    static void unaryBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // Calculate gradients.
+        node->m_a->backward(-seed);
     }
 
     static void sinBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -931,6 +940,24 @@ public:
         result.m_data->m_b = rhsTensor.m_data;
         result.m_data->m_backwardFunc = divBackwardFunc;
         return result;
+    }
+
+    Tensor operator-() const
+    {
+        Tensor result(shape(), m_data->m_requireGrad);
+        result.m_data->m_value = -m_data->m_value;
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = nullptr;
+        result.m_data->m_backwardFunc = unaryBackwardFunc;
+        return result;
+    }
+
+    friend Tensor operator-(DataType scalar, const Tensor & rhsTensor)
+    {
+        // TODO: Can it be refactored? Is there a better way?
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        tensor.to(*rhsTensor.value().device());
+        return tensor - rhsTensor;
     }
 
     static Tensor sin(const Tensor & rhsTensor)
@@ -1253,6 +1280,17 @@ public:
         auto diff = predictions - targets;
         auto loss = (diff * diff).mean();
         return loss;
+    }
+};
+
+
+class BinaryCrossEntropyLoss
+{
+public:
+    // Prediction values must be in [0..1] range.
+    Tensor operator()(const Tensor & predictions, const Tensor & targets)
+    {
+        return -(targets * aix::Tensor::log(predictions) + (1 - targets) * aix::Tensor::log(1 - predictions)).mean();
     }
 };
 
