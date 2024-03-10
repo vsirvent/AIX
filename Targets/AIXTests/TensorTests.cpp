@@ -268,6 +268,14 @@ TEST_CASE("TensorValue - Fill")
 }
 
 
+TEST_CASE("TensorValue - Sum")
+{
+    auto x = TensorValue({-1, 2.2, 0, 4.8}, {2, 2}, &testDevice);
+
+    CHECK(x.sum() == Approx(6));
+}
+
+
 TEST_CASE("TensorValue - Mean")
 {
     auto x = TensorValue({1, 2, 3, 4}, {2, 2}, &testDevice);

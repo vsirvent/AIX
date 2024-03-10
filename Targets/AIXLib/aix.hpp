@@ -159,6 +159,16 @@ public:
         }
     }
 
+    virtual void sum(const DataType* a, const size_t size, DataType & result)
+    {
+        DataType sum = 0;
+        for (size_t i = 0; i < size; ++i)
+        {
+            sum += a[i];
+        }
+        result = sum;
+    }
+
     virtual void mean(const DataType* a, const size_t size, DataType & result)
     {
         DataType sum = 0;
@@ -623,6 +633,14 @@ public:
         m_device->fill(value, m_size, m_data);
     }
 
+    DataType sum() const
+    {
+        if (m_size == 0) return 0;
+        DataType result;
+        m_device->sum(m_data, m_size, result);
+        return result;
+    }
+
     DataType mean() const
     {
         if (m_size == 0) return 0;
@@ -914,6 +932,13 @@ public:
         node->m_b->backward(node->m_a->m_value.transpose().matmul(seed));      // ∂E/∂b = a^T * ∂E/∂c
     }
 
+    static void sumBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // For the sum operation, the gradient is simply the seed
+        node->m_a->backward(seed);
+    }
+
     static void meanBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a) return;
@@ -1054,6 +1079,16 @@ public:
         result.m_data->m_a = a.m_data;
         result.m_data->m_b = b.m_data;
         result.m_data->m_backwardFunc = matmulBackwardFunc;
+        return result;
+    }
+
+    Tensor sum() const
+    {
+        Tensor result({1, 1}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
+        result.m_data->m_value = TensorValue(m_data->m_value.sum(), {1, 1}, m_data->device());
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = nullptr;
+        result.m_data->m_backwardFunc = sumBackwardFunc;
         return result;
     }
 
