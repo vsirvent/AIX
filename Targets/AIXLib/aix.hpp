@@ -1009,7 +1009,7 @@ public:
 
     static Tensor sin(const Tensor & rhsTensor)
     {
-        Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
         result.m_data->m_value = rhsTensor.m_data->m_value.sin();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
@@ -1019,7 +1019,7 @@ public:
 
     static Tensor tanh(const Tensor & rhsTensor)
     {
-        Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
         result.m_data->m_value = rhsTensor.m_data->m_value.tanh();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
@@ -1029,7 +1029,7 @@ public:
 
     static Tensor log(const Tensor & rhsTensor)
     {
-        Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
         result.m_data->m_value = rhsTensor.m_data->m_value.log();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
@@ -1039,7 +1039,7 @@ public:
 
     static Tensor exp(const Tensor & rhsTensor)
     {
-        Tensor result({rhsTensor.shape()}, rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
         result.m_data->m_value = rhsTensor.m_data->m_value.exp();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
