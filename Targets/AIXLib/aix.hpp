@@ -801,26 +801,26 @@ public:
     Tensor() = default;
 
     // Constructor.
-    explicit Tensor(const DataType* data, size_t size, const Shape & shape, bool requireGrad = false)
+    explicit Tensor(const DataType* data, size_t size, const Shape & shape, bool requireGrad = false, Device * device = &defaultDevice)
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{data, size, shape, &defaultDevice}, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{data, size, shape, device}, requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
     // Constructor.
-    explicit Tensor(DataType value, const Shape & shape, bool requireGrad = false)
+    explicit Tensor(DataType value, const Shape & shape, bool requireGrad = false, Device * device = &defaultDevice)
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{value, shape, &defaultDevice}, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{value, shape, device}, requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
     // Constructor.
-    explicit Tensor(const Shape & shape, bool requireGrad = false)
+    explicit Tensor(const Shape & shape, bool requireGrad = false, Device * device = &defaultDevice)
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{shape, &defaultDevice}, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{shape, device}, requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
@@ -1130,6 +1130,26 @@ inline Tensor randn(const Shape & shape, bool requireGrad = false)
     std::generate(rndData.begin(), rndData.end(), [&distr]() -> DataType { return distr(randGen); });
 
     return Tensor{rndData.data(), rndData.size(), shape, requireGrad};
+}
+
+inline Tensor ones(const Shape & shape, bool requireGrad = false)
+{
+    return Tensor{1, shape, requireGrad};
+}
+
+inline Tensor zeros(const Shape & shape, bool requireGrad = false)
+{
+    return Tensor{0, shape, requireGrad};
+}
+
+inline Tensor ones_like(const Tensor & tensor, bool requireGrad = false)
+{
+    return Tensor{1, tensor.shape(), requireGrad, tensor.value().device()};
+}
+
+inline Tensor zeros_like(const Tensor & tensor, bool requireGrad = false)
+{
+    return Tensor{0, tensor.shape(), requireGrad, tensor.value().device()};
 }
 
 }   // aix namespace
