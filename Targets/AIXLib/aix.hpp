@@ -317,7 +317,7 @@ public:
     }
 
     // Constructor
-    TensorValue(DataType value, Device * device) : m_shape{Shape{1, 1}}, m_device(device)
+    TensorValue(DataType value, Device * device) : m_shape{}, m_device(device)
     {
         // Each tensor array must use device specific memory allocator.
         m_size = 1;
@@ -431,6 +431,15 @@ public:
         // Set new data and the new device.
         m_data = newData;
         m_device = device;
+    }
+
+    DataType item() const
+    {
+        if (!m_shape.empty())    // Scalar value must have no dimension.
+        {
+            throw std::invalid_argument("Tensor is not a scalar.");
+        }
+        return m_data[0];
     }
 
     // Operators
@@ -1077,8 +1086,8 @@ public:
 
     Tensor sum() const
     {
-        Tensor result({1, 1}, isRequireGrad());     // Scalar tensor for the mean result.
-        result.m_data->m_value = TensorValue(m_data->m_value.sum(), {1, 1}, device());
+        Tensor result({}, isRequireGrad());     // Scalar tensor for the mean result.
+        result.m_data->m_value = TensorValue(m_data->m_value.sum(), {}, device());
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = sumBackwardFunc;
@@ -1087,8 +1096,8 @@ public:
 
     Tensor mean() const
     {
-        Tensor result({1, 1}, isRequireGrad());     // Scalar tensor for the mean result.
-        result.m_data->m_value = TensorValue(m_data->m_value.mean(), {1, 1}, device());
+        Tensor result({}, isRequireGrad());     // Scalar tensor for the mean result.
+        result.m_data->m_value = TensorValue(m_data->m_value.mean(), {}, device());
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = meanBackwardFunc;
@@ -1099,6 +1108,11 @@ protected:
     std::shared_ptr<TensorNode>  m_data{nullptr};
 };
 
+
+inline Tensor tensor(DataType value, bool requireGrad = false)
+{
+    return Tensor{value, {}, requireGrad};
+}
 
 inline Tensor tensor(const std::vector<DataType> & data, const Shape & shape, bool requireGrad = false)
 {

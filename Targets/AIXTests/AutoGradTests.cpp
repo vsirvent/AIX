@@ -52,7 +52,7 @@ struct TestModel : public aix::nn::Module
 
 TEST_CASE("Auto Grad - Module Test - 1x1 Tensor")
 {
-    auto shape = std::vector<size_t>{1, 1};
+    auto shape = std::vector<size_t>{};     // Scalar has no dimensions.
 
     auto tm = TestModel({2},   // x
                         {3},   // y
@@ -63,7 +63,7 @@ TEST_CASE("Auto Grad - Module Test - 1x1 Tensor")
     auto m = tm.forward({});
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
-    m.backward(1);      // ∂m/∂m = [1]  1x1 tensor.
+    m.backward();
 
     // Check shapes
     CHECK(tm.m_x.grad().shape()  == shape);
@@ -76,11 +76,11 @@ TEST_CASE("Auto Grad - Module Test - 1x1 Tensor")
     CHECK(tm.m_u.value().shape() == shape);
     CHECK(m.value().shape()      == shape);
 
-    CHECK(tm.m_x.grad().data()[0] == Approx(5));
-    CHECK(tm.m_y.grad().data()[0] == Approx(0.999999));
-    CHECK(tm.m_t.grad().data()[0] == Approx(-1.25));
-    CHECK(tm.m_u.grad().data()[0] == Approx(0.459387));
-    CHECK(m.value().data()[0]     == Approx(-1.79462));
+    CHECK(tm.m_x.grad().item() == Approx(5));
+    CHECK(tm.m_y.grad().item() == Approx(0.999999));
+    CHECK(tm.m_t.grad().item() == Approx(-1.25));
+    CHECK(tm.m_u.grad().item() == Approx(0.459387));
+    CHECK(m.value().item()     == Approx(-1.79462));
 }
 
 

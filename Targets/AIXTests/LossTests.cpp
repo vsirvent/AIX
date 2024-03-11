@@ -17,19 +17,17 @@
 using namespace aix;
 
 
-TEST_CASE("Loss Func - BinaryCrossEntropy - 1x1")
+TEST_CASE("Loss Func - BinaryCrossEntropy - Scalar")
 {
-    Shape  shape{1, 1};
-
-    auto pred    = aix::tensor({0.1}, shape);
-    auto target  = aix::tensor({0.2}, shape);
+    auto pred    = aix::tensor(0.1);
+    auto target  = aix::tensor(0.2);
 
     auto bceLoss = aix::nn::BinaryCrossEntropyLoss();
     auto loss    = bceLoss(pred, target);
 
     loss.backward();   // grad [1] shape 1x1
 
-    CHECK(loss.value().data()[0] == doctest::Approx(0.544805));
+    CHECK(loss.value().item() == doctest::Approx(0.544805));
     // Note: Results are consistent with those from PyTorch.
 }
 
@@ -46,6 +44,6 @@ TEST_CASE("Loss Func - BinaryCrossEntropy - 2x2")
 
     loss.backward(1, shape);   // grad [1,1,1,1] shape 2x2
 
-    CHECK(loss.value().data()[0] == doctest::Approx(0.648247));
+    CHECK(loss.value().item() == doctest::Approx(0.648247));
     // Note: Results are consistent with those from PyTorch.
 }
