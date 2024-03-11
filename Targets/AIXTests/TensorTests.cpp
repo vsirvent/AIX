@@ -328,3 +328,112 @@ TEST_CASE("TensorValue - Device Switch")
     CHECK(x.device() == &newDevice);
     CheckVectorApproxValues(x, TensorValue({1, 2, 3}, x.shape(), &newDevice));
 }
+
+
+TEST_CASE("Tensor - ones")
+{
+    SUBCASE("without requiring gradient")
+    {
+        aix::Tensor t = aix::ones({2, 3});
+        CHECK(t.shape() == aix::Shape{2, 3});
+        CHECK(t.value().size() == 6);
+        CHECK(t.isRequireGrad() == false);
+
+        aix::TensorValue expected(1.0, {2, 3}, t.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+
+    SUBCASE("requiring gradient")
+    {
+        aix::Tensor t = aix::ones({2, 3}, true);
+        CHECK(t.shape() == aix::Shape{2, 3});
+        CHECK(t.value().size() == 6);
+        CHECK(t.isRequireGrad() == true);
+
+        aix::TensorValue expected(1.0, {2, 3}, t.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+}
+
+TEST_CASE("Tensor - zeros")
+{
+    SUBCASE("without requiring gradient")
+    {
+        aix::Tensor t = aix::zeros({2, 3});
+        CHECK(t.shape() == aix::Shape{2, 3});
+        CHECK(t.value().size() == 6);
+        CHECK(t.isRequireGrad() == false);
+
+        aix::TensorValue expected(0.0, {2, 3}, t.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+
+    SUBCASE("requiring gradient")
+    {
+        aix::Tensor t = aix::zeros({2, 3}, true);
+        CHECK(t.shape() == aix::Shape{2, 3});
+        CHECK(t.value().size() == 6);
+        CHECK(t.isRequireGrad() == true);
+
+        aix::TensorValue expected(0.0, {2, 3}, t.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+}
+
+TEST_CASE("Tensor - ones_like")
+{
+    aix::Tensor src(1.5, {2, 3});
+
+    SUBCASE("without requiring gradient")
+    {
+        aix::Tensor t = aix::ones_like(src);
+        CHECK(t.shape() == src.shape());
+        CHECK(t.value().size() == src.value().size());
+        CHECK(t.isRequireGrad() == false);
+        CHECK(t.value().device() == src.value().device());
+
+        aix::TensorValue expected(1.0, src.shape(), src.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+
+    SUBCASE("requiring gradient")
+    {
+        aix::Tensor t = aix::ones_like(src, true);
+        CHECK(t.shape() == src.shape());
+        CHECK(t.value().size() == src.value().size());
+        CHECK(t.isRequireGrad() == true);
+        CHECK(t.value().device() == src.value().device());
+
+        aix::TensorValue expected(1.0, src.shape(), src.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+}
+
+TEST_CASE("Tensor - zeros_like")
+{
+    aix::Tensor src(1.5, {2, 3});
+
+    SUBCASE("without requiring gradient")
+    {
+        aix::Tensor t = aix::zeros_like(src);
+        CHECK(t.shape() == src.shape());
+        CHECK(t.value().size() == src.value().size());
+        CHECK(t.isRequireGrad() == false);
+        CHECK(t.value().device() == src.value().device());
+
+        aix::TensorValue expected(0.0, src.shape(), src.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+
+    SUBCASE("requiring gradient")
+    {
+        aix::Tensor t = aix::zeros_like(src, true);
+        CHECK(t.shape() == src.shape());
+        CHECK(t.value().size() == src.value().size());
+        CHECK(t.isRequireGrad() == true);
+        CHECK(t.value().device() == src.value().device());
+
+        aix::TensorValue expected(0.0, src.shape(), src.value().device());
+        CheckVectorApproxValues(t.value(), expected);
+    }
+}
