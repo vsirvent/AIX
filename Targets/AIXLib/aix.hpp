@@ -825,21 +825,22 @@ public:
     }
 
     // Perform backpropagation to calculate gradients recursively.
-    void backward(DataType value=1)  { m_data->backward(TensorValue{value, m_data->m_a->m_grad.shape(), m_data->device()}); }
-    void backward(DataType value, const Shape & gradShape)  { m_data->backward(TensorValue{value, gradShape, m_data->device()}); }
+    void backward(DataType value=1)  { m_data->backward(TensorValue{value, m_data->m_a->m_grad.shape(), device()}); }
+    void backward(DataType value, const Shape & gradShape)  { m_data->backward(TensorValue{value, gradShape, device()}); }
 
     // Getters and setters for the tensor's value.
-    const TensorValue & value() const        { return m_data->m_value; }
-    TensorValue & value()                    { return m_data->m_value; }
-    const Shape & shape() const { return m_data->m_value.shape(); }
+    inline const TensorValue & value() const        { return m_data->m_value; }
+    inline TensorValue & value()                    { return m_data->m_value; }
+    inline const Shape & shape() const              { return m_data->m_value.shape(); }
 
     // Gradient-related methods.
-    const TensorValue & grad() const { return m_data->m_grad; }
-    void zeroGrad()                  { m_data->m_grad.fill(0); }
-    bool isRequireGrad() const       { return m_data->m_requireGrad; }
+    inline const TensorValue & grad() const { return m_data->m_grad; }
+    inline void zeroGrad()                  { m_data->m_grad.fill(0); }
+    inline bool isRequireGrad() const       { return m_data->m_requireGrad; }
 
     // Set operation device for the tensor.
-    Tensor & to(Device & device)     { m_data->device(&device); return *this; }
+    inline Tensor & to(Device & device)     { m_data->device(&device); return *this; }
+    inline Device * device() const          { return m_data->device(); }
 
     static void defaultBackward(TensorNode * node, const TensorValue & seed)
     {
@@ -949,7 +950,7 @@ public:
     // Overload the + operator
     Tensor operator+(const Tensor & rhsTensor) const
     {
-        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
         result.m_data->m_value = m_data->m_value + rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -960,7 +961,7 @@ public:
     // Overload the - operator
     Tensor operator-(const Tensor & rhsTensor) const
     {
-        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
         result.m_data->m_value = m_data->m_value - rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -971,7 +972,7 @@ public:
     // Overload the * operator
     Tensor operator*(const Tensor & rhsTensor) const
     {
-        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
         result.m_data->m_value = m_data->m_value * rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -982,7 +983,7 @@ public:
     // Overload the / operator
     Tensor operator/(const Tensor & rhsTensor) const
     {
-        Tensor result({shape()}, m_data->m_requireGrad || rhsTensor.m_data->m_requireGrad);
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
         result.m_data->m_value = m_data->m_value / rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -992,7 +993,7 @@ public:
 
     Tensor operator-() const
     {
-        Tensor result(shape(), m_data->m_requireGrad);
+        Tensor result(shape(), isRequireGrad());
         result.m_data->m_value = -m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
@@ -1002,39 +1003,31 @@ public:
 
     friend Tensor operator+(DataType scalar, const Tensor & rhsTensor)
     {
-        // TODO: Can it be refactored? Is there a better way?
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
-        tensor.to(*rhsTensor.value().device());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.device());
         return tensor + rhsTensor;
     }
 
     friend Tensor operator-(DataType scalar, const Tensor & rhsTensor)
     {
-        // TODO: Can it be refactored? Is there a better way?
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
-        tensor.to(*rhsTensor.value().device());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.device());
         return tensor - rhsTensor;
     }
 
     friend Tensor operator*(DataType scalar, const Tensor & rhsTensor)
     {
-        // TODO: Can it be refactored? Is there a better way?
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
-        tensor.to(*rhsTensor.value().device());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.device());
         return tensor * rhsTensor;
     }
 
     friend Tensor operator/(DataType scalar, const Tensor & rhsTensor)
     {
-        // TODO: Can it be refactored? Is there a better way?
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
-        tensor.to(*rhsTensor.value().device());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.device());
         return tensor / rhsTensor;
     }
 
     static Tensor sin(const Tensor & rhsTensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
         result.m_data->m_value = rhsTensor.m_data->m_value.sin();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
@@ -1044,7 +1037,7 @@ public:
 
     static Tensor tanh(const Tensor & rhsTensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
         result.m_data->m_value = rhsTensor.m_data->m_value.tanh();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
@@ -1054,7 +1047,7 @@ public:
 
     static Tensor log(const Tensor & rhsTensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
         result.m_data->m_value = rhsTensor.m_data->m_value.log();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
@@ -1064,7 +1057,7 @@ public:
 
     static Tensor exp(const Tensor & rhsTensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.m_data->m_requireGrad);
+        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
         result.m_data->m_value = rhsTensor.m_data->m_value.exp();
         result.m_data->m_a = rhsTensor.m_data;
         result.m_data->m_b = nullptr;
@@ -1074,7 +1067,7 @@ public:
 
     static Tensor matmul(const Tensor & a, const Tensor & b)
     {
-        Tensor result({a.shape()[0], b.shape()[1]}, a.m_data->m_requireGrad || b.m_data->m_requireGrad);
+        Tensor result({a.shape()[0], b.shape()[1]}, a.isRequireGrad() || b.isRequireGrad());
         result.m_data->m_value = a.m_data->m_value.matmul(b.m_data->m_value);
         result.m_data->m_a = a.m_data;
         result.m_data->m_b = b.m_data;
@@ -1084,8 +1077,8 @@ public:
 
     Tensor sum() const
     {
-        Tensor result({1, 1}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
-        result.m_data->m_value = TensorValue(m_data->m_value.sum(), {1, 1}, m_data->device());
+        Tensor result({1, 1}, isRequireGrad());     // Scalar tensor for the mean result.
+        result.m_data->m_value = TensorValue(m_data->m_value.sum(), {1, 1}, device());
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = sumBackwardFunc;
@@ -1094,8 +1087,8 @@ public:
 
     Tensor mean() const
     {
-        Tensor result({1, 1}, m_data->m_requireGrad);     // Scalar tensor for the mean result.
-        result.m_data->m_value = TensorValue(m_data->m_value.mean(), {1, 1}, m_data->device());
+        Tensor result({1, 1}, isRequireGrad());     // Scalar tensor for the mean result.
+        result.m_data->m_value = TensorValue(m_data->m_value.mean(), {1, 1}, device());
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = meanBackwardFunc;
