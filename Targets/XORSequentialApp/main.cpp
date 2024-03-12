@@ -72,11 +72,11 @@ int main()
         optimizer.step();                                   // Update neural net's learnable parameters.
 
         // Log loss value.
-        if (epoch % kLogInterval == 0 || loss.value().data()[0] <= kLossThreshold)
-            std::cout << "Epoch: " << epoch << " Loss = " << loss.value().data()[0] << std::endl << std::flush;
+        if (epoch % kLogInterval == 0 || loss.value().item() <= kLossThreshold)
+            std::cout << "Epoch: " << epoch << " Loss = " << loss.value().item()<< std::endl << std::flush;
 
         // Stop training process when loss is lower than the threshold.
-        if (loss.value().data()[0] <= kLossThreshold)
+        if (loss.value().item() <= kLossThreshold)
             break;
     }
     std::cout << std::endl;
