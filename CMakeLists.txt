@@ -41,11 +41,11 @@ include_directories(Targets/AIXLib)
 
 # Target folders
 add_subdirectory(Targets/AIXTests)
-add_subdirectory(Targets/XORApp)
-add_subdirectory(Targets/XORLayerApp)
-add_subdirectory(Targets/XORSequentialApp)
+add_subdirectory(Targets/AIXExamples/XORApp)
+add_subdirectory(Targets/AIXExamples/XORLayerApp)
+add_subdirectory(Targets/AIXExamples/XORSequentialApp)
 
 # Build the following targets only on macOS with Apple Silicon.
 if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-    add_subdirectory(Targets/XORMetalApp)
+    add_subdirectory(Targets/AIXExamples/XORMetalApp)
 endif()
