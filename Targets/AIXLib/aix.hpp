@@ -18,6 +18,7 @@
 #include <cassert>
 #include <utility>
 #include <random>
+#include <numbers>
 
 
 namespace aix
@@ -1398,6 +1399,17 @@ public:
     Tensor forward(Tensor x) const override
     {
         return 1 / (1 + Tensor::exp(-x));
+    }
+};
+
+
+class GELU : public Module
+{
+public:
+    // Forward
+    Tensor forward(Tensor x) const override
+    {
+        return 0.5 * x * (1.0 + Tensor::tanh(std::sqrtf(2.0 / std::numbers::pi) * (x + 0.044715 * x * x * x)));
     }
 };
 
