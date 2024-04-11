@@ -15,6 +15,7 @@
 
 // Project includes
 #include <aix.hpp>
+#include "aixDeviceMetalShaders.hpp"
 // External includes
 #include <Metal/Metal.hpp>
 // System includes
@@ -31,7 +32,7 @@ public:
     {
         m_pool = NS::AutoreleasePool::alloc()->init();      // Create autorelease pool.
         m_mtlDevice = reinterpret_cast<MTL::Device*>(MTL::CopyAllDevices()->object(0));   // Get first available device.
-        auto defaultLibrary = loadLibrary("default.metallib");
+        auto defaultLibrary = createLibrary(aix::shaders::aixDeviceMetalShaders);
         // Compile time evaluation.
         if constexpr (std::is_same_v<DataType, float>)
         {
@@ -410,7 +411,7 @@ public:
 /*
     // TODO: Add GPU support for the following device methods.
     // Unimplemented GPU implementations will use CPU by default and be called from base Device.
-
+    void sum(const DataType * a, const size_t size, DataType & result) override {}
     void mean(const DataType * a, const size_t size, DataType & result) override {}
 */
 
@@ -699,12 +700,17 @@ protected:
         }
     }
 
-    MTL::Library* loadLibrary(const std::string & libName)
+    MTL::Library* createLibrary(const char* shaders)
     {
-        NS::Error* error = nullptr;
+        // Create a compile options.
+        MTL::CompileOptions* compileOptions = MTL::CompileOptions::alloc()->init();
+        compileOptions->setFastMathEnabled(false);
 
-        auto library = NS::String::string(libName.c_str(), NS::UTF8StringEncoding);
-        auto defaultLibrary = m_mtlDevice->newLibrary(library, &error);
+        NS::Error* error = nullptr;
+        MTL::Library* defaultLibrary = m_mtlDevice->newLibrary(NS::String::string(shaders, NS::UTF8StringEncoding),
+                                                               compileOptions, &error);
+        compileOptions->release();
+
         if (!defaultLibrary)
         {
             std::cerr << "Failed to load default library. Details: " << error->localizedDescription()->utf8String() << "\n";

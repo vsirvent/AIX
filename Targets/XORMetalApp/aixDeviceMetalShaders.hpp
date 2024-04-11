@@ -7,6 +7,14 @@
 //  trade secret or copyright law. Dissemination of this information or reproduction of this
 //  material is strictly forbidden unless prior written permission is obtained from Arkin Terli.
 
+#pragma once
+
+namespace aix::shaders
+{
+
+// Requires Metal Language Version 2_2 and higher.
+const char* aixDeviceMetalShaders = R"(
+
 #include <metal_stdlib>
 using namespace metal;
 
@@ -436,3 +444,8 @@ kernel void copy_s_a(device const float*,
                      constant MatrixSize&,
                      device float*,
                      uint index [[thread_position_in_grid]]);
+
+)";
+
+
+}   // namespace
