@@ -960,7 +960,7 @@ public:
     // Overload the + operator
     Tensor operator+(const Tensor & rhsTensor) const
     {
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value + rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -971,7 +971,7 @@ public:
     // Overload the - operator
     Tensor operator-(const Tensor & rhsTensor) const
     {
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value - rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -982,7 +982,7 @@ public:
     // Overload the * operator
     Tensor operator*(const Tensor & rhsTensor) const
     {
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value * rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -993,7 +993,7 @@ public:
     // Overload the / operator
     Tensor operator/(const Tensor & rhsTensor) const
     {
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad());
+        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value / rhsTensor.m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = rhsTensor.m_data;
@@ -1003,7 +1003,7 @@ public:
 
     Tensor operator-() const
     {
-        Tensor result(shape(), isRequireGrad());
+        Tensor result(shape(), isRequireGrad(), device());
         result.m_data->m_value = -m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
@@ -1035,41 +1035,41 @@ public:
         return tensor / rhsTensor;
     }
 
-    static Tensor sin(const Tensor & rhsTensor)
+    static Tensor sin(const Tensor & tensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
-        result.m_data->m_value = rhsTensor.m_data->m_value.sin();
-        result.m_data->m_a = rhsTensor.m_data;
+        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
+        result.m_data->m_value = tensor.m_data->m_value.sin();
+        result.m_data->m_a = tensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = sinBackwardFunc;
         return result;
     };
 
-    static Tensor tanh(const Tensor & rhsTensor)
+    static Tensor tanh(const Tensor & tensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
-        result.m_data->m_value = rhsTensor.m_data->m_value.tanh();
-        result.m_data->m_a = rhsTensor.m_data;
+        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
+        result.m_data->m_value = tensor.m_data->m_value.tanh();
+        result.m_data->m_a = tensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = tanhBackwardFunc;
         return result;
     };
 
-    static Tensor log(const Tensor & rhsTensor)
+    static Tensor log(const Tensor & tensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
-        result.m_data->m_value = rhsTensor.m_data->m_value.log();
-        result.m_data->m_a = rhsTensor.m_data;
+        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
+        result.m_data->m_value = tensor.m_data->m_value.log();
+        result.m_data->m_a = tensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = logBackwardFunc;
         return result;
     };
 
-    static Tensor exp(const Tensor & rhsTensor)
+    static Tensor exp(const Tensor & tensor)
     {
-        Tensor result(rhsTensor.shape(), rhsTensor.isRequireGrad());
-        result.m_data->m_value = rhsTensor.m_data->m_value.exp();
-        result.m_data->m_a = rhsTensor.m_data;
+        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
+        result.m_data->m_value = tensor.m_data->m_value.exp();
+        result.m_data->m_a = tensor.m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = expBackwardFunc;
         return result;
@@ -1077,7 +1077,7 @@ public:
 
     static Tensor matmul(const Tensor & a, const Tensor & b)
     {
-        Tensor result({a.shape()[0], b.shape()[1]}, a.isRequireGrad() || b.isRequireGrad());
+        Tensor result({a.shape()[0], b.shape()[1]}, a.isRequireGrad() || b.isRequireGrad(), a.device());
         result.m_data->m_value = a.m_data->m_value.matmul(b.m_data->m_value);
         result.m_data->m_a = a.m_data;
         result.m_data->m_b = b.m_data;
@@ -1087,7 +1087,7 @@ public:
 
     Tensor sum() const
     {
-        Tensor result({}, isRequireGrad());     // Scalar tensor for the mean result.
+        Tensor result({}, isRequireGrad(), device());     // Scalar tensor for the mean result.
         result.m_data->m_value = TensorValue(m_data->m_value.sum(), {}, device());
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
@@ -1097,7 +1097,7 @@ public:
 
     Tensor mean() const
     {
-        Tensor result({}, isRequireGrad());     // Scalar tensor for the mean result.
+        Tensor result({}, isRequireGrad(), device());     // Scalar tensor for the mean result.
         result.m_data->m_value = TensorValue(m_data->m_value.mean(), {}, device());
         result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
