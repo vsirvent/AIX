@@ -38,6 +38,7 @@ struct MatrixSize
 
 struct MPSDevice
 {
+    NSAutoreleasePool*  pool{nullptr};
     id<MTLDevice>       device{nullptr};
     id<MTLCommandQueue> commandQueue{nullptr};
     id<MTLComputePipelineState>   compFuncPSOAdd{nullptr};
@@ -64,6 +65,7 @@ struct MPSDevice
     MatrixSize      buf1Size{0, 0};
     MatrixSize      buf2Size{0, 0};
     std::unordered_map<const void*, id<MTLBuffer>>  allocMap;
+
 };
 
 id<MTLBuffer> getReadOnlyMTLBuffer(MPSDevice* mpsDevice, const DataType * address, size_t size)
@@ -259,6 +261,7 @@ extern "C"
 void* createMPSDevice(int deviceIndex = 0)
 {
     auto mpsDevice = new MPSDevice;
+    mpsDevice->pool = [[NSAutoreleasePool alloc] init];
     mpsDevice->device = MTLCopyAllDevices()[deviceIndex];
     mpsDevice->commandQueue = [mpsDevice->device newCommandQueue];
     CHECK(mpsDevice->device);
@@ -314,6 +317,8 @@ void releaseMPSDevice(void* device)
 
     [mpsDevice->commandQueue release];
     [mpsDevice->device release];
+    [mpsDevice->pool release];
+
     delete mpsDevice;
 }
 
@@ -489,12 +494,10 @@ void copy_a_a(void* device, const DataType* src, DataType* dst, size_t size)
     [cmdBuffer waitUntilCompleted];
 
     freeTemporaryBuffer(mpsDevice, srcBuf, src);
+    // Release only if object is allocated with alloc() method.
     [kernel release];
     [srcMat release];
     [dstMat release];
-    [srcMatDesc release];
-    [dstMatDesc release];
-    [matCopyDesc release];
 }
 
 void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1,
@@ -555,10 +558,11 @@ void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1,
 
     freeTemporaryBuffer(mpsDevice, matBuf1, a1);
     freeTemporaryBuffer(mpsDevice, matBuf2, a2);
+    // Release only if object is allocated with alloc() method.
     [kernel release];
-    [mat1Desc release];
-    [mat2Desc release];
-    [resDesc release];
+    [mpsMat1 release];
+    [mpsMat2 release];
+    [mpsRes release];
 }
 
 void transpose(void* device, const DataType * mat, size_t rows, size_t cols, DataType * result)
@@ -616,12 +620,10 @@ void transpose(void* device, const DataType * mat, size_t rows, size_t cols, Dat
     [cmdBuffer waitUntilCompleted];
 
     freeTemporaryBuffer(mpsDevice, srcBuf, mat);
+    // Release only if object is allocated with alloc() method.
     [kernel release];
     [srcMat release];
     [dstMat release];
-    [srcMatDesc release];
-    [dstMatDesc release];
-    [matCopyDesc release];
 }
 
 }   // extern "C"
