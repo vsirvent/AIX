@@ -172,12 +172,17 @@ public:
         executeArrayScalarCmd(nullptr, scalar, size, result, m_compFuncPSOCopy_S_A, "copy");
     }
 
-/*
-    // TODO: Add GPU support for the following device methods.
-    // Unimplemented GPU implementations will use CPU by default and be called from base Device.
-    void sum(const DataType * a, const size_t size, DataType & result) override {}
-    void mean(const DataType * a, const size_t size, DataType & result) override {}
-*/
+    void sum(const DataType * a, const size_t size, DataType & result) override
+    {
+        // TODO: Add GPU support for the following device methods.
+        Device::sum(a, size, result);
+    }
+
+    void mean(const DataType * a, const size_t size, DataType & result) override
+    {
+        // TODO: Add GPU support for the following device methods.
+        Device::mean(a, size, result);
+    }
 
     void sqrt(const DataType * a, const size_t size, DataType * result) override
     {
