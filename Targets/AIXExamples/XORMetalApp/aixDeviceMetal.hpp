@@ -786,7 +786,7 @@ protected:
         // Encode the pipeline state object and its parameters.
         computeEncoder->setComputePipelineState(compFuncPSO);
         computeEncoder->setBuffer(m_buf1, 0, 0);
-        computeEncoder->setBytes(&m_scalar, sizeof(DeviceType), 1);
+        computeEncoder->setBytes(&m_scalar, sizeof(DataType), 1);
         computeEncoder->setBytes(&m_buf1Size, sizeof(MatrixSize), 2);
         computeEncoder->setBuffer(m_bufResult, 0, 3);
         computeEncoder->dispatchThreads(gridSize, threadsPerTG);
