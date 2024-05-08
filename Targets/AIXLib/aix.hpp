@@ -1404,7 +1404,7 @@ public:
 };
 
 
-class GELU : public Module
+class GeLU : public Module
 {
 public:
     // Forward
