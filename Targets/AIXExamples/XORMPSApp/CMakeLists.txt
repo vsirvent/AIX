@@ -9,11 +9,13 @@
 
 set(TARGET_NAME XORMPSApp)
 
-set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
+set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc -Wall -Wextra")
+set(CMAKE_OBJC_FLAGS_DEBUG "${CMAKE_OBJC_FLAGS_DEBUG} -g")
+set(CMAKE_OBJC_FLAGS_RELEASE "${CMAKE_OBJC_FLAGS_RELEASE} -O3")
 
 add_executable(${TARGET_NAME}
         main.cpp
-        mps.mm
+        mps.mm      # Only this file compiled as Objective-C module. Application is still a C++ application.
 )
 
 target_link_libraries(${TARGET_NAME} PRIVATE

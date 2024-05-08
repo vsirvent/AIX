@@ -14,8 +14,8 @@
 #import <Metal/Metal.h>
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
 // System includes
+#import <string>
 #import <unordered_map>
-
 
 typedef float DataType;
 MPSDataType mpsDataType = MPSDataTypeFloat32;
@@ -61,10 +61,9 @@ struct MPSDevice
     id<MTLBuffer>   buf2{nullptr};
     id<MTLBuffer>   bufResult{nullptr};
     DataType        scalar{0};
-    MatrixSize      buf1Size;
-    MatrixSize      buf2Size;
+    MatrixSize      buf1Size{0, 0};
+    MatrixSize      buf2Size{0, 0};
     std::unordered_map<const void*, id<MTLBuffer>>  allocMap;
-    NSAutoreleasePool*  pool{nullptr};
 };
 
 id<MTLBuffer> getReadOnlyMTLBuffer(MPSDevice* mpsDevice, const DataType * address, size_t size)
@@ -95,11 +94,11 @@ id<MTLLibrary> createLibrary(MPSDevice* mpsDevice, const char* shaders)
     auto compileOptions = [[MTLCompileOptions alloc] init];
     compileOptions.fastMathEnabled = NO;
 
-    NSError* error = nil;
-    NSString *shaderSource = [NSString stringWithUTF8String:shaders];
-    id<MTLLibrary> defaultLibrary = [mpsDevice->device newLibraryWithSource:shaderSource
-                                                                    options:compileOptions
-                                                                      error:&error];
+    NSError* error = nullptr;
+    auto shaderSource = [NSString stringWithUTF8String:shaders];
+    auto defaultLibrary = [mpsDevice->device newLibraryWithSource:shaderSource
+                                                          options:compileOptions
+                                                            error:&error];
     [compileOptions release];
 
     if (!defaultLibrary)
@@ -113,8 +112,8 @@ id<MTLLibrary> createLibrary(MPSDevice* mpsDevice, const char* shaders)
 
 id<MTLComputePipelineState> createComputeFuncPSO(MPSDevice* mpsDevice, id<MTLLibrary> library, const char* kernelName)
 {
-    NSString *funcName = [NSString stringWithUTF8String:kernelName];
-    id<MTLFunction> compFunc = [library newFunctionWithName:funcName];
+    auto funcName = [NSString stringWithUTF8String:kernelName];
+    auto compFunc = [library newFunctionWithName:funcName];
     CHECK(compFunc);
     if (!compFunc)
     {
@@ -122,7 +121,7 @@ id<MTLComputePipelineState> createComputeFuncPSO(MPSDevice* mpsDevice, id<MTLLib
         // No need to halt the application here.
     }
 
-    NSError *error = nil;
+    NSError *error{nullptr};
     auto compFuncPSO = [mpsDevice->device newComputePipelineStateWithFunction:compFunc error:&error];
     if (!compFuncPSO)
     {
@@ -187,6 +186,70 @@ void sendComputeCommandArrayScalar(MPSDevice* mpsDevice, id<MTLComputePipelineSt
     [compEncoder endEncoding];         // End the compute pass
     [cmdBuffer commit];                // Execute the command
     [cmdBuffer waitUntilCompleted];    // Wait until the work is done
+}
+
+void executeArrayScalarCmd(MPSDevice* mpsDevice,
+                           const DataType * a,
+                           DataType scalar,
+                           size_t size,
+                           DataType * result,
+                           id<MTLComputePipelineState> compFuncPSO,
+                           const std::string & cmdName)
+{
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
+        throw std::invalid_argument("DeviceMPS::" + cmdName + "() result must have GPU memory.");
+
+    // Set constants
+    mpsDevice->buf1          = a ? getReadOnlyMTLBuffer(mpsDevice, a, size) : nullptr;
+    mpsDevice->buf2          = nullptr;
+    mpsDevice->bufResult     = mpsDevice->allocMap[result];
+    mpsDevice->scalar        = scalar;
+    mpsDevice->buf1Size.rows = 1;
+    mpsDevice->buf1Size.cols = size;
+
+    // Calculate maximum thread group dimensions
+    NSUInteger w = std::min(size, [compFuncPSO maxTotalThreadsPerThreadgroup]);
+    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
+    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
+    sendComputeCommandArrayScalar(mpsDevice, compFuncPSO, gridSize, threadsPerThreadGroup);
+
+    if (a)
+    {
+        // Buf1 could be temporary buffer. It should be deleted if temporary.
+        freeTemporaryBuffer(mpsDevice, mpsDevice->buf1, a);
+        // Note: We never release result buffer since it will be used.
+    }
+}
+
+void executeDoubleArrayCmd(MPSDevice* mpsDevice,
+                           const DataType * a1,
+                           const DataType * a2,
+                           size_t size,
+                           DataType * result,
+                           id<MTLComputePipelineState> compFuncPSO,
+                           const std::string & cmdName)
+{
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
+        throw std::invalid_argument("DeviceMPS::" + cmdName + "() result must have GPU memory.");
+
+    mpsDevice->buf1 = getReadOnlyMTLBuffer(mpsDevice, a1, size);   // Memory could be a GPU allocated memory or system memory.
+    mpsDevice->buf2 = getReadOnlyMTLBuffer(mpsDevice, a2, size);   // Memory could be a GPU allocated memory or system memory.
+    mpsDevice->bufResult = mpsDevice->allocMap[result];
+
+    // Calculate maximum thread group dimensions
+    NSUInteger w = std::min(size, [compFuncPSO maxTotalThreadsPerThreadgroup]);
+    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
+    auto gridSize = MTLSize{size, 1, 1};    // gridSize = Final matrix size
+    sendComputeCommandDoubleBuffer(mpsDevice, compFuncPSO, gridSize, threadsPerThreadGroup);
+
+    // Buf 1 and 2 could be temporary buffer. It should be deleted if temporary.
+    freeTemporaryBuffer(mpsDevice, mpsDevice->buf1, a1);
+    freeTemporaryBuffer(mpsDevice, mpsDevice->buf2, a2);
+    // Note: We never release result buffer since it will be used.
 }
 
 
@@ -280,419 +343,159 @@ void deallocate(void* device, void* memory)
 void add_a_a(void* device, const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::add() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & buf2   = mpsDevice->buf2;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a1, size);      // Memory could be a GPU allocated memory or system memory.
-    buf2 = getReadOnlyMTLBuffer(mpsDevice, a2, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOAdd maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};    // gridSize = Final matrix size
-    sendComputeCommandDoubleBuffer(mpsDevice, mpsDevice->compFuncPSOAdd, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a1);
-    freeTemporaryBuffer(mpsDevice, buf2, a2);
+    executeDoubleArrayCmd(mpsDevice, a1, a2, size, result, mpsDevice->compFuncPSOAdd, "add");
 }
 
 void sub_a_a(void* device, const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::sub() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & buf2   = mpsDevice->buf2;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a1, size);      // Memory could be a GPU allocated memory or system memory.
-    buf2 = getReadOnlyMTLBuffer(mpsDevice, a2, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOSub maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};    // gridSize = Final matrix size
-    sendComputeCommandDoubleBuffer(mpsDevice, mpsDevice->compFuncPSOSub, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a1);
-    freeTemporaryBuffer(mpsDevice, buf2, a2);
+    executeDoubleArrayCmd(mpsDevice, a1, a2, size, result, mpsDevice->compFuncPSOSub, "sub");
 }
 
 void mul_a_a(void* device, const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::sub() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & buf2   = mpsDevice->buf2;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a1, size);      // Memory could be a GPU allocated memory or system memory.
-    buf2 = getReadOnlyMTLBuffer(mpsDevice, a2, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOMul maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};    // gridSize = Final matrix size
-    sendComputeCommandDoubleBuffer(mpsDevice, mpsDevice->compFuncPSOMul, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a1);
-    freeTemporaryBuffer(mpsDevice, buf2, a2);
+    executeDoubleArrayCmd(mpsDevice, a1, a2, size, result, mpsDevice->compFuncPSOMul, "mul");
 }
 
 void div_a_a(void* device, const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::sub() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & buf2   = mpsDevice->buf2;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a1, size);      // Memory could be a GPU allocated memory or system memory.
-    buf2 = getReadOnlyMTLBuffer(mpsDevice, a2, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSODiv maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};    // gridSize = Final matrix size
-    sendComputeCommandDoubleBuffer(mpsDevice, mpsDevice->compFuncPSODiv, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a1);
-    freeTemporaryBuffer(mpsDevice, buf2, a2);
+    executeDoubleArrayCmd(mpsDevice, a1, a2, size, result, mpsDevice->compFuncPSODiv, "div");
 }
 
 void  add_a_s(void* device, const DataType * a, DataType scalar, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::add_a_s() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = scalar;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOAdd_A_S maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOAdd_A_S, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, scalar, size, result, mpsDevice->compFuncPSOAdd_A_S, "add_a_s");
 }
 
 void sub_s_a(void* device, DataType scalar, const DataType * a, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::sub_s_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = scalar;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOSub_S_A maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOSub_S_A, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, scalar, size, result, mpsDevice->compFuncPSOSub_S_A, "sub_s_a");
 }
 
 void mul_a_s(void* device, const DataType * a, DataType scalar, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::mul_a_s() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = scalar;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOMul_A_S maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOMul_A_S, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, scalar, size, result, mpsDevice->compFuncPSOMul_A_S, "mul_a_s");
 }
 
 void div_a_s(void* device, const DataType * a, DataType scalar, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::div_a_s() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = scalar;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSODiv_A_S maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSODiv_A_S, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, scalar, size, result, mpsDevice->compFuncPSODiv_A_S, "div_a_s");
 }
 
 void div_s_a(void* device, DataType scalar, const DataType * a, size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::div_s_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = scalar;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSODiv_S_A maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSODiv_S_A, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, scalar, size, result, mpsDevice->compFuncPSODiv_S_A, "div_s_a");
 }
 
 void sqrt_a(void* device, const DataType * a, const size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::sqrt_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = 0;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOSqrt maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOSqrt, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, 0, size, result, mpsDevice->compFuncPSOSqrt, "sqrt_a");
 }
 
 void sin_a(void* device, const DataType * a, const size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::sqrt_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = 0;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOSin maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOSin, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, 0, size, result, mpsDevice->compFuncPSOSin, "sin_a");
 }
 
 void cos_a(void* device, const DataType * a, const size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::cos_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = 0;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOCos maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOCos, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, 0, size, result, mpsDevice->compFuncPSOCos, "cos_a");
 }
 
 void tanh_a(void* device, const DataType * a, const size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::tanh_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = 0;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOTanh maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOTanh, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, 0, size, result, mpsDevice->compFuncPSOTanh, "tanh_a");
 }
 
 void log_a(void* device, const DataType * a, const size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::log_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = 0;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOLog maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOLog, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, 0, size, result, mpsDevice->compFuncPSOLog, "log_a");
 }
 
 void exp_a(void* device, const DataType * a, const size_t size, DataType * result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::exp_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = getReadOnlyMTLBuffer(mpsDevice, a, size);      // Memory could be a GPU allocated memory or system memory.
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = 0;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOExp maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOExp, gridSize, threadsPerThreadGroup);
-
-    freeTemporaryBuffer(mpsDevice, buf1, a);
+    executeArrayScalarCmd(mpsDevice, a, 0, size, result, mpsDevice->compFuncPSOExp, "exp_a");
 }
 
+void copy_s_a(void* device, DataType scalar, size_t size, DataType * result)
+{
+    auto mpsDevice = static_cast<MPSDevice*>(device);
+    executeArrayScalarCmd(mpsDevice, nullptr, scalar, size, result, mpsDevice->compFuncPSOCopy_S_A, "copy_s_a");
+}
+
+void copy_a_a(void* device, const DataType* src, DataType* dst, size_t size)
+{
+    auto mpsDevice = static_cast<MPSDevice*>(device);
+    CHECK(mpsDevice);
+
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (mpsDevice->allocMap.find(dst) == mpsDevice->allocMap.end())
+        throw std::invalid_argument("DeviceMPS::copy() - Result buffer must have GPU memory.");
+
+    auto srcBuf = getReadOnlyMTLBuffer(mpsDevice, src, size);
+    auto dstBuf = mpsDevice->allocMap[dst];
+    CHECK(srcBuf);
+    CHECK(dstBuf);
+
+    size_t M = 1;
+    size_t N = size;
+    size_t rowInBytes = N * sizeof(DataType);
+
+    // Create MPS Matrix Descriptors
+    auto srcMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:M columns:N rowBytes:rowInBytes dataType:mpsDataType];
+    auto dstMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:M columns:N rowBytes:rowInBytes dataType:mpsDataType];
+    CHECK(srcMatDesc);
+    CHECK(dstMatDesc);
+
+    // Create MPS Matrices
+    auto srcMat = [[MPSMatrix alloc] initWithBuffer:srcBuf descriptor:srcMatDesc];
+    auto dstMat = [[MPSMatrix alloc] initWithBuffer:dstBuf descriptor:dstMatDesc];
+    CHECK(srcMat);
+    CHECK(dstMat);
+
+    // Create a MPS Matrix Copy Descriptor
+    auto matCopyDesc = [MPSMatrixCopyDescriptor descriptorWithSourceMatrix:srcMat
+                                                         destinationMatrix:dstMat
+                                                                   offsets:{0,0,0,0}];
+    CHECK(matCopyDesc);
+
+    // Create Matrix copy kernel
+    MPSMatrixCopy* kernel = [[MPSMatrixCopy alloc] initWithDevice:mpsDevice->device
+                                                         copyRows:M
+                                                      copyColumns:N
+                                             sourcesAreTransposed:false
+                                        destinationsAreTransposed:false];
+    CHECK(kernel);
+
+    // Prepare and execute the command
+    auto cmdBuffer = [mpsDevice->commandQueue commandBuffer];
+    CHECK(cmdBuffer);
+
+    [kernel encodeToCommandBuffer:cmdBuffer copyDescriptor:matCopyDesc];
+    [cmdBuffer commit];
+    [cmdBuffer waitUntilCompleted];
+
+    freeTemporaryBuffer(mpsDevice, srcBuf, src);
+    [kernel release];
+    [srcMat release];
+    [dstMat release];
+    [srcMatDesc release];
+    [dstMatDesc release];
+    [matCopyDesc release];
+}
 
 void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1,
                            const DataType * a2, size_t rows2, size_t cols2,
@@ -716,35 +519,34 @@ void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1,
     size_t rowInBytes2 = cols2 * sizeof(DataType);
 
     // Create MPS Matrix Descriptors
-    MPSMatrixDescriptor* mat1Desc = [MPSMatrixDescriptor matrixDescriptorWithRows:rows1 columns:cols1 rowBytes:rowInBytes1 dataType:mpsDataType];
-    MPSMatrixDescriptor* mat2Desc = [MPSMatrixDescriptor matrixDescriptorWithRows:rows2 columns:cols2 rowBytes:rowInBytes2 dataType:mpsDataType];
-    MPSMatrixDescriptor* resDesc  = [MPSMatrixDescriptor matrixDescriptorWithRows:rows1 columns:cols2 rowBytes:rowInBytes2 dataType:mpsDataType];
+    auto mat1Desc = [MPSMatrixDescriptor matrixDescriptorWithRows:rows1 columns:cols1 rowBytes:rowInBytes1 dataType:mpsDataType];
+    auto mat2Desc = [MPSMatrixDescriptor matrixDescriptorWithRows:rows2 columns:cols2 rowBytes:rowInBytes2 dataType:mpsDataType];
+    auto resDesc  = [MPSMatrixDescriptor matrixDescriptorWithRows:rows1 columns:cols2 rowBytes:rowInBytes2 dataType:mpsDataType];
     CHECK(mat1Desc);
     CHECK(mat2Desc);
     CHECK(resDesc);
 
     // Create MPS Matrices
-    MPSMatrix* mpsMat1 = [[MPSMatrix alloc] initWithBuffer:matBuf1 descriptor:mat1Desc];
-    MPSMatrix* mpsMat2 = [[MPSMatrix alloc] initWithBuffer:matBuf2 descriptor:mat2Desc];
-    MPSMatrix* mpsRes  = [[MPSMatrix alloc] initWithBuffer:matRes  descriptor:resDesc];
+    auto mpsMat1 = [[MPSMatrix alloc] initWithBuffer:matBuf1 descriptor:mat1Desc];
+    auto mpsMat2 = [[MPSMatrix alloc] initWithBuffer:matBuf2 descriptor:mat2Desc];
+    auto mpsRes  = [[MPSMatrix alloc] initWithBuffer:matRes  descriptor:resDesc];
     CHECK(mpsMat1);
     CHECK(mpsMat2);
     CHECK(mpsRes);
 
     // Create Matrix multiplication kernel
-    MPSMatrixMultiplication* kernel = [[MPSMatrixMultiplication alloc]
-                                       initWithDevice:mpsDevice->device
-                                        transposeLeft:false
-                                       transposeRight:false
-                                           resultRows:rows1
-                                        resultColumns:cols2
-                                      interiorColumns:rows2
-                                                alpha:1
-                                                 beta:0];
+    auto kernel = [[MPSMatrixMultiplication alloc] initWithDevice:mpsDevice->device
+                                                    transposeLeft:false
+                                                   transposeRight:false
+                                                       resultRows:rows1
+                                                    resultColumns:cols2
+                                                  interiorColumns:rows2
+                                                            alpha:1
+                                                             beta:0];
     CHECK(kernel);
 
     // Prepare and execute the command
-    id<MTLCommandBuffer> cmdBuffer = [mpsDevice->commandQueue commandBuffer];
+    auto cmdBuffer = [mpsDevice->commandQueue commandBuffer];
     CHECK(cmdBuffer);
 
     [kernel encodeToCommandBuffer:cmdBuffer leftMatrix:mpsMat1 rightMatrix:mpsMat2 resultMatrix:mpsRes];
@@ -779,34 +581,34 @@ void transpose(void* device, const DataType * mat, size_t rows, size_t cols, Dat
     size_t rowInBytesT = M * sizeof(DataType);
 
     // Create MPS Matrix Descriptors
-    MPSMatrixDescriptor* srcMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:M columns:N rowBytes:rowInBytes dataType:mpsDataType];
+    auto srcMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:M columns:N rowBytes:rowInBytes dataType:mpsDataType];
     // Note: Matrix is set up in transposed dimensions before the copy.
-    MPSMatrixDescriptor* dstMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:N columns:M rowBytes:rowInBytesT dataType:mpsDataType];
+    auto dstMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:N columns:M rowBytes:rowInBytesT dataType:mpsDataType];
     CHECK(srcMatDesc);
     CHECK(dstMatDesc);
 
     // Create MPS Matrices
-    MPSMatrix* srcMat = [[MPSMatrix alloc] initWithBuffer:srcBuf descriptor:srcMatDesc];
-    MPSMatrix* dstMat = [[MPSMatrix alloc] initWithBuffer:dstBuf descriptor:dstMatDesc];
+    auto srcMat = [[MPSMatrix alloc] initWithBuffer:srcBuf descriptor:srcMatDesc];
+    auto dstMat = [[MPSMatrix alloc] initWithBuffer:dstBuf descriptor:dstMatDesc];
     CHECK(srcMat);
     CHECK(dstMat);
 
     // Create a MPS Matrix Copy Descriptor
-    MPSMatrixCopyDescriptor* matCopyDesc = [MPSMatrixCopyDescriptor descriptorWithSourceMatrix:srcMat
-                                                                             destinationMatrix:dstMat
-                                                                                       offsets:{0,0,0,0}];
+    auto matCopyDesc = [MPSMatrixCopyDescriptor descriptorWithSourceMatrix:srcMat
+                                                         destinationMatrix:dstMat
+                                                                   offsets:{0,0,0,0}];
     CHECK(matCopyDesc);
 
     // Create Matrix copy kernel
-    MPSMatrixCopy* kernel = [[MPSMatrixCopy alloc] initWithDevice:mpsDevice->device
-                                                         copyRows:M
-                                                      copyColumns:N
-                                             sourcesAreTransposed:false
-                                        destinationsAreTransposed:true];
+    auto kernel = [[MPSMatrixCopy alloc] initWithDevice:mpsDevice->device
+                                               copyRows:M
+                                            copyColumns:N
+                                   sourcesAreTransposed:false
+                              destinationsAreTransposed:true];
     CHECK(kernel);
 
     // Prepare and execute the command
-    id<MTLCommandBuffer> cmdBuffer = [mpsDevice->commandQueue commandBuffer];
+    auto cmdBuffer = [mpsDevice->commandQueue commandBuffer];
     CHECK(cmdBuffer);
 
     [kernel encodeToCommandBuffer:cmdBuffer copyDescriptor:matCopyDesc];
@@ -821,93 +623,5 @@ void transpose(void* device, const DataType * mat, size_t rows, size_t cols, Dat
     [dstMatDesc release];
     [matCopyDesc release];
 }
-
-void copy_a_a(void* device, const DataType* src, DataType* dst, size_t size)
-{
-    auto mpsDevice = static_cast<MPSDevice*>(device);
-    CHECK(mpsDevice);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(dst) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::copy() - Result buffer must have GPU memory.");
-
-    auto srcBuf = getReadOnlyMTLBuffer(mpsDevice, src, size);
-    auto dstBuf = mpsDevice->allocMap[dst];
-    CHECK(srcBuf);
-    CHECK(dstBuf);
-
-    size_t M = 1;
-    size_t N = size;
-    size_t rowInBytes = N * sizeof(DataType);
-
-    // Create MPS Matrix Descriptors
-    MPSMatrixDescriptor* srcMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:M columns:N rowBytes:rowInBytes dataType:mpsDataType];
-    MPSMatrixDescriptor* dstMatDesc = [MPSMatrixDescriptor matrixDescriptorWithRows:M columns:N rowBytes:rowInBytes dataType:mpsDataType];
-    CHECK(srcMatDesc);
-    CHECK(dstMatDesc);
-
-    // Create MPS Matrices
-    MPSMatrix* srcMat = [[MPSMatrix alloc] initWithBuffer:srcBuf descriptor:srcMatDesc];
-    MPSMatrix* dstMat = [[MPSMatrix alloc] initWithBuffer:dstBuf descriptor:dstMatDesc];
-    CHECK(srcMat);
-    CHECK(dstMat);
-
-    // Create a MPS Matrix Copy Descriptor
-    MPSMatrixCopyDescriptor* matCopyDesc = [MPSMatrixCopyDescriptor descriptorWithSourceMatrix:srcMat
-                                                                             destinationMatrix:dstMat
-                                                                                       offsets:{0,0,0,0}];
-    CHECK(matCopyDesc);
-
-    // Create Matrix copy kernel
-    MPSMatrixCopy* kernel = [[MPSMatrixCopy alloc] initWithDevice:mpsDevice->device
-                                                         copyRows:M
-                                                      copyColumns:N
-                                             sourcesAreTransposed:false
-                                        destinationsAreTransposed:false];
-    CHECK(kernel);
-
-    // Prepare and execute the command
-    id<MTLCommandBuffer> cmdBuffer = [mpsDevice->commandQueue commandBuffer];
-    CHECK(cmdBuffer);
-
-    [kernel encodeToCommandBuffer:cmdBuffer copyDescriptor:matCopyDesc];
-    [cmdBuffer commit];
-    [cmdBuffer waitUntilCompleted];
-
-    freeTemporaryBuffer(mpsDevice, srcBuf, src);
-    [kernel release];
-    [srcMat release];
-    [dstMat release];
-    [srcMatDesc release];
-    [dstMatDesc release];
-    [matCopyDesc release];
-}
-
-void copy_s_a(void* device, DataType scalar, size_t size, DataType * result)
-{
-    auto mpsDevice = static_cast<MPSDevice*>(device);
-
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
-        throw std::invalid_argument("DeviceMPS::copy_s_a() result must have GPU memory.");
-
-    auto & buf1   = mpsDevice->buf1;
-    auto & bufRes = mpsDevice->bufResult;
-
-    buf1 = nullptr;
-    bufRes = mpsDevice->allocMap[result];
-    mpsDevice->scalar = scalar;
-
-    mpsDevice->buf1Size.rows = 1;
-    mpsDevice->buf1Size.cols = size;
-
-    // Calculate maximum thread group dimensions
-    NSUInteger w = std::min(size, [mpsDevice->compFuncPSOCopy_S_A maxTotalThreadsPerThreadgroup]);
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    auto threadsPerThreadGroup = MTLSize{w, 1, 1};
-    auto gridSize = MTLSize{size, 1, 1};            // gridSize = array size
-    sendComputeCommandArrayScalar(mpsDevice, mpsDevice->compFuncPSOCopy_S_A, gridSize, threadsPerThreadGroup);
-}
-
 
 }   // extern "C"
