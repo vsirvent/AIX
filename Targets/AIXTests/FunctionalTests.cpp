@@ -43,8 +43,8 @@ TEST_CASE("Model Forward Test - XOR")
         // Forward
         Tensor forward(Tensor x) const final
         {
-            x = Tensor::tanh(Tensor::matmul(x, m_w1) + m_b1);
-            x = Tensor::tanh(Tensor::matmul(x, m_w2) + m_b2);
+            x = tanh(matmul(x, m_w1) + m_b1);
+            x = tanh(matmul(x, m_w2) + m_b2);
             return x;
         }
 

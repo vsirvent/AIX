@@ -9,7 +9,7 @@
 
 cmake_minimum_required(VERSION 3.24)
 
-project(aix)
+project(AIX)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;CCov;ASan;TSan" CACHE STRING "" FORCE)
 

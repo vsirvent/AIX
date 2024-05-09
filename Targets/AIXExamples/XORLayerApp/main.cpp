@@ -36,7 +36,7 @@ public:
     aix::Tensor forward(aix::Tensor x) const override
     {
         // TODO: m_b1 needs to support broadcasting to remove numSamples params from constructor.
-        return aix::Tensor::matmul(x, m_w1) + m_b1;
+        return aix::matmul(x, m_w1) + m_b1;
     }
 
     aix::Tensor  m_w1;
@@ -60,8 +60,8 @@ public:
     // Forward
     aix::Tensor forward(aix::Tensor x) const override
     {
-        x = aix::Tensor::tanh(m_fc1.forward(x));    // Layer 1.
-        x = m_fc2.forward(x);                       // Layer 2.
+        x = aix::tanh(m_fc1.forward(x));    // Layer 1.
+        x = m_fc2.forward(x);               // Layer 2.
         return x;
     }
 

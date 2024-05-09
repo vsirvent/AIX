@@ -12,7 +12,6 @@
 // External includes
 // System includes
 #include <iostream>
-#include <chrono>
 
 
 class NeuralNet : public aix::nn::Module
@@ -37,8 +36,8 @@ public:
     // Forward
     aix::Tensor forward(aix::Tensor x) const override
     {
-        x = aix::Tensor::tanh(aix::Tensor::matmul(x, m_w1) + m_b1);
-        x = aix::Tensor::matmul(x, m_w2) + m_b2;
+        x = aix::tanh(aix::matmul(x, m_w1) + m_b1);
+        x = aix::matmul(x, m_w2) + m_b2;
         return x;
     }
 

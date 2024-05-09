@@ -1036,55 +1036,45 @@ public:
         return tensor / rhsTensor;
     }
 
-    static Tensor sin(const Tensor & tensor)
+    Tensor sin() const
     {
-        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
-        result.m_data->m_value = tensor.m_data->m_value.sin();
-        result.m_data->m_a = tensor.m_data;
+        Tensor result(shape(), isRequireGrad(), device());
+        result.m_data->m_value = m_data->m_value.sin();
+        result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = sinBackwardFunc;
         return result;
     };
 
-    static Tensor tanh(const Tensor & tensor)
+    Tensor tanh() const
     {
-        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
-        result.m_data->m_value = tensor.m_data->m_value.tanh();
-        result.m_data->m_a = tensor.m_data;
+        Tensor result(shape(), isRequireGrad(), device());
+        result.m_data->m_value = m_data->m_value.tanh();
+        result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = tanhBackwardFunc;
         return result;
     };
 
-    static Tensor log(const Tensor & tensor)
+    Tensor log() const
     {
-        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
-        result.m_data->m_value = tensor.m_data->m_value.log();
-        result.m_data->m_a = tensor.m_data;
+        Tensor result(shape(), isRequireGrad(), device());
+        result.m_data->m_value = m_data->m_value.log();
+        result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = logBackwardFunc;
         return result;
     };
 
-    static Tensor exp(const Tensor & tensor)
+    Tensor exp() const
     {
-        Tensor result(tensor.shape(), tensor.isRequireGrad(), tensor.device());
-        result.m_data->m_value = tensor.m_data->m_value.exp();
-        result.m_data->m_a = tensor.m_data;
+        Tensor result(shape(), isRequireGrad(), device());
+        result.m_data->m_value = m_data->m_value.exp();
+        result.m_data->m_a = m_data;
         result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = expBackwardFunc;
         return result;
     };
-
-    static Tensor matmul(const Tensor & a, const Tensor & b)
-    {
-        Tensor result({a.shape()[0], b.shape()[1]}, a.isRequireGrad() || b.isRequireGrad(), a.device());
-        result.m_data->m_value = a.m_data->m_value.matmul(b.m_data->m_value);
-        result.m_data->m_a = a.m_data;
-        result.m_data->m_b = b.m_data;
-        result.m_data->m_backwardFunc = matmulBackwardFunc;
-        return result;
-    }
 
     Tensor sum() const
     {
@@ -1106,10 +1096,21 @@ public:
         return result;
     }
 
+    Tensor matmul(const Tensor & mat) const
+    {
+        Tensor result({shape()[0], mat.shape()[1]}, isRequireGrad() || mat.isRequireGrad(), device());
+        result.m_data->m_value = m_data->m_value.matmul(mat.m_data->m_value);
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = mat.m_data;
+        result.m_data->m_backwardFunc = matmulBackwardFunc;
+        return result;
+    }
+
 protected:
     std::shared_ptr<TensorNode>  m_data{nullptr};
 };
 
+// Some convenience method definitions.
 
 inline Tensor tensor(DataType value, bool requireGrad = false)
 {
@@ -1160,6 +1161,14 @@ inline Tensor zeros_like(const Tensor & tensor, bool requireGrad = false)
 {
     return Tensor{0, tensor.shape(), requireGrad, tensor.value().device()};
 }
+
+inline Tensor sin(const Tensor & A)    { return A.sin();  }
+inline Tensor tanh(const Tensor & A)   { return A.tanh(); }
+inline Tensor log(const Tensor & A)    { return A.log();  }
+inline Tensor exp(const Tensor & A)    { return A.exp();  }
+inline Tensor sum(const Tensor & A)    { return A.sum();  }
+inline Tensor mean(const Tensor & A)   { return A.mean(); }
+inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 
 }   // aix namespace
 
@@ -1374,7 +1383,7 @@ public:
     Tensor forward(Tensor x) const override
     {
         // TODO: m_b1 needs to support broadcasting to remove numSamples params from constructor.
-        return Tensor::matmul(x, m_w1) + m_b1;
+        return matmul(x, m_w1) + m_b1;
     }
 
     Tensor  m_w1;
@@ -1388,7 +1397,7 @@ public:
     // Forward
     Tensor forward(Tensor x) const override
     {
-        return Tensor::tanh(x);
+        return tanh(x);
     }
 };
 
@@ -1399,7 +1408,7 @@ public:
     // Forward
     Tensor forward(Tensor x) const override
     {
-        return 1 / (1 + Tensor::exp(-x));
+        return 1 / (1 + exp(-x));
     }
 };
 
@@ -1410,7 +1419,7 @@ public:
     // Forward
     Tensor forward(Tensor x) const override
     {
-        return 0.5 * x * (1.0 + Tensor::tanh(std::sqrtf(2.0 / std::numbers::pi) * (x + 0.044715 * x * x * x)));
+        return 0.5 * x * (1.0 + tanh(std::sqrtf(2.0 / std::numbers::pi) * (x + 0.044715 * x * x * x)));
     }
 };
 
@@ -1421,7 +1430,7 @@ public:
     Tensor operator()(const Tensor & predictions, const Tensor & targets)
     {
         auto diff = predictions - targets;
-        auto loss = (diff * diff).mean();
+        auto loss = mean(diff * diff);
         return loss;
     }
 };
@@ -1433,7 +1442,7 @@ public:
     // Prediction values must be in [0..1] range.
     Tensor operator()(const Tensor & predictions, const Tensor & targets)
     {
-        return -(targets * aix::Tensor::log(predictions) + (1 - targets) * aix::Tensor::log(1 - predictions)).mean();
+        return -mean(targets * log(predictions) + (1 - targets) * log(1 - predictions));
     }
 };
 

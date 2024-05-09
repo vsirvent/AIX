@@ -38,8 +38,8 @@ struct TestModel : public aix::nn::Module
 
     Tensor forward([[maybe_unused]] Tensor x) const final
     {
-        auto z = m_x * (m_x + m_y) / m_t - Tensor::tanh(m_y * m_y);
-        auto m = m_x * z + Tensor::sin(m_u) * m_u;
+        auto z = m_x * (m_x + m_y) / m_t - tanh(m_y * m_y);
+        auto m = m_x * z + sin(m_u) * m_u;
         return m;
     }
 
@@ -157,7 +157,7 @@ TEST_CASE("Auto Grad - log Test - 2x2")
     aix::Shape shape{2,2};
 
     auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
-    auto z = aix::Tensor::log(x);
+    auto z = log(x);
     z.backward();
 
     // Check shapes
@@ -171,7 +171,7 @@ TEST_CASE("Auto Grad - exp Test - 2x2")
     aix::Shape shape{2,2};
 
     auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
-    auto z = aix::Tensor::exp(x);
+    auto z = exp(x);
     z.backward();
 
     // Check shapes

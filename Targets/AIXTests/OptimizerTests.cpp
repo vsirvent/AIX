@@ -25,7 +25,7 @@ TEST_CASE("Simple optimizer test")
     auto u = tensor(5, true);
 
     auto z = x * (x + y) / t - y * y;
-    auto m = x * z + Tensor::sin(u) * u;
+    auto m = x * z + sin(u) * u;
 
     // Traverse the graph (starting from the end) to calculate all tensor gradients.
     m.backward();      // ∂m/∂m = 1.
