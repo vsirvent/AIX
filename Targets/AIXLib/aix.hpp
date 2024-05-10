@@ -39,6 +39,7 @@ class Tensor;
 enum class DeviceType
 {
     kCPU,
+    kCPU_OMP,
     kGPU_METAL,
     kGPU_MPS,
 };
