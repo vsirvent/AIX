@@ -640,7 +640,7 @@ public:
         return result;
     }
 
-    void fill(DataType value)
+    void fill(DataType value) const
     {
         m_device->fill(value, m_size, m_data);
     }
@@ -661,7 +661,7 @@ public:
         return result;
     }
 
-    TensorValue sqrt()
+    TensorValue sqrt() const
     {
         // Perform element-wise sin.
         TensorValue result(m_shape, m_device);
@@ -669,7 +669,7 @@ public:
         return result;
     }
 
-    TensorValue sin()
+    TensorValue sin() const
     {
         // Perform element-wise sin.
         TensorValue result(m_shape, m_device);
@@ -677,7 +677,7 @@ public:
         return result;
     }
 
-    TensorValue cos()
+    TensorValue cos() const
     {
         // Perform element-wise cos.
         TensorValue result(m_shape, m_device);
@@ -685,7 +685,7 @@ public:
         return result;
     }
 
-    TensorValue tanh()
+    TensorValue tanh() const
     {
         // Perform element-wise tanh.
         TensorValue result(m_shape, m_device);
@@ -693,7 +693,7 @@ public:
         return result;
     }
 
-    TensorValue log()
+    TensorValue log() const
     {
         // Perform element-wise tanh.
         TensorValue result(m_shape, m_device);
@@ -701,7 +701,7 @@ public:
         return result;
     }
 
-    TensorValue exp()
+    TensorValue exp() const
     {
         // Perform element-wise exp.
         TensorValue result(m_shape, m_device);
