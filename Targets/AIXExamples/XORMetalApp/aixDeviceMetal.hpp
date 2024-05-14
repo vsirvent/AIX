@@ -24,6 +24,8 @@
 namespace aix
 {
 
+#define MAX_CMD_BATCH_SIZE 1
+
 class DeviceMetal : public aix::Device
 {
 public:
@@ -175,12 +177,14 @@ public:
 
     void sum(const DataType * a, const size_t size, DataType & result) override
     {
+        commitAndWait();
         // TODO: Add GPU support for the following device methods.
         Device::sum(a, size, result);
     }
 
     void mean(const DataType * a, const size_t size, DataType & result) override
     {
+        commitAndWait();
         // TODO: Add GPU support for the following device methods.
         Device::mean(a, size, result);
     }
@@ -439,6 +443,7 @@ protected:
         // Serialize resource and states to be called by GPU
         encodeComputeCommandSingleBuffer(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
         m_currentBatchSize++;
+        if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
     }
 
     void sendComputeCommandDoubleBuffer(MTL::ComputePipelineState* compFuncPSO, MTL::Size & gridSize,
@@ -448,6 +453,7 @@ protected:
         // Serialize resource and states to be called by GPU
         encodeComputeCommandDoubleBuffer(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
         m_currentBatchSize++;
+        if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
     }
 
     void sendComputeCommandArrayScalar(MTL::ComputePipelineState* compFuncPSO, MTL::Size & gridSize,
@@ -457,6 +463,7 @@ protected:
         // Serialize resource and states to be called by GPU
         encodeComputeCommandArrayScalar(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
         m_currentBatchSize++;
+        if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
     }
 
     void executeArrayScalarCmd(const DataType * a,
