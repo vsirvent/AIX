@@ -269,6 +269,10 @@ public:
     {
         std::memcpy(dst, src, size * sizeof(DataType));
     }
+
+    virtual void commitAndWait()
+    {
+    }
 };
 
 

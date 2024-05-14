@@ -60,6 +60,7 @@ public:
             throw std::invalid_argument("Metal device supports only float data type for now.");
 
         m_cmdQueue = createCommandQueue();
+        m_cmdBuffer = m_cmdQueue->commandBuffer();
     }
 
     // Destructor
@@ -299,9 +300,23 @@ public:
         MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
         sendComputeCommandSingleBuffer(m_compFuncPSOCopy_A_A, gridSize, threadsPerThreadGroup);
 
+        commitAndWait();
+
         freeTemporaryBuffer(m_buf1, src);
         m_buf1 = nullptr;
         m_bufResult = nullptr;
+    }
+
+    void commitAndWait() override
+    {
+        m_maxBatchSize = std::max(m_currentBatchSize, m_maxBatchSize);
+        m_currentBatchSize = 0;
+
+        if (m_compEncoder) m_compEncoder->endEncoding();
+        m_cmdBuffer->commit();                // Execute the command
+        m_cmdBuffer->waitUntilCompleted();    // Wait until the work is done
+        m_cmdBuffer = m_cmdQueue->commandBuffer();
+        if (m_compEncoder) m_compEncoder = nullptr;
     }
 
 protected:
@@ -420,37 +435,28 @@ protected:
     void sendComputeCommandSingleBuffer(MTL::ComputePipelineState*  compFuncPSO, MTL::Size & gridSize,
                                         MTL::Size & threadsPerTG)
     {
-        MTL::CommandBuffer* cmdBuffer = m_cmdQueue->commandBuffer();                    // Create a command buffer
-        MTL::ComputeCommandEncoder* compEncoder = cmdBuffer->computeCommandEncoder();   // Start a compute pass
+        if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
         // Serialize resource and states to be called by GPU
-        encodeComputeCommandSingleBuffer(compEncoder, compFuncPSO, gridSize, threadsPerTG);
-        compEncoder->endEncoding();         // End the compute pass
-        cmdBuffer->commit();                // Execute the command
-        cmdBuffer->waitUntilCompleted();    // Wait until the work is done
+        encodeComputeCommandSingleBuffer(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
+        m_currentBatchSize++;
     }
 
     void sendComputeCommandDoubleBuffer(MTL::ComputePipelineState* compFuncPSO, MTL::Size & gridSize,
                                         MTL::Size & threadsPerTG)
     {
-        MTL::CommandBuffer* cmdBuffer = m_cmdQueue->commandBuffer();                    // Create a command buffer
-        MTL::ComputeCommandEncoder* compEncoder = cmdBuffer->computeCommandEncoder();   // Start a compute pass
+        if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
         // Serialize resource and states to be called by GPU
-        encodeComputeCommandDoubleBuffer(compEncoder, compFuncPSO, gridSize, threadsPerTG);
-        compEncoder->endEncoding();         // End the compute pass
-        cmdBuffer->commit();                // Execute the command
-        cmdBuffer->waitUntilCompleted();    // Wait until the work is done
+        encodeComputeCommandDoubleBuffer(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
+        m_currentBatchSize++;
     }
 
     void sendComputeCommandArrayScalar(MTL::ComputePipelineState* compFuncPSO, MTL::Size & gridSize,
                                        MTL::Size & threadsPerTG)
     {
-        MTL::CommandBuffer* cmdBuffer = m_cmdQueue->commandBuffer();                    // Create a command buffer
-        MTL::ComputeCommandEncoder* compEncoder = cmdBuffer->computeCommandEncoder();   // Start a compute pass
+        if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
         // Serialize resource and states to be called by GPU
-        encodeComputeCommandArrayScalar(compEncoder, compFuncPSO, gridSize, threadsPerTG);
-        compEncoder->endEncoding();         // End the compute pass
-        cmdBuffer->commit();                // Execute the command
-        cmdBuffer->waitUntilCompleted();    // Wait until the work is done
+        encodeComputeCommandArrayScalar(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
+        m_currentBatchSize++;
     }
 
     void executeArrayScalarCmd(const DataType * a,
@@ -524,6 +530,8 @@ protected:
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
     MTL::CommandQueue*     m_cmdQueue{nullptr};
+    MTL::CommandBuffer*    m_cmdBuffer{nullptr};
+    MTL::ComputeCommandEncoder*  m_compEncoder{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOAdd{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOSub{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMul{nullptr};
@@ -549,6 +557,8 @@ protected:
     MatrixSize     m_buf1Size{0, 0};
     MatrixSize     m_buf2Size{0, 0};
     DataType       m_scalar{0};
+    size_t         m_currentBatchSize{0};
+    size_t         m_maxBatchSize{0};
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
 };
 

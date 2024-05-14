@@ -72,6 +72,9 @@ int main()
         // Optimization step.
         optimizer.step();                                   // Update neural net's learnable parameters.
 
+        // Finalize compute batch.
+        device.commitAndWait();
+
         // Log loss value.
         if (epoch % kLogInterval == 0 || loss.value().item() <= kLossThreshold)
             std::cout << "Epoch: " << epoch << " Loss = " << loss.value().item() << std::endl << std::flush;
@@ -89,6 +92,7 @@ int main()
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);
+    device.commitAndWait();
 
     std::cout << "Final Predictions: " << std::endl;
     std::cout << finalPredictions.value().data()[0] << std::endl;
