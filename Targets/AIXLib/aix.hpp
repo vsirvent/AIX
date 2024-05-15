@@ -292,7 +292,7 @@ public:
     TensorValue(const DataType* data, size_t size, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
         m_data = static_cast<DataType*>(device->allocate(size * sizeof(DeviceType)));
-        device->copy(data, m_data, size);
+        device->copy_immediate(data, m_data, size);
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
@@ -302,7 +302,7 @@ public:
     TensorValue(const std::vector<DataType> & data, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
         m_data = static_cast<DataType*>(device->allocate(data.size() * sizeof(DeviceType)));
-        device->copy(data.data(), m_data, data.size());
+        device->copy_immediate(data.data(), m_data, data.size());
         m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
@@ -354,7 +354,7 @@ public:
         m_strides = other.m_strides;
         m_device = other.m_device;
         m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
-        m_device->copy(other.m_data, m_data, other.m_size);
+        m_device->copy_immediate(other.m_data, m_data, other.m_size);
     }
 
     // Copy assignment operator
@@ -368,7 +368,7 @@ public:
             m_strides = other.m_strides;
             m_device = other.m_device;
             m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
-            m_device->copy(other.m_data, m_data, other.m_size);
+            m_device->copy_immediate(other.m_data, m_data, other.m_size);
         }
 
         return *this;
