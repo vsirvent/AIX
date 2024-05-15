@@ -313,14 +313,18 @@ public:
 
     void commitAndWait() override
     {
-        m_maxBatchSize = std::max(m_currentBatchSize, m_maxBatchSize);
-        m_currentBatchSize = 0;
+        // Execute only if there is at least one command encoded.
+        if (!m_compEncoder) return;
 
-        if (m_compEncoder) m_compEncoder->endEncoding();
+        m_compEncoder->endEncoding();
         m_cmdBuffer->commit();                // Execute the command
         m_cmdBuffer->waitUntilCompleted();    // Wait until the work is done
         m_cmdBuffer = m_cmdQueue->commandBuffer();
-        if (m_compEncoder) m_compEncoder = nullptr;
+        m_compEncoder = nullptr;
+
+        // Update batch size metrics.
+        m_maxBatchSize = std::max(m_currentBatchSize, m_maxBatchSize);
+        m_currentBatchSize = 0;
     }
 
 protected:
