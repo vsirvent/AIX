@@ -790,8 +790,15 @@ private:
 class TensorNode
 {
 public:
+    // Constructor
     explicit TensorNode(const TensorValue & value, bool requireGrad = false)
             :  m_value{value}, m_grad{value.shape(), value.device()}, m_requireGrad{requireGrad}
+    {
+    }
+
+    // Constructor
+    explicit TensorNode(const Shape & shape, Device * device, bool requireGrad = false)
+           :  m_value{shape, device}, m_grad{shape, device}, m_requireGrad{requireGrad}
     {
     }
 
@@ -836,7 +843,7 @@ public:
     explicit Tensor(const Shape & shape, bool requireGrad = false, Device * device = &defaultDevice)
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{shape, device}, requireGrad);
+        m_data = std::make_shared<TensorNode>(shape, device, requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
