@@ -167,6 +167,11 @@ public:
         mps::copy_a_a(m_mpsDevice, src, dst, size);
     }
 
+    void copy_immediate(const DataType * src, DataType * dst, size_t size) override
+    {
+        mps::copy_a_a(m_mpsDevice, src, dst, size);
+    }
+
 protected:
     void* m_mpsDevice{nullptr};
 };

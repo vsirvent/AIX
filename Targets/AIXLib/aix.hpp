@@ -270,6 +270,11 @@ public:
         std::memcpy(dst, src, size * sizeof(DataType));
     }
 
+    virtual void copy_immediate(const DataType* src, DataType* dst, size_t size)
+    {
+        std::memcpy(dst, src, size * sizeof(DataType));
+    }
+
     virtual void commitAndWait()
     {
     }
@@ -432,7 +437,7 @@ public:
         // Create a new array from the new device.
         auto newData = static_cast<DataType*>(device->allocate(m_size * sizeof(DeviceType)));
         // Copy old data to the new array.
-        device->copy(m_data, newData, m_size);
+        device->copy_immediate(m_data, newData, m_size);
         // Delete old data from old device.
         m_device->deallocate(m_data);
         // Set new data and the new device.

@@ -220,11 +220,6 @@ public:
         }
     }
 
-    void copy(const DataType* src, DataType* dst, size_t size) override
-    {
-        std::memcpy(dst, src, size * sizeof(DataType));
-    }
-
     void matmul(const DataType* a1, const Shape & s1, const DataType* a2, const Shape & s2, DataType* result) override
     {
         // NOTE: Since TensorValue validated the parameters, device method do not validate again.
@@ -260,6 +255,16 @@ public:
                 result[j * shape[0] + i] = a[i * shape[1] + j];
             }
         }
+    }
+
+    void copy(const DataType* src, DataType* dst, size_t size) override
+    {
+        std::memcpy(dst, src, size * sizeof(DataType));
+    }
+
+    void copy_immediate(const DataType* src, DataType* dst, size_t size) override
+    {
+        std::memcpy(dst, src, size * sizeof(DataType));
     }
 };
 

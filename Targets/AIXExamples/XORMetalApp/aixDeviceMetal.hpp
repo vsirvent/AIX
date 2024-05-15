@@ -304,11 +304,15 @@ public:
         MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
         sendComputeCommandSingleBuffer(m_compFuncPSOCopy_A_A, gridSize, threadsPerThreadGroup);
 
-        commitAndWait();
-
         freeTemporaryBuffer(m_buf1, src);
         m_buf1 = nullptr;
         m_bufResult = nullptr;
+    }
+
+    void copy_immediate(const DataType* src, DataType* dst, size_t size) override
+    {
+        copy(src, dst, size);
+        commitAndWait();
     }
 
     void commitAndWait() override
