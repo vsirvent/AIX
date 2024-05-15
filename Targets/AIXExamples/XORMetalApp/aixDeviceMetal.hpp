@@ -292,6 +292,14 @@ public:
         m_compEncoder->endEncoding();
         m_cmdBuffer->commit();                // Execute the command
         m_cmdBuffer->waitUntilCompleted();    // Wait until the work is done
+
+        // Release all temporary buffers.
+        for (auto buf : m_tempBuffers)
+            buf->release();
+
+        m_tempBuffers.clear();
+        m_tempBuffers.reserve(MAX_CMD_BATCH_SIZE * 2);
+
         m_cmdBuffer = m_cmdQueue->commandBuffer();
         m_compEncoder = nullptr;
 
@@ -323,7 +331,9 @@ protected:
         // Release only temporary buffer.
         if (m_allocMap.find(buffer->contents()) == m_allocMap.end())
         {
-            buffer->release();
+            // Add the buffer to the list to be released when commitAndWait() is executed.
+            // Until then, the buffer could be in use, especially when a batch command is used.
+            m_tempBuffers.emplace_back(buffer);
         }
     }
 
@@ -539,6 +549,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_S_A{nullptr};
+    std::vector<MTL::Buffer*>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     size_t   m_currentBatchSize{0};
     size_t   m_maxBatchSize{0};
