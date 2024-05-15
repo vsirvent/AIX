@@ -20,8 +20,8 @@ using namespace metal;
 
 struct MatrixSize
 {
-    uint rows;
-    uint cols;
+    size_t rows;
+    size_t cols;
 };
 
 

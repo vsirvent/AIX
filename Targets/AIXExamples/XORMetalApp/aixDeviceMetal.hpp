@@ -221,92 +221,61 @@ public:
 
     void matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result) override
     {
-        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
-        // Device::matmul(a1,s1,a2,s2,result); return;
-
         // Result buffer has to be allocated in advance and has to be a GPU memory.
         if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
-        m_buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1]);  // Memory could be a GPU allocated memory or system memory.
-        m_buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1]);  // Memory could be a GPU allocated memory or system memory.
-        m_bufResult = m_allocMap[result];
-
-        m_buf1Size.rows = s1[0];
-        m_buf1Size.cols = s1[1];
-        m_buf2Size.rows = s2[0];
-        m_buf2Size.cols = s2[1];
+        auto buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1]);  // Memory could be a GPU allocated memory or system memory.
+        auto buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1]);  // Memory could be a GPU allocated memory or system memory.
+        auto bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = m_compFuncPSOMatMul->threadExecutionWidth();
         NS::UInteger h = m_compFuncPSOMatMul->maxTotalThreadsPerThreadgroup() / w;
         // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-        MTL::Size threadsPerThreadGroup = MTL::Size(w, h, 1);
-        MTL::Size gridSize = MTL::Size(m_buf2Size.cols, m_buf1Size.rows, 1);    // gridSize = Final matrix size
-        sendComputeCommandDoubleBuffer(m_compFuncPSOMatMul, gridSize, threadsPerThreadGroup);
+        sendComputeCommandDoubleBuffer(buf1, {s1[0], s1[1]}, buf2, {s2[0], s2[1]}, bufResult,
+                                       m_compFuncPSOMatMul, {s2[1], s1[0], 1}, {w, h, 1});
 
-        freeTemporaryBuffer(m_buf1, a1);
-        freeTemporaryBuffer(m_buf2, a2);
-        // Never release buffers since they will be in use by Arrays.
-        m_buf1 = nullptr;
-        m_buf2 = nullptr;
-        m_bufResult = nullptr;
+        freeTemporaryBuffer(buf1);
+        freeTemporaryBuffer(buf2);
     }
 
     void transpose(const DataType * mat, const Shape & shape, DataType * result) override
     {
-        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
-        // Device::transpose(a, shape, result); return;
-
         // Result buffer has to be allocated in advance and has to be a GPU memory.
         if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
         // Memory could be a GPU allocated memory or system memory.
-        m_buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1]);
-        m_bufResult = m_allocMap[result];
-
-        m_buf1Size.rows = shape[0];
-        m_buf1Size.cols = shape[1];
+        auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1]);
+        auto bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = m_compFuncPSOMatTranspose->threadExecutionWidth();
         NS::UInteger h = m_compFuncPSOMatTranspose->maxTotalThreadsPerThreadgroup() / w;
-        MTL::Size threadsPerThreadGroup = MTL::Size(w, h, 1);
-        MTL::Size gridSize = MTL::Size(m_buf1Size.rows, m_buf1Size.cols, 1);
-        sendComputeCommandSingleBuffer(m_compFuncPSOMatTranspose, gridSize, threadsPerThreadGroup);
 
-        freeTemporaryBuffer(m_buf1, mat);
-        m_buf1 = nullptr;
-        m_bufResult = nullptr;
+        sendComputeCommandSingleBuffer(buf1, {shape[0], shape[1]}, bufResult,
+                                       m_compFuncPSOMatTranspose, {shape[0], shape[1], 1}, {w, h, 1});
+
+        freeTemporaryBuffer(buf1);
     }
 
     void copy(const DataType * src, DataType * dst, size_t size) override
     {
-        // TODO: If the tensor size is small, we can call base CPU implementation to reduce GPU call overhead.
-        //Device::copy(src, dst, size); return;
-
         // Result buffer has to be allocated in advance and has to be a GPU memory.
         if (m_allocMap.find(dst) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::copy() result must have GPU memory.");
 
         // Memory could be a GPU allocated memory or system memory.
-        m_buf1 = getReadOnlyMTLBuffer(src, size);
-        m_bufResult = m_allocMap[dst];
-
-        m_buf1Size.rows = 1;
-        m_buf1Size.cols = size;
+        auto buf1 = getReadOnlyMTLBuffer(src, size);
+        auto bufResult = m_allocMap[dst];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = std::min(size, m_compFuncPSOCopy_A_A->maxTotalThreadsPerThreadgroup());
         // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-        MTL::Size threadsPerThreadGroup = MTL::Size(w, 1, 1);
-        MTL::Size gridSize = MTL::Size(size, 1, 1);    // gridSize = array size
-        sendComputeCommandSingleBuffer(m_compFuncPSOCopy_A_A, gridSize, threadsPerThreadGroup);
+        sendComputeCommandSingleBuffer(buf1, {1, size}, bufResult, m_compFuncPSOCopy_A_A, {size, 1, 1}, {w, 1, 1});
 
-        freeTemporaryBuffer(m_buf1, src);
-        m_buf1 = nullptr;
-        m_bufResult = nullptr;
+        freeTemporaryBuffer(buf1);
     }
 
     void copy_immediate(const DataType* src, DataType* dst, size_t size) override
@@ -332,6 +301,12 @@ public:
     }
 
 protected:
+    struct MatrixSize
+    {
+        size_t rows;
+        size_t cols;
+    };
+
     inline MTL::Buffer* getReadOnlyMTLBuffer(const DataType * address, size_t size)
     {
         // Memory could be from other devices. Create a temporary buffer for read only case.
@@ -343,10 +318,10 @@ protected:
         return m_allocMap[address];    // Return MTL Buffer if the memory is from the current device.
     }
 
-    inline void freeTemporaryBuffer(MTL::Buffer * buffer, const DataType * address)
+    inline void freeTemporaryBuffer(MTL::Buffer * buffer)
     {
         // Release only temporary buffer.
-        if (m_allocMap.find(address) == m_allocMap.end())
+        if (m_allocMap.find(buffer->contents()) == m_allocMap.end())
         {
             buffer->release();
         }
@@ -405,71 +380,83 @@ protected:
         return compFuncPSO;
     }
 
-    void encodeComputeCommandSingleBuffer(MTL::ComputeCommandEncoder * computeEncoder,
-                                          MTL::ComputePipelineState*  compFuncPSO, MTL::Size & gridSize,
-                                          MTL::Size & threadsPerTG) const
+    void encodeComputeCommandSingleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size, MTL::Buffer* bufResult,
+                                          MTL::ComputeCommandEncoder* computeEncoder,
+                                          const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
+                                          const MTL::Size& threadsPerTG) const
     {
         // Encode the pipeline state object and its parameters.
         computeEncoder->setComputePipelineState(compFuncPSO);
-        computeEncoder->setBuffer(m_buf1, 0, 0);
-        computeEncoder->setBuffer(m_bufResult, 0, 1);
-        computeEncoder->setBytes(&m_buf1Size, sizeof(MatrixSize), 2);
+        computeEncoder->setBuffer(buf1, 0, 0);
+        computeEncoder->setBuffer(bufResult, 0, 1);
+        computeEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
         computeEncoder->dispatchThreads(gridSize, threadsPerTG);
     }
 
-    void encodeComputeCommandDoubleBuffer(MTL::ComputeCommandEncoder * computeEncoder,
-                                          MTL::ComputePipelineState*  compFuncPSO, MTL::Size & gridSize,
-                                          MTL::Size & threadsPerTG) const
+    void encodeComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
+                                          const MTL::Buffer* buf2, const MatrixSize& buf2Size, MTL::Buffer* bufResult,
+                                          MTL::ComputeCommandEncoder * computeEncoder,
+                                          const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
+                                          const MTL::Size& threadsPerTG) const
     {
         // Encode the pipeline state object and its parameters.
         computeEncoder->setComputePipelineState(compFuncPSO);
-        computeEncoder->setBuffer(m_buf1, 0, 0);
-        computeEncoder->setBuffer(m_buf2, 0, 1);
-        computeEncoder->setBuffer(m_bufResult, 0, 2);
-        computeEncoder->setBytes(&m_buf1Size, sizeof(MatrixSize), 3);
-        computeEncoder->setBytes(&m_buf2Size, sizeof(MatrixSize), 4);
+        computeEncoder->setBuffer(buf1, 0, 0);
+        computeEncoder->setBuffer(buf2, 0, 1);
+        computeEncoder->setBuffer(bufResult, 0, 2);
+        computeEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 3);
+        computeEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
         computeEncoder->dispatchThreads(gridSize, threadsPerTG);
     }
 
-    void encodeComputeCommandArrayScalar(MTL::ComputeCommandEncoder*  computeEncoder,
-                                         MTL::ComputePipelineState*  compFuncPSO, MTL::Size & gridSize,
-                                         MTL::Size & threadsPerTG) const
+    void encodeComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
+                                         const DataType scalar, MTL::Buffer* bufResult,
+                                         MTL::ComputeCommandEncoder* computeEncoder,
+                                         const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
+                                         const MTL::Size & threadsPerTG) const
     {
         // Encode the pipeline state object and its parameters.
         computeEncoder->setComputePipelineState(compFuncPSO);
-        computeEncoder->setBuffer(m_buf1, 0, 0);
-        computeEncoder->setBytes(&m_scalar, sizeof(DataType), 1);
-        computeEncoder->setBytes(&m_buf1Size, sizeof(MatrixSize), 2);
-        computeEncoder->setBuffer(m_bufResult, 0, 3);
+        computeEncoder->setBuffer(buf1, 0, 0);
+        computeEncoder->setBytes(&scalar, sizeof(DataType), 1);
+        computeEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
+        computeEncoder->setBuffer(bufResult, 0, 3);
         computeEncoder->dispatchThreads(gridSize, threadsPerTG);
     }
 
-    void sendComputeCommandSingleBuffer(MTL::ComputePipelineState*  compFuncPSO, MTL::Size & gridSize,
-                                        MTL::Size & threadsPerTG)
+    void sendComputeCommandSingleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size, MTL::Buffer* bufResult,
+                                        const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
+                                        const MTL::Size & threadsPerTG)
     {
         if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
         // Serialize resource and states to be called by GPU
-        encodeComputeCommandSingleBuffer(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
+        encodeComputeCommandSingleBuffer(buf1, buf1Size, bufResult,
+                                         m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
         m_currentBatchSize++;
         if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
     }
 
-    void sendComputeCommandDoubleBuffer(MTL::ComputePipelineState* compFuncPSO, MTL::Size & gridSize,
-                                        MTL::Size & threadsPerTG)
+    void sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
+                                        const MTL::Buffer* buf2, const MatrixSize& buf2Size, MTL::Buffer* bufResult,
+                                        const MTL::ComputePipelineState* compFuncPSO, const MTL::Size & gridSize,
+                                        const MTL::Size & threadsPerTG)
     {
         if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
         // Serialize resource and states to be called by GPU
-        encodeComputeCommandDoubleBuffer(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
+        encodeComputeCommandDoubleBuffer(buf1, buf1Size, buf2, buf2Size, bufResult,
+                                         m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
         m_currentBatchSize++;
         if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
     }
 
-    void sendComputeCommandArrayScalar(MTL::ComputePipelineState* compFuncPSO, MTL::Size & gridSize,
-                                       MTL::Size & threadsPerTG)
+    void sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, const DataType scalar,
+                                       MTL::Buffer* bufResult, const MTL::ComputePipelineState* compFuncPSO,
+                                       const MTL::Size & gridSize, const MTL::Size & threadsPerTG)
     {
         if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
         // Serialize resource and states to be called by GPU
-        encodeComputeCommandArrayScalar(m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
+        encodeComputeCommandArrayScalar(buf1, buf1Size, scalar, bufResult,
+                                        m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
         m_currentBatchSize++;
         if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
     }
@@ -478,7 +465,7 @@ protected:
                                DataType scalar,
                                size_t size,
                                DataType * result,
-                               MTL::ComputePipelineState* compFuncPSO,
+                               const MTL::ComputePipelineState* compFuncPSO,
                                const std::string & cmdName)
     {
         // Result buffer has to be allocated in advance and has to be a GPU memory.
@@ -486,24 +473,18 @@ protected:
             throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
         // Set constants
-        m_buf1          = a ? getReadOnlyMTLBuffer(a, size) : nullptr;
-        m_buf2          = nullptr;
-        m_bufResult     = m_allocMap[result];
-        m_scalar        = scalar;
-        m_buf1Size.rows = 1;
-        m_buf1Size.cols = size;
+        auto buf1      = a ? getReadOnlyMTLBuffer(a, size) : nullptr;
+        auto bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = std::min(size, compFuncPSO->maxTotalThreadsPerThreadgroup());
         // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-        auto threadsPerThreadGroup = MTL::Size{w, 1, 1};
-        auto gridSize = MTL::Size{size, 1, 1};            // gridSize = array size
-        sendComputeCommandArrayScalar(compFuncPSO, gridSize, threadsPerThreadGroup);
+        sendComputeCommandArrayScalar(buf1, {1, size}, scalar, bufResult, compFuncPSO, {size, 1, 1}, {w, 1, 1});
 
         if (a)
         {
             // Buf1 could be temporary buffer. It should be deleted if temporary.
-            freeTemporaryBuffer(m_buf1, a);
+            freeTemporaryBuffer(buf1);
             // Note: We never release result buffer since it will be used.
         }
     }
@@ -512,35 +493,27 @@ protected:
                                const DataType * a2,
                                size_t size,
                                DataType * result,
-                               MTL::ComputePipelineState* compFuncPSO,
+                               const MTL::ComputePipelineState* compFuncPSO,
                                const std::string & cmdName)
     {
         // Result buffer has to be allocated in advance and has to be a GPU memory.
         if (m_allocMap.find(result) == m_allocMap.end())
             throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
-        m_buf1 = getReadOnlyMTLBuffer(a1, size);   // Memory could be a GPU allocated memory or system memory.
-        m_buf2 = getReadOnlyMTLBuffer(a2, size);   // Memory could be a GPU allocated memory or system memory.
-        m_bufResult = m_allocMap[result];
+        auto buf1 = getReadOnlyMTLBuffer(a1, size);   // Memory could be a GPU allocated memory or system memory.
+        auto buf2 = getReadOnlyMTLBuffer(a2, size);   // Memory could be a GPU allocated memory or system memory.
+        auto bufResult = m_allocMap[result];
 
         // Calculate maximum thread group dimensions
         NS::UInteger w = std::min(size, compFuncPSO->maxTotalThreadsPerThreadgroup());
         // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-        auto threadsPerThreadGroup = MTL::Size{w, 1, 1};
-        auto gridSize = MTL::Size{size, 1, 1};    // gridSize = Final matrix size
-        sendComputeCommandDoubleBuffer(compFuncPSO, gridSize, threadsPerThreadGroup);
+        sendComputeCommandDoubleBuffer(buf1, {0,0}, buf2, {0,0}, bufResult, compFuncPSO, {size, 1, 1}, {w, 1, 1});
 
         // Buf 1 and 2 could be temporary buffer. It should be deleted if temporary.
-        freeTemporaryBuffer(m_buf1, a1);
-        freeTemporaryBuffer(m_buf2, a2);
+        freeTemporaryBuffer(buf1);
+        freeTemporaryBuffer(buf2);
         // Note: We never release result buffer since it will be used.
     }
-
-    struct MatrixSize
-    {
-        uint rows;
-        uint cols;
-    };
 
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
@@ -566,15 +539,9 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_S_A{nullptr};
-    MTL::Buffer*   m_buf1{nullptr};
-    MTL::Buffer*   m_buf2{nullptr};
-    MTL::Buffer*   m_bufResult{nullptr};
-    MatrixSize     m_buf1Size{0, 0};
-    MatrixSize     m_buf2Size{0, 0};
-    DataType       m_scalar{0};
-    size_t         m_currentBatchSize{0};
-    size_t         m_maxBatchSize{0};
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
+    size_t   m_currentBatchSize{0};
+    size_t   m_maxBatchSize{0};
 };
 
 }   // namespace
