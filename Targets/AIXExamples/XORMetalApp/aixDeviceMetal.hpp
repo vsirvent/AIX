@@ -24,7 +24,9 @@
 namespace aix
 {
 
-#define MAX_CMD_BATCH_SIZE 1
+#define MAX_CMD_BATCH_SIZE                  1
+#define MAX_THREADS_PER_THREADGROUP         1024
+#define MIN_BUFFER_SIZE_TO_CPU_FALLBACK     256
 
 class DeviceMetal : public aix::Device
 {
@@ -53,6 +55,7 @@ public:
             m_compFuncPSOTanh         = createComputeFuncPSO(defaultLibrary, "tanh_a_float");
             m_compFuncPSOLog          = createComputeFuncPSO(defaultLibrary, "log_a_float");
             m_compFuncPSOExp          = createComputeFuncPSO(defaultLibrary, "exp_a_float");
+            m_compFuncPSOSum          = createComputeFuncPSO(defaultLibrary, "sum_a_float");
             m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
             m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "matrix_transpose_float");
             m_compFuncPSOCopy_A_A     = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
@@ -84,6 +87,7 @@ public:
         m_compFuncPSOTanh->release();
         m_compFuncPSOLog->release();
         m_compFuncPSOExp->release();
+        m_compFuncPSOSum->release();
         m_compFuncPSOMatMul->release();
         m_compFuncPSOMatTranspose->release();
         m_compFuncPSOCopy_A_A->release();
@@ -177,16 +181,47 @@ public:
 
     void sum(const DataType * a, const size_t size, DataType & result) override
     {
+        // If the array size is small enough, just use the Device::sum(), CPU, which is faster.
+        if (size < MIN_BUFFER_SIZE_TO_CPU_FALLBACK)
+        {
+            commitAndWait();
+            Device::sum(a, size, result);
+            return;
+        }
+
+        size_t maxThreadsPerTG = std::min<size_t>(MAX_THREADS_PER_THREADGROUP,
+                                                  m_compFuncPSOSum->maxTotalThreadsPerThreadgroup());
+
+        auto buf1      = a ? getReadOnlyMTLBuffer(a, size) : nullptr;
+        auto bufResult = m_mtlDevice->newBuffer((1 + size / maxThreadsPerTG)*sizeof(DataType),
+                                                MTL::ResourceStorageModeShared);
+        auto bufRec = buf1;     // Recursive data buffer pointer.
+
+        // Apply Parallel Reduction Sum.
+        size_t length = size-1;
+        while (length > 0)
+        {
+            // Calculate maximum thread group dimensions
+            NS::UInteger w = std::min<size_t>(length+1, maxThreadsPerTG);
+            // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+            sendComputeCommandArrayScalar(bufRec, {1, length+1}, 0, bufResult,
+                                          m_compFuncPSOSum, {length+1, 1, 1}, {w, 1, 1});
+            length = (length-1) / maxThreadsPerTG;
+            bufRec = bufResult;
+        }
+
+        // Buf1 could be temporary buffer. It should be deleted if temporary.
+        freeTemporaryBuffer(buf1);
         commitAndWait();
-        // TODO: Add GPU support for the following device methods.
-        Device::sum(a, size, result);
+
+        result = static_cast<DataType*>(bufResult->contents())[0];  // Read the final result.
+        bufResult->release();       // Release temporary buffer.
     }
 
     void mean(const DataType * a, const size_t size, DataType & result) override
     {
-        commitAndWait();
-        // TODO: Add GPU support for the following device methods.
-        Device::mean(a, size, result);
+        sum(a, size, result);
+        result /= DataType(size);
     }
 
     void sqrt(const DataType * a, const size_t size, DataType * result) override
@@ -545,6 +580,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOTanh{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOLog{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOExp{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOSum{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatMul{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};

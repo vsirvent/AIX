@@ -287,6 +287,46 @@ kernel void copy_s_a(device const T* inA,
 }
 
 
+// -----------------------------------------------------------------
+// Sum - Naive Parallel Reduction Sum (Array)
+// -----------------------------------------------------------------
+template<typename T>
+kernel void sum_a(device const T* inA,
+                  constant const T& scalar,
+                  constant MatrixSize& aSize,
+                  device float* result,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]])
+{
+    const size_t MAX_THREADS = 1024;
+    threadgroup T sharedData[MAX_THREADS];
+    sharedData[li] = inA[tgi * MAX_THREADS + li];
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    // Perform parallel reduction in shared memory
+    size_t size = threadsPerThreadgroup;
+    for (uint stride = size / 2; stride > 0; stride >>= 1)
+    {
+        if (size % 2 == 1 && li == 0)
+            sharedData[0] += sharedData[size-1];
+        size >>= 1;
+
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+
+        if (li < stride)
+            sharedData[li] += sharedData[li + stride];
+
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    if (li == 0)
+    {
+        result[tgi] = sharedData[0];
+    }
+}
+
+
 // Templates
 
 
@@ -412,6 +452,16 @@ kernel void exp_a(device const float*,
                   constant MatrixSize&,
                   device float*,
                   uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("sum_a_float") ]]
+kernel void sum_a(device const float*,
+                  constant const float&,
+                  constant MatrixSize&,
+                  device float*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
 
 
 template [[ host_name("matrix_mul_float") ]]
