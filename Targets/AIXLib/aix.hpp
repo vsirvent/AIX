@@ -52,6 +52,8 @@ using Index = std::vector<size_t>;
 class Device
 {
 public:
+    virtual ~Device() = default;
+
     virtual DeviceType type() const { return DeviceType::kCPU; }
 
     virtual void * allocate(size_t size)

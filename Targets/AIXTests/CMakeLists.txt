@@ -12,10 +12,15 @@ set(TARGET_NAME AIXTests)
 add_executable(${TARGET_NAME}
         main.cpp
         AutoGradTests.cpp
+        DeviceTests.cpp
         FunctionalTests.cpp
         LossTests.cpp
         OptimizerTests.cpp
         TensorTests.cpp
+)
+
+target_link_libraries(${TARGET_NAME} PRIVATE
+        AIXLib
 )
 
 install(TARGETS ${TARGET_NAME}

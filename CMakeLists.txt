@@ -40,6 +40,7 @@ include_directories(Targets/AIXLib)
 #link_directories(...)
 
 # Target folders
+add_subdirectory(Targets/AIXLib)
 add_subdirectory(Targets/AIXTests)
 add_subdirectory(Targets/AIXExamples/XORApp)
 add_subdirectory(Targets/AIXExamples/XORLayerApp)
