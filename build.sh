@@ -16,7 +16,7 @@ function showHelp()
     echo "Options:"
     echo "    build_type       Valid build types: release, debug, ccov, asan, tsan"
     echo "    install_dir      Product installation directory name."
-    echo "    build_options    CMake build options. Can be multiple. i.e. -DLOG_ENABLE=1"
+    echo "    build_options    CMake build options. Can be multiple. i.e. -DAIX_BUILD_STATIC=ON"
     echo ""
 }
 
@@ -40,7 +40,7 @@ function main()
     mkdir build-$1
     cd build-$1
 
-    cmake .. -DCMAKE_BUILD_TYPE=$1 -DCMAKE_INSTALL_RPATH=. -DCMAKE_INSTALL_PREFIX="../$2" $3 $4 $5 $6 $7 $8 $9 ${10}
+    cmake .. -DCMAKE_BUILD_TYPE=$1 -DAIX_BUILD_EXAMPLES=ON -DAIX_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX="../$2" $3 $4 $5 $6 $7 $8 $9 ${10}
     cmake --build . --target install -- -j
 
     popd

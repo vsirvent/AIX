@@ -11,15 +11,22 @@ cmake_minimum_required(VERSION 3.24)
 
 project(AIX)
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;CCov;ASan;TSan" CACHE STRING "" FORCE)
+# Set default build options
 
-set(CMAKE_CXX_STANDARD 20)
+option(AIX_BUILD_TESTS    "Build AIX test application"     OFF)
+option(AIX_BUILD_EXAMPLES "Build AIX example applications" OFF)
+option(AIX_BUILD_STATIC   "Build static AIX library"       OFF)
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;CCov;ASan;TSan" CACHE STRING "" FORCE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_INSTALL_RPATH .)
 
 # Set default build type as Release
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")    # Common parameters for debug and release
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
@@ -41,14 +48,24 @@ include_directories(Targets/AIXLib)
 
 # Target folders
 add_subdirectory(Targets/AIXLib)
-add_subdirectory(Targets/AIXTests)
-add_subdirectory(Targets/AIXExamples/XORApp)
-add_subdirectory(Targets/AIXExamples/XORLayerApp)
-add_subdirectory(Targets/AIXExamples/XORSequentialApp)
-add_subdirectory(Targets/AIXExamples/XOROpenMPApp)
 
-# Build the following targets only on macOS with Apple Silicon.
-if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-    add_subdirectory(Targets/AIXExamples/XORMetalApp)
-    add_subdirectory(Targets/AIXExamples/XORMPSApp)
-endif()
+if (AIX_BUILD_TESTS)
+    add_subdirectory(Targets/AIXTests)
+endif ()
+
+if (AIX_BUILD_EXAMPLES)
+    add_subdirectory(Targets/AIXExamples/XORApp)
+    add_subdirectory(Targets/AIXExamples/XORLayerApp)
+    add_subdirectory(Targets/AIXExamples/XORSequentialApp)
+    add_subdirectory(Targets/AIXExamples/XOROpenMPApp)
+
+    # Build the following targets only on macOS with Apple Silicon.
+    if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+        add_subdirectory(Targets/AIXExamples/XORMetalApp)
+        add_subdirectory(Targets/AIXExamples/XORMPSApp)
+    endif()
+endif ()
+
+if (NOT AIX_BUILD_STATIC AND (AIX_BUILD_TESTS OR AIX_BUILD_EXAMPLES))
+    install(TARGETS AIXLib DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif ()

@@ -9,6 +9,11 @@
 
 set(TARGET_NAME AIXLib)
 
+set(AIX_LIB_TYPE SHARED)
+if (AIX_BUILD_STATIC)
+    set(AIX_LIB_TYPE STATIC)
+endif()
+
 set(SOURCE_FILES
        aixDevices.cpp
 )
@@ -21,7 +26,7 @@ if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
 endif()
 
 # Build the following targets only on macOS with Apple Silicon.
-add_library(AIXLib STATIC ${SOURCE_FILES})
+add_library(AIXLib ${AIX_LIB_TYPE} ${SOURCE_FILES})
 
 # Add metal device support for Apple Silicon
 if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
@@ -37,6 +42,5 @@ if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     )
 endif()
 
-install(TARGETS ${TARGET_NAME}
-        RUNTIME DESTINATION .
-)
+install(FILES aix.hpp aixDevices.hpp DESTINATION include)
+install(TARGETS ${TARGET_NAME} ARCHIVE DESTINATION lib)
