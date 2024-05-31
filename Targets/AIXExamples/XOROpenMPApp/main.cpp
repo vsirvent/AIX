@@ -10,7 +10,6 @@
 // Project includes
 #include <aix.hpp>
 #include "aixDeviceOpenMP.hpp"
-#include "OMPDeviceTests.hpp"
 // External includes
 // System includes
 #include <iostream>
