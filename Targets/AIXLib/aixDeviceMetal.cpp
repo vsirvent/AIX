@@ -247,7 +247,7 @@ void DeviceMetal::matmul(const DataType * a1, const Shape & s1, const DataType *
 {
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (m_allocMap.find(result) == m_allocMap.end())
-        throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
+        throw std::invalid_argument("DeviceMetal::matmul() result must have GPU memory.");
 
     auto buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1]);  // Memory could be a GPU allocated memory or system memory.
     auto buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1]);  // Memory could be a GPU allocated memory or system memory.
