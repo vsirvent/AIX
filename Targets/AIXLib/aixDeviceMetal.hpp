@@ -39,7 +39,7 @@ namespace MTL
 namespace aix
 {
 
-#define MAX_CMD_BATCH_SIZE                  1
+#define MAX_CMD_BATCH_SIZE                  10
 #define MAX_THREADS_PER_THREADGROUP         1024
 #define MIN_BUFFER_SIZE_TO_CPU_FALLBACK     1024
 #define ALIGNMENT_SIZE                      64
