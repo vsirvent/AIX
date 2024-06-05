@@ -36,7 +36,6 @@ aix::Device* aixDeviceFactory::CreateDevice(aix::DeviceType type)
         case DeviceType::kCPU:
             return new aix::Device();
 
-        case DeviceType::kCPU_OMP:
         case DeviceType::kGPU_MPS:
         default:
             break;

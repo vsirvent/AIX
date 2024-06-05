@@ -57,7 +57,6 @@ if (AIX_BUILD_EXAMPLES)
     add_subdirectory(Targets/AIXExamples/XORApp)
     add_subdirectory(Targets/AIXExamples/XORLayerApp)
     add_subdirectory(Targets/AIXExamples/XORSequentialApp)
-    add_subdirectory(Targets/AIXExamples/XOROpenMPApp)
 
     # Build the following targets only on macOS with Apple Silicon.
     if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
