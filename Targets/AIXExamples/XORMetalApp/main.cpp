@@ -9,7 +9,7 @@
 
 // Project includes
 #include <aix.hpp>
-#include "aixDeviceMetal.hpp"
+#include <aixDevices.hpp>
 // External includes
 // System includes
 #include <iostream>
@@ -26,31 +26,32 @@ int main()
     constexpr float kLearningRate  = 0.05f;
     constexpr float kLossThreshold = 1e-5f;
 
-    aix::DeviceMetal  device;       // Use Apple Silicon with Metal.
+    // Create a device that uses Apple Metal for GPU computations.
+    auto device = std::unique_ptr<aix::Device>(aix::aixDeviceFactory::CreateDevice(aix::DeviceType::kGPU_METAL));
 
-    aix::nn::Sequential  model;
+    aix::nn::Sequential model;
     model.add(new aix::nn::Linear(kNumInputs, 1000, kNumSamples));
     model.add(new aix::nn::Tanh());
     model.add(new aix::nn::Linear(1000, 500, kNumSamples));
     model.add(new aix::nn::Tanh());
     model.add(new aix::nn::Linear(500, kNumTargets, kNumSamples));
 
-    model.to(device);
+    model.to(*device);
 
     std::cout << "Total parameters: " << model.learnableParameters() << std::endl;
 
     // Example inputs and targets for demonstration purposes.
-    auto inputs  = aix::tensor({0.0, 0.0,
-                                0.0, 1.0,
-                                1.0, 0.0,
-                                1.0, 1.0}, {kNumSamples, kNumInputs}).to(device);
+    auto inputs = aix::tensor({0.0, 0.0,
+                               0.0, 1.0,
+                               1.0, 0.0,
+                               1.0, 1.0}, {kNumSamples, kNumInputs}).to(*device);
 
     auto targets = aix::tensor({0.0,
                                 1.0,
                                 1.0,
-                                0.0}, {kNumSamples, kNumTargets}).to(device);
+                                0.0}, {kNumSamples, kNumTargets}).to(*device);
 
-     // Define a loss function and an optimizer.
+    // Define a loss function and an optimizer.
     aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);
 
     auto lossFunc = aix::nn::MSELoss();
@@ -60,20 +61,17 @@ int main()
     size_t epoch;
     for (epoch = 0; epoch < kNumEpochs; ++epoch)
     {
-        optimizer.zeroGrad();                               // Zero the gradients before backward pass.
-
         // Forward step.
         auto predictions = model.forward(inputs);
         auto loss = lossFunc(predictions, targets);         // Loss calculations are still part of computation graph.
 
-        // Backward step.
-        loss.backward();                                    // Compute all gradients in the graph.
+        optimizer.zeroGrad();       // Zero the gradients before backward pass.
 
-        // Optimization step.
-        optimizer.step();                                   // Update neural net's learnable parameters.
+        loss.backward();            // Compute all gradients in the graph.
 
-        // Finalize compute batch.
-        device.commitAndWait();
+        optimizer.step();           // Update neural net's learnable parameters.
+
+        device->commitAndWait();    // Finalize compute batch.
 
         // Log loss value.
         if (epoch % kLogInterval == 0 || loss.value().item() <= kLossThreshold)
@@ -87,12 +85,11 @@ int main()
 
     auto timeEnd = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
-    std::cout << "Training: " << duration << " ms"
-              << " - Avg Iteration: " << duration/double(epoch) << " ms\n";
+    std::cout << "Training: " << duration << " ms - Avg Iteration: " << duration / double(epoch) << " ms\n";
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);
-    device.commitAndWait();
+    device->commitAndWait();
 
     std::cout << "Final Predictions: " << std::endl;
     std::cout << finalPredictions.value().data()[0] << std::endl;

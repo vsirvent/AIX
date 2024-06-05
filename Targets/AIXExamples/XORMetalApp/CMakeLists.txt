@@ -9,19 +9,12 @@
 
 set(TARGET_NAME XORMetalApp)
 
-# External library versions
-set(METAL_CPP_VERSION 14.2)
-
-# Include folders
-include_directories(${CMAKE_SOURCE_DIR}/Externals/metal-cpp/${METAL_CPP_VERSION})
-
 add_executable(${TARGET_NAME}
         main.cpp
 )
 
 target_link_libraries(${TARGET_NAME} PRIVATE
-        "-framework Foundation"
-        "-framework Metal"
+        AIXLib
 )
 
 install(TARGETS ${TARGET_NAME}
