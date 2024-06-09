@@ -40,7 +40,6 @@ enum class DeviceType
 {
     kCPU,
     kGPU_METAL,
-    kGPU_MPS,
 };
 
 

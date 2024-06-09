@@ -35,7 +35,7 @@ public:
         mps::releaseMPSDevice(m_mpsDevice);
     }
 
-    DeviceType type() const override { return DeviceType::kGPU_MPS; }
+    DeviceType type() const override { return DeviceType(-1); }     // Returns -1 since the device is for example only.
 
     // Allocate GPU memory and return MTL Buffer contents and keeps MTL Buffer pointers in a hashmap.
     void * allocate(size_t size) override
