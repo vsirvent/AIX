@@ -19,6 +19,8 @@
 #include <utility>
 #include <random>
 #include <numbers>
+#include <fstream>
+#include <filesystem>
 
 
 namespace aix
@@ -1464,3 +1466,51 @@ public:
 };
 
 }   // nn namespace
+
+
+namespace aix
+{
+    inline void save(const nn::Module & module, const std::string & filename)
+    {
+        std::ofstream ofs(filename, std::ios::binary);
+        if (!ofs)
+        {
+            throw std::ios_base::failure("Failed to open file for writing.");
+        }
+
+        const auto params = module.parameters();
+        for (auto param : params)
+        {
+            const auto & value = param.value();
+            size_t size = value.size();
+            ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));                       // Save parameter size
+            ofs.write(reinterpret_cast<const char*>(value.data()), size * sizeof(DataType));     // Save parameter data
+        }
+
+        ofs.close();
+    }
+
+    inline void load(nn::Module & module, const std::string & filename)
+    {
+        std::ifstream ifs(filename, std::ios::binary);
+        if (!ifs)
+        {
+            throw std::ios_base::failure("Failed to open model parameter file for reading.");
+        }
+
+        const auto params = module.parameters();    // Get model parameters
+        for (auto param : params)
+        {
+            size_t size;
+            ifs.read(reinterpret_cast<char*>(&size), sizeof(size));         // Read size of parameter
+            if (size != param.value().size())
+            {
+                throw std::runtime_error("Invalid parameter size found when loading the model.");
+            }
+            ifs.read(reinterpret_cast<char*>(param.value().data()), size * sizeof(DataType));   // Read the parameter data
+        }
+
+        ifs.close();
+    }
+
+}   // aix namespace

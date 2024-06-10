@@ -91,3 +91,49 @@ TEST_CASE("Model Forward Test - XOR")
     CheckVectorApproxValues(tm.m_b2.grad(),      tensor({0.99766, 0.978054, 0.975065, 0.938763}, tm.m_b2.grad().shape()).value());
     // Note: Results are consistent with those from PyTorch.
 }
+
+
+TEST_CASE("Model - Save/Load Test")
+{
+    constexpr int kNumSamples  = 4;
+    constexpr int kNumInputs   = 2;
+    constexpr int kNumTargets  = 1;
+    std::string testModelFile = "model_save_load_test.pth";
+
+    aix::nn::Sequential model1;
+    model1.add(new aix::nn::Linear(kNumInputs, 1000, kNumSamples));
+    model1.add(new aix::nn::Tanh());
+    model1.add(new aix::nn::Linear(1000, 500, kNumSamples));
+    model1.add(new aix::nn::Tanh());
+    model1.add(new aix::nn::Linear(500, kNumTargets, kNumSamples));
+
+    // Example inputs and targets for demonstration purposes.
+    auto inputs = aix::tensor({0.0, 0.0,
+                               0.0, 1.0,
+                               1.0, 0.0,
+                               1.0, 1.0}, {kNumSamples, kNumInputs});
+
+    // Save test model1 parameters
+    aix::save(model1, testModelFile);
+
+    aix::nn::Sequential model2;
+    model2.add(new aix::nn::Linear(kNumInputs, 1000, kNumSamples));
+    model2.add(new aix::nn::Tanh());
+    model2.add(new aix::nn::Linear(1000, 500, kNumSamples));
+    model2.add(new aix::nn::Tanh());
+    model2.add(new aix::nn::Linear(500, kNumTargets, kNumSamples));
+
+    // Load test model1 parameters into model2
+    aix::load(model2, testModelFile);
+
+    auto predictions1 = model1.forward(inputs);
+    auto predictions2 = model2.forward(inputs);
+
+    CHECK(predictions1.value().data()[0] == predictions2.value().data()[0]);
+    CHECK(predictions1.value().data()[1] == predictions2.value().data()[1]);
+    CHECK(predictions1.value().data()[2] == predictions2.value().data()[2]);
+    CHECK(predictions1.value().data()[3] == predictions2.value().data()[3]);
+
+    // The test file will be deleted only if there is no error during CHECKs.
+    std::filesystem::remove(testModelFile);
+}
