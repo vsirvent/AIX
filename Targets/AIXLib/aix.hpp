@@ -12,15 +12,15 @@
 // Project includes
 // External includes
 // System includes
-#include <iostream>
-#include <numeric>
-#include <cmath>
 #include <cassert>
-#include <utility>
-#include <random>
-#include <numbers>
-#include <fstream>
+#include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <numbers>
+#include <numeric>
+#include <random>
+#include <utility>
 
 
 namespace aix
