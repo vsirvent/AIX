@@ -20,6 +20,7 @@
 #include <numbers>
 #include <numeric>
 #include <random>
+#include <stack>
 #include <utility>
 
 
@@ -757,6 +758,9 @@ public:
         return transposed;
     }
 
+    // Friend function to overload operator<<
+    inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
+
 private:
     // Compute the strides based on the shape of the tensor
     void computeStrides()
@@ -783,6 +787,98 @@ private:
         {
             throw std::invalid_argument("Shapes of the tensors must be the same.");
         }
+    }
+
+    // Print Tensor data
+    void print(std::ostream & os) const
+    {
+        // Print scalar value, a tensor with no dimension.
+        if (m_shape.empty())
+        {
+            os << item() << "\n\n";
+        }
+        else if (m_shape.size() == 1)
+        {
+            // Print tensor that has only one dimension.
+            for (size_t i = 0; i < m_shape[0]; ++i)
+            {
+                os << "  " << (*this)({i}) << "\n";
+            }
+            os << "\n";
+        }
+        else
+        {
+            // Print tensor that has at least two dimensions.
+            std::stack<std::pair<Index, size_t>> stack;
+            stack.push({Index(), 0});
+
+            while (!stack.empty())
+            {
+                auto [indices, dim] = stack.top();
+                stack.pop();
+
+                if (dim == m_shape.size() - 2)
+                {
+                    bool isOverTwo = m_shape.size() > 2;
+                    if (isOverTwo)
+                    {
+                        os << "(";
+                    }
+
+                    for (size_t i = 0; i < indices.size(); ++i)
+                    {
+                        os << indices[i];
+                        if (i < indices.size() - 1)
+                        {
+                            os << ",";
+                        }
+                    }
+
+                    if (isOverTwo)
+                    {
+                        os << ",.,.) =\n";
+                    }
+
+                    size_t rows = m_shape[dim];
+                    size_t cols = m_shape[dim + 1];
+
+                    for (size_t i = 0; i < rows; ++i)
+                    {
+                        for (size_t j = 0; j < cols; ++j)
+                        {
+                            Index subIndices = indices;
+                            subIndices.push_back(i);
+                            subIndices.push_back(j);
+                            os << "  " << (*this)(subIndices);
+                        }
+                        os << '\n';
+                    }
+
+                    os << '\n';
+                }
+                else
+                {
+                    for (size_t i = m_shape[dim]; i-- > 0;) // Process in reverse order
+                    {
+                        Index subIndices = indices;
+                        subIndices.push_back(i);
+                        stack.push({subIndices, dim + 1});
+                    }
+                }
+            }
+        }
+
+        // Print shape
+        os << "[ Shape{";
+        for (size_t i = 0; i < m_shape.size(); ++i)
+        {
+            os << m_shape[i];
+            if (i < m_shape.size() - 1)
+            {
+                os << ",";
+            }
+        }
+        os << "} ]\n";
     }
 
 private:
@@ -1125,6 +1221,9 @@ public:
         return result;
     }
 
+    // Friend function to overload operator<<
+    inline friend std::ostream & operator<<(std::ostream& os, const Tensor& tensor);
+
 protected:
     std::shared_ptr<TensorNode>  m_data{nullptr};
 };
@@ -1143,7 +1242,7 @@ inline Tensor tensor(const std::vector<DataType> & data, const Shape & shape, bo
 
 inline Tensor tensor(const std::vector<DataType> & data, bool requireGrad = false)
 {
-    return Tensor{data.data(), data.size(), {1, data.size()}, requireGrad};
+    return Tensor{data.data(), data.size(), {data.size()}, requireGrad};
 }
 
 inline Tensor randn(const Shape & shape, bool requireGrad = false)
@@ -1511,6 +1610,20 @@ namespace aix
         }
 
         ifs.close();
+    }
+
+    // Overload the << operator to print TensorValue.
+    std::ostream & operator<<(std::ostream& os, const TensorValue& tensor)
+    {
+        tensor.print(os);
+        return os;
+    }
+
+    // Overload the << operator to print Tensor.
+    std::ostream & operator<<(std::ostream& os, const Tensor& tensor)
+    {
+        os << tensor.value();
+        return os;
     }
 
 }   // aix namespace

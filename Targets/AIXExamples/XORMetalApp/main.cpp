@@ -92,10 +92,7 @@ int main()
     device->commitAndWait();
 
     std::cout << "Final Predictions: " << std::endl;
-    std::cout << finalPredictions.value().data()[0] << std::endl;
-    std::cout << finalPredictions.value().data()[1] << std::endl;
-    std::cout << finalPredictions.value().data()[2] << std::endl;
-    std::cout << finalPredictions.value().data()[3] << std::endl;
+    std::cout << finalPredictions << std::endl;
 
     return 0;
 }

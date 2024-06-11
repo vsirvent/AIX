@@ -13,6 +13,8 @@
 // External includes
 #include <doctest/doctest.h>
 // System includes
+#include <sstream>
+
 
 using namespace aix;
 
@@ -437,3 +439,121 @@ TEST_CASE("Tensor - zeros_like")
         CheckVectorApproxValues(t.value(), expected);
     }
 }
+
+TEST_CASE("Tensor - print")
+{
+    SUBCASE("scalar tensor")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor(1.0);
+
+        ss << input;
+        std::string expected = R"(1
+
+[ Shape{} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+    SUBCASE("1 dimension tensor")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, Shape{1});
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ Shape{1} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+    SUBCASE("1 dimension tensor - three elements")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0, 2.0, 3.0}, Shape{3});
+
+        ss << input;
+        std::string expected = R"(  1
+  2
+  3
+
+[ Shape{3} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+    SUBCASE("1x1 tensor")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, {1,1});
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ Shape{1,1} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+    SUBCASE("2x2 tensor")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({
+                                 1.0, 2.0,
+                                 2.0, 3.0,
+                                 }, {2, 2});
+
+        ss << input;
+        std::string expected = R"(  1  2
+  2  3
+
+[ Shape{2,2} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+    SUBCASE("1x2x2 tensor")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({
+                                 1.0, 2.0,
+                                 2.0, 3.0,
+                                 }, {1, 2, 2});
+
+        ss << input;
+        std::string expected = R"((0,.,.) =
+  1  2
+  2  3
+
+[ Shape{1,2,2} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+    SUBCASE("2x2x2 tensor")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({
+                                 1.0, 2.0,
+                                 2.0, 3.0,
+                                 3.0, 4.0,
+                                 4.0, 5.0,
+                                 }, {2, 2, 2});
+
+        ss << input;
+        std::string expected = R"((0,.,.) =
+  1  2
+  2  3
+
+(1,.,.) =
+  3  4
+  4  5
+
+[ Shape{2,2,2} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+}
+
