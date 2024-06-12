@@ -45,7 +45,7 @@ enum class DeviceType
     kGPU_METAL,
 };
 
-
+// Tensor Shape and Index Types
 using Shape = std::vector<size_t>;
 using Index = std::vector<size_t>;
 
@@ -1288,13 +1288,11 @@ inline Tensor sum(const Tensor & A)    { return A.sum();  }
 inline Tensor mean(const Tensor & A)   { return A.mean(); }
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 
-}   // aix namespace
-
 
 // Optimizers Namespace
 
 
-namespace aix::optim
+namespace optim
 {
 
 class Optimizer
@@ -1398,7 +1396,7 @@ private:
 // Neural Network Namespace
 
 
-namespace aix::nn
+namespace nn
 {
 
 class Module
@@ -1567,63 +1565,64 @@ public:
 }   // nn namespace
 
 
-namespace aix
+// Auxiliary Features
+
+
+inline void save(const nn::Module & module, const std::string & filename)
 {
-    inline void save(const nn::Module & module, const std::string & filename)
+    std::ofstream ofs(filename, std::ios::binary);
+    if (!ofs)
     {
-        std::ofstream ofs(filename, std::ios::binary);
-        if (!ofs)
-        {
-            throw std::ios_base::failure("Failed to open file for writing.");
-        }
-
-        const auto params = module.parameters();
-        for (auto param : params)
-        {
-            const auto & value = param.value();
-            size_t size = value.size();
-            ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));                       // Save parameter size
-            ofs.write(reinterpret_cast<const char*>(value.data()), size * sizeof(DataType));     // Save parameter data
-        }
-
-        ofs.close();
+        throw std::ios_base::failure("Failed to open file for writing.");
     }
 
-    inline void load(nn::Module & module, const std::string & filename)
+    const auto params = module.parameters();
+    for (auto param : params)
     {
-        std::ifstream ifs(filename, std::ios::binary);
-        if (!ifs)
+        const auto & value = param.value();
+        size_t size = value.size();
+        ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));                       // Save parameter size
+        ofs.write(reinterpret_cast<const char*>(value.data()), size * sizeof(DataType));     // Save parameter data
+    }
+
+    ofs.close();
+}
+
+inline void load(nn::Module & module, const std::string & filename)
+{
+    std::ifstream ifs(filename, std::ios::binary);
+    if (!ifs)
+    {
+        throw std::ios_base::failure("Failed to open model parameter file for reading.");
+    }
+
+    const auto params = module.parameters();    // Get model parameters
+    for (auto param : params)
+    {
+        size_t size;
+        ifs.read(reinterpret_cast<char*>(&size), sizeof(size));         // Read size of parameter
+        if (size != param.value().size())
         {
-            throw std::ios_base::failure("Failed to open model parameter file for reading.");
+            throw std::runtime_error("Invalid parameter size found when loading the model.");
         }
-
-        const auto params = module.parameters();    // Get model parameters
-        for (auto param : params)
-        {
-            size_t size;
-            ifs.read(reinterpret_cast<char*>(&size), sizeof(size));         // Read size of parameter
-            if (size != param.value().size())
-            {
-                throw std::runtime_error("Invalid parameter size found when loading the model.");
-            }
-            ifs.read(reinterpret_cast<char*>(param.value().data()), size * sizeof(DataType));   // Read the parameter data
-        }
-
-        ifs.close();
+        ifs.read(reinterpret_cast<char*>(param.value().data()), size * sizeof(DataType));   // Read the parameter data
     }
 
-    // Overload the << operator to print TensorValue.
-    std::ostream & operator<<(std::ostream& os, const TensorValue& tensor)
-    {
-        tensor.print(os);
-        return os;
-    }
+    ifs.close();
+}
 
-    // Overload the << operator to print Tensor.
-    std::ostream & operator<<(std::ostream& os, const Tensor& tensor)
-    {
-        os << tensor.value();
-        return os;
-    }
+// Overload the << operator to print TensorValue.
+std::ostream & operator<<(std::ostream& os, const TensorValue& tensor)
+{
+    tensor.print(os);
+    return os;
+}
+
+// Overload the << operator to print Tensor.
+std::ostream & operator<<(std::ostream& os, const Tensor& tensor)
+{
+    os << tensor.value();
+    return os;
+}
 
 }   // aix namespace
