@@ -382,13 +382,13 @@ TEST_CASE("Tensor - zeros")
     }
 }
 
-TEST_CASE("Tensor - ones_like")
+TEST_CASE("Tensor - onesLike")
 {
     aix::Tensor src(1.5, {2, 3});
 
     SUBCASE("without requiring gradient")
     {
-        aix::Tensor t = aix::ones_like(src);
+        aix::Tensor t = aix::onesLike(src);
         CHECK(t.shape() == src.shape());
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == false);
@@ -400,7 +400,7 @@ TEST_CASE("Tensor - ones_like")
 
     SUBCASE("requiring gradient")
     {
-        aix::Tensor t = aix::ones_like(src, true);
+        aix::Tensor t = aix::onesLike(src, true);
         CHECK(t.shape() == src.shape());
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == true);
@@ -411,13 +411,13 @@ TEST_CASE("Tensor - ones_like")
     }
 }
 
-TEST_CASE("Tensor - zeros_like")
+TEST_CASE("Tensor - zerosLike")
 {
     aix::Tensor src(1.5, {2, 3});
 
     SUBCASE("without requiring gradient")
     {
-        aix::Tensor t = aix::zeros_like(src);
+        aix::Tensor t = aix::zerosLike(src);
         CHECK(t.shape() == src.shape());
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == false);
@@ -429,7 +429,7 @@ TEST_CASE("Tensor - zeros_like")
 
     SUBCASE("requiring gradient")
     {
-        aix::Tensor t = aix::zeros_like(src, true);
+        aix::Tensor t = aix::zerosLike(src, true);
         CHECK(t.shape() == src.shape());
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == true);

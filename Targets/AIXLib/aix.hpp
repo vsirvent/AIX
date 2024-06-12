@@ -1270,12 +1270,12 @@ inline Tensor zeros(const Shape & shape, bool requireGrad = false)
     return Tensor{0, shape, requireGrad};
 }
 
-inline Tensor ones_like(const Tensor & tensor, bool requireGrad = false)
+inline Tensor onesLike(const Tensor & tensor, bool requireGrad = false)
 {
     return Tensor{1, tensor.shape(), requireGrad, tensor.value().device()};
 }
 
-inline Tensor zeros_like(const Tensor & tensor, bool requireGrad = false)
+inline Tensor zerosLike(const Tensor & tensor, bool requireGrad = false)
 {
     return Tensor{0, tensor.shape(), requireGrad, tensor.value().device()};
 }
