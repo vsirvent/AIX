@@ -20,8 +20,6 @@ using namespace aix;
 #define EPSILON_PERCENT     1
 //#define DEBUG_LOG
 
-std::random_device  randomDevice;
-std::mt19937        randGen(randomDevice());
 std::uniform_real_distribution<aix::DataType>  distr(-1, 1);
 
 std::vector<size_t>  testSizes = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 31, 32, 33, 63, 64, 65,

@@ -286,6 +286,8 @@ public:
 
 // Default device.
 static Device defaultDevice;      // TODO: default CPU device needs to move to a global context.
+static std::random_device randomDevice;
+static std::mt19937 randGen(randomDevice());
 
 
 class TensorValue
@@ -1247,8 +1249,6 @@ inline Tensor tensor(const std::vector<DataType> & data, bool requireGrad = fals
 
 inline Tensor randn(const Shape & shape, bool requireGrad = false)
 {
-    static std::random_device randomDevice;
-    static std::mt19937 randGen(randomDevice());
     std::uniform_real_distribution<DataType> distr(-1, 1);
 
     size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
@@ -1623,6 +1623,11 @@ std::ostream & operator<<(std::ostream& os, const Tensor& tensor)
 {
     os << tensor.value();
     return os;
+}
+
+inline void manualSeed(size_t seed)
+{
+    randGen.seed(seed);
 }
 
 }   // aix namespace
