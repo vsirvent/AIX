@@ -1079,9 +1079,10 @@ public:
     Tensor operator+(const Tensor & rhsTensor) const
     {
         Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        result.m_data->m_value = m_data->m_value + rhsTensor.m_data->m_value;
+        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
+        result.m_data->m_value = m_data->m_value + bcRHSTensor.m_data->m_value;
         result.m_data->m_a = m_data;
-        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = addBackwardFunc;
         return result;
     }
@@ -1090,9 +1091,10 @@ public:
     Tensor operator-(const Tensor & rhsTensor) const
     {
         Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        result.m_data->m_value = m_data->m_value - rhsTensor.m_data->m_value;
+        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
+        result.m_data->m_value = m_data->m_value - bcRHSTensor.m_data->m_value;
         result.m_data->m_a = m_data;
-        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = subBackwardFunc;
         return result;
     }
@@ -1101,9 +1103,10 @@ public:
     Tensor operator*(const Tensor & rhsTensor) const
     {
         Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        result.m_data->m_value = m_data->m_value * rhsTensor.m_data->m_value;
+        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
+        result.m_data->m_value = m_data->m_value * bcRHSTensor.m_data->m_value;
         result.m_data->m_a = m_data;
-        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = mulBackwardFunc;
         return result;
     }
@@ -1112,9 +1115,10 @@ public:
     Tensor operator/(const Tensor & rhsTensor) const
     {
         Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        result.m_data->m_value = m_data->m_value / rhsTensor.m_data->m_value;
+        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
+        result.m_data->m_value = m_data->m_value / bcRHSTensor.m_data->m_value;
         result.m_data->m_a = m_data;
-        result.m_data->m_b = rhsTensor.m_data;
+        result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = divBackwardFunc;
         return result;
     }
@@ -1251,6 +1255,19 @@ public:
     inline friend std::ostream & operator<<(std::ostream& os, const Tensor& tensor);
 
 protected:
+    // Returns a broadcasted tensor if the tensor is a scalar tensor and the other tensor's shape is not.
+    // NOTE: Limited tensor broadcast support - Only scalar tensor (a tensor that has no dimension).
+    static Tensor broadcast(const Tensor & tensor, const Shape & otherShape)
+    {
+        if (!otherShape.empty() && tensor.shape().empty())
+        {
+            // Return broadcasted tensor.
+            return Tensor(tensor.value().item(), otherShape, tensor.isRequireGrad(), tensor.device());
+        }
+
+        return tensor;
+    }
+
     std::shared_ptr<TensorNode>  m_data{nullptr};
 };
 
