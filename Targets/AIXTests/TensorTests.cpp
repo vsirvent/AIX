@@ -603,3 +603,50 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         CheckVectorApproxValues(result.value(), tensor(data, shape).value());
     }
 }
+
+TEST_CASE("Tensor - Scalar OP Tensor")
+{
+    DataType scalar = 5;
+    Shape shape{2, 2};
+    std::vector<DataType> testData = {1.0, -2.0, 0.5, 3.0};
+
+    SUBCASE("Add")
+    {
+        auto data = testData;
+        auto input = aix::tensor(data, shape);
+        auto result = scalar + input;
+
+        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar + x; });
+        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+    }
+
+    SUBCASE("Sub")
+    {
+        auto data = testData;
+        auto input = aix::tensor(data, shape);
+        auto result = scalar - input;
+
+        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar - x; });
+        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+    }
+
+    SUBCASE("Mul")
+    {
+        auto data = testData;
+        auto input = aix::tensor(data, shape);
+        auto result = scalar * input;
+
+        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar * x; });
+        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+    }
+
+    SUBCASE("Div")
+    {
+        auto data = testData;
+        auto input = aix::tensor(data, shape);
+        auto result = scalar / input;
+
+        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar / x; });
+        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+    }
+}
