@@ -1129,6 +1129,30 @@ public:
         return result;
     }
 
+    Tensor operator+(const DataType & scalar) const
+    {
+        Tensor tensor(scalar, shape(), isRequireGrad(), device());
+        return *this + tensor;
+    }
+
+    Tensor operator-(const DataType & scalar) const
+    {
+        Tensor tensor(scalar, shape(), isRequireGrad(), device());
+        return *this - tensor;
+    }
+
+    Tensor operator*(const DataType & scalar) const
+    {
+        Tensor tensor(scalar, shape(), isRequireGrad(), device());
+        return *this * tensor;
+    }
+
+    Tensor operator/(const DataType & scalar) const
+    {
+        Tensor tensor(scalar, shape(), isRequireGrad(), device());
+        return *this / tensor;
+    }
+
     friend Tensor operator+(DataType scalar, const Tensor & rhsTensor)
     {
         Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.device());
