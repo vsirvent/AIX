@@ -1128,7 +1128,6 @@ public:
         Tensor result(shape(), isRequireGrad(), device());
         result.m_data->m_value = -m_data->m_value;
         result.m_data->m_a = m_data;
-        result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = unaryBackwardFunc;
         return result;
     }
@@ -1186,7 +1185,6 @@ public:
         Tensor result(shape(), isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value.sin();
         result.m_data->m_a = m_data;
-        result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = sinBackwardFunc;
         return result;
     };
@@ -1196,7 +1194,6 @@ public:
         Tensor result(shape(), isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value.tanh();
         result.m_data->m_a = m_data;
-        result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = tanhBackwardFunc;
         return result;
     };
@@ -1206,7 +1203,6 @@ public:
         Tensor result(shape(), isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value.log();
         result.m_data->m_a = m_data;
-        result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = logBackwardFunc;
         return result;
     };
@@ -1216,7 +1212,6 @@ public:
         Tensor result(shape(), isRequireGrad(), device());
         result.m_data->m_value = m_data->m_value.exp();
         result.m_data->m_a = m_data;
-        result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = expBackwardFunc;
         return result;
     };
@@ -1226,7 +1221,6 @@ public:
         Tensor result({}, isRequireGrad(), device());     // Scalar tensor for the mean result.
         result.m_data->m_value = TensorValue(m_data->m_value.sum(), {}, device());
         result.m_data->m_a = m_data;
-        result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = sumBackwardFunc;
         return result;
     }
@@ -1236,7 +1230,6 @@ public:
         Tensor result({}, isRequireGrad(), device());     // Scalar tensor for the mean result.
         result.m_data->m_value = TensorValue(m_data->m_value.mean(), {}, device());
         result.m_data->m_a = m_data;
-        result.m_data->m_b = nullptr;
         result.m_data->m_backwardFunc = meanBackwardFunc;
         return result;
     }
