@@ -1563,6 +1563,18 @@ public:
 };
 
 
+class Softmax : public Module
+{
+public:
+    // Forward
+    Tensor forward(Tensor x) const override
+    {
+        auto expX = x.exp();
+        return expX / expX.sum();
+    }
+};
+
+
 class GeLU : public Module
 {
 public:

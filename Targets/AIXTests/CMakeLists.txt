@@ -11,6 +11,7 @@ set(TARGET_NAME AIXTests)
 
 add_executable(${TARGET_NAME}
         main.cpp
+        ActivationTests.cpp
         AutoGradTests.cpp
         DeviceTests.cpp
         FunctionalTests.cpp
