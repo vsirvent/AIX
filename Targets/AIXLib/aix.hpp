@@ -459,6 +459,18 @@ public:
         return m_data[0];
     }
 
+    // Returns a new TensorValue with a new shape.
+    TensorValue reshape(const Shape & newShape) const
+    {
+        size_t newSize = std::accumulate(newShape.begin(), newShape.end(), 1, std::multiplies<>());
+        if (m_size != newSize)
+        {
+            throw std::invalid_argument("Reshape error: element count mismatch (" +
+                                        std::to_string(m_size) + " vs " + std::to_string(newSize) + ").");
+        }
+        return {m_data, m_size, newShape, m_device};
+    }
+
     // Operators
 
     // Overload the + operator
@@ -969,6 +981,18 @@ public:
     // Set operation device for the tensor.
     inline Tensor & to(Device & device)     { m_data->device(&device); return *this; }
     inline Device * device() const          { return m_data->device(); }
+
+    // Returns a new Tensor with a new shape.
+    Tensor reshape(const Shape & newShape) const
+    {
+        size_t newSize = std::accumulate(newShape.begin(), newShape.end(), 1, std::multiplies<>());
+        if (value().size() != newSize)
+        {
+            throw std::invalid_argument("Reshape error: element count mismatch (" +
+                                        std::to_string(value().size()) + " vs " + std::to_string(newSize) + ").");
+        }
+        return Tensor{value().data(), value().size(), newShape, isRequireGrad(), device()};
+    }
 
     static void defaultBackward(TensorNode * node, const TensorValue & seed)
     {

@@ -332,6 +332,136 @@ TEST_CASE("TensorValue - Device Switch")
 }
 
 
+TEST_CASE("TensorValue - Reshape")
+{
+    SUBCASE("scalar -> 1 dimension")
+    {
+        auto input = TensorValue(5, {}, &testDevice);
+        auto newShape = Shape{1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(5, newShape, &testDevice));
+    }
+
+    SUBCASE("scalar -> 1x1 dimension")
+    {
+        auto input = TensorValue(5, {}, &testDevice);
+        auto newShape = Shape{1,1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(5, newShape, &testDevice));
+    }
+
+    SUBCASE("1 dimension -> 1x1 dimension")
+    {
+        auto input = TensorValue(5, {1}, &testDevice);
+        auto newShape = Shape{1,1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(5, newShape, &testDevice));
+    }
+
+    SUBCASE("1 dimension -> scalar")
+    {
+        auto input = TensorValue(5, {1}, &testDevice);
+        auto newShape = Shape{};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(5, newShape, &testDevice));
+    }
+
+    SUBCASE("1x1 dimension -> scalar")
+    {
+        auto input = TensorValue(5, {1,1}, &testDevice);
+        auto newShape = Shape{};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(5, newShape, &testDevice));
+    }
+
+    SUBCASE("1x1 dimension -> 1 dimension")
+    {
+        auto input = TensorValue(5, {1,1}, &testDevice);
+        auto newShape = Shape{1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(5, newShape, &testDevice));
+    }
+
+    SUBCASE("1x3 dimension -> 3 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0};
+        auto input = TensorValue(data, {1,3}, &testDevice);
+        auto newShape = Shape{3};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(data, newShape, &testDevice));
+    }
+
+    SUBCASE("2x3 dimension -> 6 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = TensorValue(data, {2,3}, &testDevice);
+        auto newShape = Shape{6};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(data, newShape, &testDevice));
+    }
+
+    SUBCASE("6 dimension -> 2x3 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = TensorValue(data, {6}, &testDevice);
+        auto newShape = Shape{2, 3};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(data, newShape, &testDevice));
+    }
+
+    SUBCASE("2x3 dimension -> 3x1x2 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = TensorValue(data, {2,3}, &testDevice);
+        auto newShape = Shape{3, 1, 2};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(data, newShape, &testDevice));
+    }
+
+    SUBCASE("2x3 dimension -> 2x3 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = TensorValue(data, {2,3}, &testDevice);
+        auto newShape = Shape{2,3};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.size() == input.size());
+        CheckVectorApproxValues(x, TensorValue(data, newShape, &testDevice));
+    }
+
+    SUBCASE("Invalid reshape throws invalid_argument")
+    {
+        TensorValue inputs = TensorValue({1.0,2.0,3.0,4.0,5.0}, {1,5}, &testDevice);
+        // Check that reshape throws an invalid_argument exception
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({2,2}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({1,6}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({4}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({6}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({}), std::invalid_argument);
+    }
+}
+
+
 TEST_CASE("Tensor - ones")
 {
     SUBCASE("without requiring gradient")
@@ -710,5 +840,146 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x /= scalar; });
         CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+    }
+}
+
+
+TEST_CASE("Tensor - Reshape")
+{
+    SUBCASE("scalar -> 1 dimension")
+    {
+        auto input = Tensor(5, {});
+        auto newShape = Shape{1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+    }
+
+    SUBCASE("scalar -> 1x1 dimension")
+    {
+        auto input = Tensor(5, {});
+        auto newShape = Shape{1,1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+    }
+
+    SUBCASE("1 dimension -> 1x1 dimension")
+    {
+        auto input = Tensor(5, {1});
+        auto newShape = Shape{1,1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+    }
+
+    SUBCASE("1 dimension -> scalar")
+    {
+        auto input = Tensor(5, {1});
+        auto newShape = Shape{};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+    }
+
+    SUBCASE("1x1 dimension -> scalar")
+    {
+        auto input = Tensor(5, {1,1});
+        auto newShape = Shape{};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+    }
+
+    SUBCASE("1x1 dimension -> 1 dimension")
+    {
+        auto input = Tensor(5, {1,1});
+        auto newShape = Shape{1};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+    }
+
+    SUBCASE("1x3 dimension -> 3 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0};
+        auto input = Tensor(data.data(), data.size(), {1,3});
+        auto newShape = Shape{3};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+    }
+
+    SUBCASE("2x3 dimension -> 6 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = Tensor(data.data(), data.size(), {2,3});
+        auto newShape = Shape{6};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+    }
+
+    SUBCASE("6 dimension -> 2x3 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = Tensor(data.data(), data.size(), {6});
+        auto newShape = Shape{2, 3};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+    }
+
+    SUBCASE("2x3 dimension -> 3x1x2 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = Tensor(data.data(), data.size(), {2,3});
+        auto newShape = Shape{3, 1, 2};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+    }
+
+    SUBCASE("2x3 dimension -> 2x3 dimension")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = Tensor(data.data(), data.size(), {2,3});
+        auto newShape = Shape{2,3};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+    }
+
+    SUBCASE("Size mismatch")
+    {
+        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto input = Tensor(data.data(), data.size(), {2,3});
+        auto newShape = Shape{2,3};
+        auto x = input.reshape(newShape);
+        CHECK(x.shape() == newShape);
+        CHECK(x.value().size() == input.value().size());
+        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+    }
+
+    SUBCASE("Invalid reshape throws invalid_argument")
+    {
+        Tensor inputs = tensor({1.0,2.0,3.0,4.0,5.0}, {1,5});
+        // Check that reshape throws an invalid_argument exception
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({2,2}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({1,6}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({4}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({6}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(inputs.reshape({}), std::invalid_argument);
     }
 }
