@@ -1575,6 +1575,18 @@ public:
 };
 
 
+class LogSoftmax : public Module
+{
+public:
+    // Forward
+    Tensor forward(Tensor x) const override
+    {
+        // LogSoftmax(x) = log(e^x / sum(e^x)) = log(e^x) - log(sum(e^x)) = x - log(sum(e^x))
+        return x - x.exp().sum().log();
+    }
+};
+
+
 class GeLU : public Module
 {
 public:

@@ -66,3 +66,17 @@ TEST_CASE("Activation Func - Softmax")
 
     // Note: Results are consistent with those from PyTorch.
 }
+
+
+TEST_CASE("Activation Func - LogSoftmax")
+{
+    SUBCASE("1 dimension - n elements")
+    {
+        auto input = tensor({0.3452, -0.0267, 0.4066}, Shape{3});
+        auto result = nn::LogSoftmax().forward(input);
+        CHECK(result.shape() == input.shape());
+        CheckVectorApproxValues(result.value(), tensor({-1.0126, -1.3845, -0.951199}, input.shape()).value());
+    }
+
+    // Note: Results are consistent with those from PyTorch.
+}
