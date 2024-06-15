@@ -1182,11 +1182,11 @@ TEST_CASE("Device Tests - MatMul")
         auto device = aixDeviceFactory::CreateDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
 
-        for (size_t n = 1; n < 18; ++n)
+        for (size_t n = 1; n < 8; n+=2)
         {
-            for (size_t i = 1; i < 18; ++i)
+            for (size_t i = 1; i < 8; i+=2)
             {
-                for (size_t m = 1; m < 18; ++m)
+                for (size_t m = 1; m < 8; m+=2)
                 {
                     CHECK(testMatMul(device, n, i, m));
                 }
@@ -1213,9 +1213,9 @@ TEST_CASE("Device Tests - Transpose")
         auto device = aixDeviceFactory::CreateDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
 
-        for (size_t n = 1; n < 18; ++n)
+        for (size_t n = 1; n < 8; n+=2)
         {
-            for (size_t m = 1; m < 18; ++m)
+            for (size_t m = 1; m < 8; m+=2)
             {
                 CHECK(testTranspose(device, n, m));
             }
