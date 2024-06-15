@@ -102,6 +102,90 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 }
 
 
+TEST_CASE("TensorValue - item()")
+{
+    SUBCASE("Must fail due to a non-scalar tensor")
+    {
+        TensorValue input = TensorValue({1.0,2.0}, {2}, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(input.item(), std::invalid_argument);
+
+        TensorValue input2 = TensorValue({1.0,2.0,3.0,4.0}, {2, 2}, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(input2.item(), std::invalid_argument);
+    }
+
+    SUBCASE("Should return a scalar value")
+    {
+        TensorValue input = TensorValue(1.0, Shape{}, &testDevice);
+        CHECK(input.item() == 1.0);
+    }
+}
+
+
+TEST_CASE("TensorValue - matmul()")
+{
+    SUBCASE("Must fail due to an inner dimension mismatch")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0}, {2,2}, &testDevice);
+        TensorValue B = TensorValue({1.0,2.0,3.0,4.0}, {1,4}, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(A.matmul(B), std::invalid_argument);
+    }
+
+    SUBCASE("Must fail due to dimension size mismatch")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0}, {4}, &testDevice);
+        TensorValue B = TensorValue({1.0,2.0,3.0,4.0}, {1,4}, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(A.matmul(B), std::invalid_argument);
+    }
+
+    SUBCASE("A[1x1] B[1x1] multiplication")
+    {
+        TensorValue A = TensorValue(2.0, Shape{1,1}, &testDevice);
+        TensorValue B = TensorValue(3.0, Shape{1,1}, &testDevice);
+        auto result = A.matmul(B);
+        CHECK(result.shape() == Shape{1,1});
+        CheckVectorApproxValues(result, TensorValue(6.0, Shape{1,1}, &testDevice));
+    }
+
+    SUBCASE("A[2x3] B[3x4] multiplication")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, Shape{2,3}, &testDevice);
+        TensorValue B = TensorValue({12.0,11.0,10.0,9.0,8.0,7.0,6.0,5.0,4.0,3.0,2.0,1.0}, Shape{3,4}, &testDevice);
+        auto result = A.matmul(B);
+        CHECK(result.shape() == Shape{2,4});
+        CHECK(result.size() == 8);
+        CheckVectorApproxValues(result, TensorValue({40.0,34.0,28.0,22.0,112.0,97.0,82.0,67.0,}, Shape{2,4}, &testDevice));
+    }
+}
+
+
+TEST_CASE("TensorValue - transpose()")
+{
+    SUBCASE("Must fail if dimension size is different than 2")
+    {
+        TensorValue input1 = TensorValue({1.0,2.0,3.0,4.0}, {2,1,2}, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(input1.transpose(), std::invalid_argument);
+        TensorValue input2 = TensorValue({1.0,2.0,3.0,4.0}, {4}, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(input2.transpose(), std::invalid_argument);
+    }
+
+    SUBCASE("1x1 transpose")
+    {
+        TensorValue A = TensorValue(1.0, {1,1}, &testDevice);
+        auto result = A.transpose();
+        CHECK(result.shape() == Shape{1,1});
+        CheckVectorApproxValues(result, TensorValue(1.0, {1,1}, &testDevice));
+    }
+
+    SUBCASE("3x2 transpose")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice);
+        auto result = A.transpose();
+        CHECK(result.shape() == Shape{2,3});
+        CheckVectorApproxValues(result, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0}, {2,3}, &testDevice));
+    }
+}
+
+
 TEST_CASE("TensorValue::tanh 2x2")
 {
     auto x = TensorValue({0.1, 0.2, 0.3, 0.4}, {2, 2}, &testDevice);
@@ -570,6 +654,43 @@ TEST_CASE("Tensor - zerosLike")
 
         aix::TensorValue expected(0.0, src.shape(), src.value().device());
         CheckVectorApproxValues(t.value(), expected);
+    }
+}
+
+
+TEST_CASE("Tensor - matmul()")
+{
+    SUBCASE("Must fail due to an inner dimension mismatch")
+    {
+        Tensor A = tensor({1.0,2.0,3.0,4.0}, {2,2});
+        Tensor B = tensor({1.0,2.0,3.0,4.0}, {1,4});
+        DOCTEST_CHECK_THROWS_AS(A.matmul(B), std::invalid_argument);
+    }
+
+    SUBCASE("Must fail due to dimension size mismatch")
+    {
+        Tensor A = tensor({1.0,2.0,3.0,4.0}, Shape{4});
+        Tensor B = tensor({1.0,2.0,3.0,4.0}, Shape{1,4});
+        DOCTEST_CHECK_THROWS_AS(A.matmul(B), std::invalid_argument);
+    }
+
+    SUBCASE("A[1x1] B[1x1] multiplication")
+    {
+        Tensor A = tensor({2.0}, Shape{1,1});
+        Tensor B = tensor({3.0}, Shape{1,1});
+        auto result = A.matmul(B);
+        CHECK(result.shape() == Shape{1,1});
+        CheckVectorApproxValues(result.value(), tensor({6.0}, Shape{1,1}).value());
+    }
+
+    SUBCASE("A[2x3] B[3x4] multiplication")
+    {
+        Tensor A = tensor({1.0,2.0,3.0,4.0,5.0,6.0}, Shape{2,3});
+        Tensor B = tensor({12.0,11.0,10.0,9.0,8.0,7.0,6.0,5.0,4.0,3.0,2.0,1.0}, Shape{3,4});
+        auto result = A.matmul(B);
+        CHECK(result.shape() == Shape{2,4});
+        CHECK(result.value().size() == 8);
+        CheckVectorApproxValues(result.value(), tensor({40.0,34.0,28.0,22.0,112.0,97.0,82.0,67.0,}, Shape{2,4}).value());
     }
 }
 
