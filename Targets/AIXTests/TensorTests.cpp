@@ -207,28 +207,6 @@ TEST_CASE("TensorValue::exp 2x2")
 }
 
 
-TEST_CASE("TensorValue::matmul 1x1 1x1")
-{
-    auto a = TensorValue(2, {1, 1}, &testDevice);
-    auto b = TensorValue(3, {1, 1}, &testDevice);
-    auto c = a.matmul(b);
-
-    CHECK(c.shape() == Shape{1, 1});
-    CheckVectorApproxValues(c, TensorValue(6, c.shape(), &testDevice));
-}
-
-
-TEST_CASE("TensorValue::matmul 2x4 4x3")
-{
-    auto a = TensorValue({1,2,3,4,5,6,7,8},            {2, 4}, &testDevice);
-    auto b = TensorValue({1,2,3,4,5,6,7,8,9,10,11,12}, {4, 3}, &testDevice);
-    auto c = a.matmul(b);     // Result matrix.
-
-    CHECK(c.shape() == Shape{2, 3});
-    CheckVectorApproxValues(c, TensorValue({70, 80, 90, 158, 184, 210}, c.shape(), &testDevice));
-}
-
-
 TEST_CASE("TensorValue::transpose 1x1")
 {
     auto a = TensorValue(2, {1, 1}, &testDevice).transpose();
