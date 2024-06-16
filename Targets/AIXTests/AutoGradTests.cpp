@@ -114,7 +114,7 @@ TEST_CASE("Auto Grad - Module Test - 1x2 Tensor")
     CheckVectorApproxValues(tm.m_y.grad(), tensor({0.199999, 0.666667}, shape).value());
     CheckVectorApproxValues(tm.m_t.grad(), tensor({-0.16, -0.666667},   shape).value());
     CheckVectorApproxValues(tm.m_u.grad(), tensor({5.9343, -0.174642},  shape).value());
-    CheckVectorApproxValues(m.value(),     tensor({4.39891, 9.91487},   shape).value());
+    CheckVectorApproxValues(m,             tensor({4.39891, 9.91487},   shape));
 }
 
 
@@ -148,7 +148,7 @@ TEST_CASE("Auto Grad - Module Test - 2x3 Tensor")
     CheckVectorApproxValues(tm.m_y.grad(), tensor({0.0769231, 0.285714, 0.6, 1, 1.47059, 2}, shape).value());
     CheckVectorApproxValues(tm.m_t.grad(), tensor({-0.0473373, -0.204082, -0.48, -0.875, -1.38408, -2}, shape).value());
     CheckVectorApproxValues(tm.m_u.grad(), tensor({18.9353, 9.07459, -10.6657, -22.008, -13.1014, 9.27472}, shape).value());
-    CheckVectorApproxValues(m.value(),     tensor({2.46305, 19.116, 21.7698, 9.80527, -0.933655, 8.26612}, shape).value());
+    CheckVectorApproxValues(m,             tensor({2.46305, 19.116, 21.7698, 9.80527, -0.933655, 8.26612}, shape));
 }
 
 

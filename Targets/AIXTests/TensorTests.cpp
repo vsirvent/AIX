@@ -532,9 +532,7 @@ TEST_CASE("Tensor - ones")
         CHECK(t.shape() == aix::Shape{2, 3});
         CHECK(t.value().size() == 6);
         CHECK(t.isRequireGrad() == false);
-
-        aix::TensorValue expected(1.0, {2, 3}, t.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(1.0, {2, 3}));
     }
 
     SUBCASE("requiring gradient")
@@ -543,9 +541,7 @@ TEST_CASE("Tensor - ones")
         CHECK(t.shape() == aix::Shape{2, 3});
         CHECK(t.value().size() == 6);
         CHECK(t.isRequireGrad() == true);
-
-        aix::TensorValue expected(1.0, {2, 3}, t.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(1.0, {2, 3}));
     }
 }
 
@@ -558,9 +554,7 @@ TEST_CASE("Tensor - zeros")
         CHECK(t.shape() == aix::Shape{2, 3});
         CHECK(t.value().size() == 6);
         CHECK(t.isRequireGrad() == false);
-
-        aix::TensorValue expected(0.0, {2, 3}, t.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(0.0, {2, 3}));
     }
 
     SUBCASE("requiring gradient")
@@ -569,9 +563,7 @@ TEST_CASE("Tensor - zeros")
         CHECK(t.shape() == aix::Shape{2, 3});
         CHECK(t.value().size() == 6);
         CHECK(t.isRequireGrad() == true);
-
-        aix::TensorValue expected(0.0, {2, 3}, t.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(0.0, {2, 3}));
     }
 }
 
@@ -587,9 +579,7 @@ TEST_CASE("Tensor - onesLike")
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == false);
         CHECK(t.value().device() == src.value().device());
-
-        aix::TensorValue expected(1.0, src.shape(), src.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(1.0, src.shape()));
     }
 
     SUBCASE("requiring gradient")
@@ -599,9 +589,7 @@ TEST_CASE("Tensor - onesLike")
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == true);
         CHECK(t.value().device() == src.value().device());
-
-        aix::TensorValue expected(1.0, src.shape(), src.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(1.0, src.shape()));
     }
 }
 
@@ -617,9 +605,7 @@ TEST_CASE("Tensor - zerosLike")
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == false);
         CHECK(t.value().device() == src.value().device());
-
-        aix::TensorValue expected(0.0, src.shape(), src.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(0.0, src.shape()));
     }
 
     SUBCASE("requiring gradient")
@@ -629,9 +615,7 @@ TEST_CASE("Tensor - zerosLike")
         CHECK(t.value().size() == src.value().size());
         CHECK(t.isRequireGrad() == true);
         CHECK(t.value().device() == src.value().device());
-
-        aix::TensorValue expected(0.0, src.shape(), src.value().device());
-        CheckVectorApproxValues(t.value(), expected);
+        CheckVectorApproxValues(t, Tensor(0.0, src.shape()));
     }
 }
 
@@ -658,7 +642,7 @@ TEST_CASE("Tensor - matmul()")
         Tensor B = tensor({3.0}, Shape{1,1});
         auto result = A.matmul(B);
         CHECK(result.shape() == Shape{1,1});
-        CheckVectorApproxValues(result.value(), tensor({6.0}, Shape{1,1}).value());
+        CheckVectorApproxValues(result, tensor({6.0}, Shape{1,1}));
     }
 
     SUBCASE("A[2x3] B[3x4] multiplication")
@@ -668,7 +652,7 @@ TEST_CASE("Tensor - matmul()")
         auto result = A.matmul(B);
         CHECK(result.shape() == Shape{2,4});
         CHECK(result.value().size() == 8);
-        CheckVectorApproxValues(result.value(), tensor({40.0,34.0,28.0,22.0,112.0,97.0,82.0,67.0,}, Shape{2,4}).value());
+        CheckVectorApproxValues(result, tensor({40.0,34.0,28.0,22.0,112.0,97.0,82.0,67.0,}, Shape{2,4}));
     }
 }
 
@@ -804,7 +788,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto result = input + scalar;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x += scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Sub")
@@ -814,7 +798,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto result = input - scalar;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x -= scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Mul")
@@ -824,7 +808,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto result = input * scalar;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x *= scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Div")
@@ -834,7 +818,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto result = input / scalar;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x /= scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 }
 
@@ -852,7 +836,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto result = scalar + input;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar + x; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Sub")
@@ -862,7 +846,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto result = scalar - input;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar - x; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Mul")
@@ -872,7 +856,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto result = scalar * input;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar * x; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Div")
@@ -882,7 +866,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto result = scalar / input;
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar / x; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 }
 
@@ -905,7 +889,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         CHECK(result.shape() == input.shape());
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x += scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Sub")
@@ -916,7 +900,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         CHECK(result.shape() == input.shape());
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x -= scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Mul")
@@ -927,7 +911,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         CHECK(result.shape() == input.shape());
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x *= scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 
     SUBCASE("Div")
@@ -938,7 +922,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         CHECK(result.shape() == input.shape());
 
         std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x /= scalar; });
-        CheckVectorApproxValues(result.value(), tensor(data, shape).value());
+        CheckVectorApproxValues(result, tensor(data, shape));
     }
 }
 
@@ -952,7 +936,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+        CheckVectorApproxValues(x, Tensor(5, newShape));
     }
 
     SUBCASE("scalar -> 1x1 dimension")
@@ -962,7 +946,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+        CheckVectorApproxValues(x, Tensor(5, newShape));
     }
 
     SUBCASE("1 dimension -> 1x1 dimension")
@@ -972,7 +956,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+        CheckVectorApproxValues(x, Tensor(5, newShape));
     }
 
     SUBCASE("1 dimension -> scalar")
@@ -982,7 +966,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+        CheckVectorApproxValues(x, Tensor(5, newShape));
     }
 
     SUBCASE("1x1 dimension -> scalar")
@@ -992,7 +976,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+        CheckVectorApproxValues(x, Tensor(5, newShape));
     }
 
     SUBCASE("1x1 dimension -> 1 dimension")
@@ -1002,7 +986,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(5, newShape).value());
+        CheckVectorApproxValues(x, Tensor(5, newShape));
     }
 
     SUBCASE("1x3 dimension -> 3 dimension")
@@ -1013,7 +997,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+        CheckVectorApproxValues(x, Tensor(data.data(), data.size(), newShape));
     }
 
     SUBCASE("2x3 dimension -> 6 dimension")
@@ -1024,7 +1008,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+        CheckVectorApproxValues(x, Tensor(data.data(), data.size(), newShape));
     }
 
     SUBCASE("6 dimension -> 2x3 dimension")
@@ -1035,7 +1019,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+        CheckVectorApproxValues(x, Tensor(data.data(), data.size(), newShape));
     }
 
     SUBCASE("2x3 dimension -> 3x1x2 dimension")
@@ -1046,7 +1030,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+        CheckVectorApproxValues(x, Tensor(data.data(), data.size(), newShape));
     }
 
     SUBCASE("2x3 dimension -> 2x3 dimension")
@@ -1057,7 +1041,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+        CheckVectorApproxValues(x, Tensor(data.data(), data.size(), newShape));
     }
 
     SUBCASE("Size mismatch")
@@ -1068,7 +1052,7 @@ TEST_CASE("Tensor - Reshape")
         auto x = input.reshape(newShape);
         CHECK(x.shape() == newShape);
         CHECK(x.value().size() == input.value().size());
-        CheckVectorApproxValues(x.value(), Tensor(data.data(), data.size(), newShape).value());
+        CheckVectorApproxValues(x, Tensor(data.data(), data.size(), newShape));
     }
 
     SUBCASE("Invalid reshape throws invalid_argument")

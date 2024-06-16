@@ -25,7 +25,7 @@ TEST_CASE("Activation Func - Softmax")
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
         CHECK(result.sum().value().item() == 1.0);
-        CheckVectorApproxValues(result.value(), tensor(1.0).value());
+        CheckVectorApproxValues(result, tensor(1.0));
     }
 
     SUBCASE("1 dimension - 1 element")
@@ -34,7 +34,7 @@ TEST_CASE("Activation Func - Softmax")
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
         CHECK(result.sum().value().item() == 1.0);
-        CheckVectorApproxValues(result.value(), tensor({1.0}, input.shape()).value());
+        CheckVectorApproxValues(result, tensor({1.0}, input.shape()));
     }
 
     SUBCASE("1 dimension - n elements")
@@ -43,7 +43,7 @@ TEST_CASE("Activation Func - Softmax")
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
         CHECK(result.sum().value().item() == 1.0);
-        CheckVectorApproxValues(result.value(), tensor({0.0320586, 0.0871443, 0.236883, 0.643914}, input.shape()).value());
+        CheckVectorApproxValues(result, tensor({0.0320586, 0.0871443, 0.236883, 0.643914}, input.shape()));
     }
 
     SUBCASE("1x1 dimension")
@@ -52,7 +52,7 @@ TEST_CASE("Activation Func - Softmax")
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
         CHECK(result.sum().value().item() == 1.0);
-        CheckVectorApproxValues(result.value(), tensor({1.0}, input.shape()).value());
+        CheckVectorApproxValues(result, tensor({1.0}, input.shape()));
     }
 
     SUBCASE("2x2 dimension")
@@ -61,7 +61,7 @@ TEST_CASE("Activation Func - Softmax")
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
         CHECK(result.sum().value().item() == 1.0);
-        CheckVectorApproxValues(result.value(), tensor({0.0320586, 0.0871443, 0.236883, 0.643914}, input.shape()).value());
+        CheckVectorApproxValues(result, tensor({0.0320586, 0.0871443, 0.236883, 0.643914}, input.shape()));
     }
 
     // Note: Results are consistent with those from PyTorch.
@@ -75,7 +75,7 @@ TEST_CASE("Activation Func - LogSoftmax")
         auto input = tensor({0.3452, -0.0267, 0.4066}, Shape{3});
         auto result = nn::LogSoftmax().forward(input);
         CHECK(result.shape() == input.shape());
-        CheckVectorApproxValues(result.value(), tensor({-1.0126, -1.3845, -0.951199}, input.shape()).value());
+        CheckVectorApproxValues(result, tensor({-1.0126, -1.3845, -0.951199}, input.shape()));
     }
 
     // Note: Results are consistent with those from PyTorch.
