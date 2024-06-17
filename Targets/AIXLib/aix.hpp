@@ -282,33 +282,48 @@ public:
     {
         for (size_t index = 0; index < size; ++index)
         {
-            // Calculate the translation index, originalIndex, to copy data from the original index to the new index.
-            size_t originalIndex  = 0;
-            size_t targetStride   = 1;
-            size_t originalStride = 1;
-
-            for (ssize_t i = newShape.size() - 1, j = shape.size() - 1; i >= 0; --i)
-            {
-                size_t dimIndex = (index / targetStride) % newShape[i];
-                if (j >= 0 && shape[j] == newShape[i])
-                {
-                    originalIndex += dimIndex * originalStride;
-                    originalStride *= shape[--j + 1];
-                }
-                else if (j >= 0 && shape[j] == 1)
-                {
-                    originalStride *= shape[--j + 1];
-                }
-                targetStride *= newShape[i];
-            }
-
             // Copy value from original index to the new index.
-            dst[index] = src[originalIndex];
+            dst[index] = src[translationIndex(index, shape, newShape)];
+        }
+    }
+
+    virtual void reduceTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
+    {
+        for (size_t index = 0; index < size; ++index)
+        {
+            // Sum the values from the broadcasted tensor to the original tensor shape
+            dst[translationIndex(index, shape, newShape)] += src[index];
         }
     }
 
     virtual void commitAndWait()
     {
+    }
+
+protected:
+    // Calculate the translation index, originalIndex, to copy data from the original index to the new index.
+    size_t translationIndex(size_t index, const Shape& shape, const Shape& newShape)
+    {
+        size_t originalIndex  = 0;
+        size_t targetStride   = 1;
+        size_t originalStride = 1;
+
+        for (ssize_t i = newShape.size() - 1, j = shape.size() - 1; i >= 0; --i)
+        {
+            size_t dimIndex = (index / targetStride) % newShape[i];
+            if (j >= 0 && shape[j] == newShape[i])
+            {
+                originalIndex += dimIndex * originalStride;
+                originalStride *= shape[--j + 1];
+            }
+            else if (j >= 0 && shape[j] == 1)
+            {
+                originalStride *= shape[--j + 1];
+            }
+            targetStride *= newShape[i];
+        }
+
+        return originalIndex;
     }
 };
 
@@ -569,6 +584,16 @@ public:
         TensorValue result(resultShape, device());
 
         device()->broadcastTo(m_data, result.data(), result.size(), shape(), resultShape);
+
+        return result;
+    }
+
+    // Reduces the TensorValue back to the original shape.
+    TensorValue reduceTo(const Shape & originalShape) const
+    {
+        TensorValue result(originalShape, device());
+
+        device()->reduceTo(m_data, result.data(), m_size, m_shape, originalShape);
 
         return result;
     }
@@ -1096,11 +1121,22 @@ public:
         return Tensor{value().data(), value().size(), newShape, isRequireGrad(), device()};
     }
 
-    // Returns a broadcasted TensorValue with a new shape.
     Tensor broadcastTo(const Shape & newShape) const
     {
         TensorValue tValue = m_data->m_value.broadcastTo(newShape);
-        return Tensor{tValue.data(), tValue.size(), tValue.shape(), isRequireGrad(), device()};
+        Tensor result{tValue.data(), tValue.size(), tValue.shape(), isRequireGrad(), device()};
+        result.m_data->m_a = m_data;            // Keep the reference to the original tensor node
+        result.m_data->m_backwardFunc = broadcastBackwardFunc;
+        return result;
+    }
+
+    static void broadcastBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // Accumulate the gradient to the original node by reducing the gradient from the broadcasted shape to the
+        // original shape. Summation is used for gradient accumulation when reducing dimensions because each element
+        // of the original tensor contributes to multiple elements of the resulting tensor after broadcasting.
+        node->m_a->backward(seed.reduceTo(node->m_a->m_value.shape()));
     }
 
     static void defaultBackward(TensorNode * node, const TensorValue & seed)
@@ -1211,10 +1247,13 @@ public:
     // Overload the + operator
     Tensor operator+(const Tensor & rhsTensor) const
     {
+        Shape bcShape = broadcastShape(rhsTensor.shape());
+        auto bcLHSTensor = broadcastTo(bcShape);
+        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+
         Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
-        result.m_data->m_value = m_data->m_value + bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = m_data;
+        result.m_data->m_value = bcLHSTensor.m_data->m_value + bcRHSTensor.m_data->m_value;
+        result.m_data->m_a = bcLHSTensor.m_data;
         result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = addBackwardFunc;
         return result;
@@ -1223,10 +1262,13 @@ public:
     // Overload the - operator
     Tensor operator-(const Tensor & rhsTensor) const
     {
+        Shape bcShape = broadcastShape(rhsTensor.shape());
+        auto bcLHSTensor = broadcastTo(bcShape);
+        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+
         Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
-        result.m_data->m_value = m_data->m_value - bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = m_data;
+        result.m_data->m_value = bcLHSTensor.m_data->m_value - bcRHSTensor.m_data->m_value;
+        result.m_data->m_a = bcLHSTensor.m_data;
         result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = subBackwardFunc;
         return result;
@@ -1235,10 +1277,13 @@ public:
     // Overload the * operator
     Tensor operator*(const Tensor & rhsTensor) const
     {
+        Shape bcShape = broadcastShape(rhsTensor.shape());
+        auto bcLHSTensor = broadcastTo(bcShape);
+        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+
         Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
-        result.m_data->m_value = m_data->m_value * bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = m_data;
+        result.m_data->m_value = bcLHSTensor.m_data->m_value * bcRHSTensor.m_data->m_value;
+        result.m_data->m_a = bcLHSTensor.m_data;
         result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = mulBackwardFunc;
         return result;
@@ -1247,10 +1292,13 @@ public:
     // Overload the / operator
     Tensor operator/(const Tensor & rhsTensor) const
     {
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), device());
-        auto bcRHSTensor = broadcast(rhsTensor, shape());      // Broadcast rhsTensor if it's a scalar tensor.
-        result.m_data->m_value = m_data->m_value / bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = m_data;
+        Shape bcShape = broadcastShape(rhsTensor.shape());
+        auto bcLHSTensor = broadcastTo(bcShape);
+        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+
+        Tensor result(bcShape, isRequireGrad() || rhsTensor.isRequireGrad(), device());
+        result.m_data->m_value = bcLHSTensor.m_data->m_value / bcRHSTensor.m_data->m_value;
+        result.m_data->m_a = bcLHSTensor.m_data;
         result.m_data->m_b = bcRHSTensor.m_data;
         result.m_data->m_backwardFunc = divBackwardFunc;
         return result;
@@ -1381,17 +1429,9 @@ public:
     inline friend std::ostream & operator<<(std::ostream& os, const Tensor& tensor);
 
 protected:
-    // Returns a broadcasted tensor if the tensor is a scalar tensor and the other tensor's shape is not.
-    // NOTE: Limited tensor broadcast support - Only scalar tensor (a tensor that has no dimension).
-    static Tensor broadcast(const Tensor & tensor, const Shape & otherShape)
+    inline Shape broadcastShape(const Shape& otherShape) const
     {
-        if (!otherShape.empty() && tensor.shape().empty())
-        {
-            // Return broadcasted tensor.
-            return Tensor(tensor.value().item(), otherShape, tensor.isRequireGrad(), tensor.device());
-        }
-
-        return tensor;
+        return shape() == otherShape ? shape() : m_data->m_value.broadcastShapes(shape(), otherShape);
     }
 
     std::shared_ptr<TensorNode>  m_data{nullptr};

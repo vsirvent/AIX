@@ -311,6 +311,18 @@ void DeviceMetal::copy_immediate(const DataType* src, DataType* dst, size_t size
     commitAndWait();
 }
 
+void DeviceMetal::broadcastTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
+{
+    commitAndWait();
+    Device::broadcastTo(src, dst, size, shape, newShape);
+}
+
+void DeviceMetal::reduceTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
+{
+    commitAndWait();
+    Device::reduceTo(src, dst, size, shape, newShape);
+}
+
 void DeviceMetal::commitAndWait()
 {
     // Execute only if there is at least one command encoded.

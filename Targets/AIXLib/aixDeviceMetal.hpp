@@ -114,6 +114,10 @@ public:
 
     void copy_immediate(const DataType* src, DataType* dst, size_t size) override;
 
+    void broadcastTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape) override;
+
+    void reduceTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape) override;
+
     void commitAndWait() override;
 
 protected:

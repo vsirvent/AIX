@@ -152,6 +152,41 @@ TEST_CASE("Auto Grad - Module Test - 2x3 Tensor")
 }
 
 
+TEST_CASE("Auto Grad with broadcasting")
+{
+    auto shape1 = Shape{1, 3};
+    auto shape2 = Shape{2, 3};
+
+    auto m_x = tensor({ 1,  2,  3},             shape1, true);
+    auto m_y = tensor({ 7,  8,  9, 10, 11, 12}, shape2, true);
+    auto m_t = tensor({13, 14, 15},             shape1, true);
+    auto m_u = tensor({19, 20, 21, 22, 23, 24}, shape2, true);
+
+    auto z = m_x * (m_x + m_y) / m_t - tanh(m_y * m_y);
+    auto m = m_x * z + sin(m_u) * m_u;
+
+    // Traverse the graph (starting from the end) to calculate all tensor gradients.
+    m.backward();   // ∂m/∂m = [1,1,1,1,1,1]  2x3 tensor
+
+    // Check shapes
+    CHECK(m_x.grad().shape()  == shape1);
+    CHECK(m_y.grad().shape()  == shape2);
+    CHECK(m_t.grad().shape()  == shape1);
+    CHECK(m_u.grad().shape()  == shape2);
+    CHECK(m_x.value().shape() == shape1);
+    CHECK(m_y.value().shape() == shape2);
+    CHECK(m_t.value().shape() == shape1);
+    CHECK(m_u.value().shape() == shape2);
+    CHECK(m.value().shape()   == shape2);
+
+    CheckVectorApproxValues(m_x.grad(), tensor({1.07692, 5.14286, 10}, shape1).value());
+    CheckVectorApproxValues(m_y.grad(), tensor({0.0769231, 0.285714, 0.6, 0.0769231, 0.285714, 0.6}, shape2).value());
+    CheckVectorApproxValues(m_t.grad(), tensor({-0.112426, -0.469388, -1.08}, shape1).value());
+    CheckVectorApproxValues(m_u.grad(), tensor({18.9353, 9.07459, -10.6657, -22.008, -13.1014, 9.27472}, shape2).value());
+    CheckVectorApproxValues(m,          tensor({2.46305, 19.116, 21.7698, -0.348575, -17.7488, -15.7339}, shape2));
+}
+
+
 TEST_CASE("Auto Grad - log Test - 2x2")
 {
     aix::Shape shape{2,2};
@@ -205,4 +240,216 @@ TEST_CASE("Auto Grad - sigmoid Test - 2x2")
     // Check shapes
     CHECK(x.grad().shape() == shape);
     CheckVectorApproxValues(x.grad(), tensor({0.249376, 0.247517, 0.244458, 0.240261}, shape).value());
+}
+
+
+TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
+{
+    auto shape1 = Shape{1, 3};
+    auto shape2 = Shape{2, 3};
+    auto data1 = std::vector<DataType>{1.0, 2.0, 3.0};
+    auto data2 = std::vector<DataType>{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+
+    SUBCASE("Add - x+y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x + y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({2.0,2.0,2.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, shape2).value());
+    }
+
+    SUBCASE("Add - y+x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y + x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({2.0,2.0,2.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, shape2).value());
+    }
+
+    SUBCASE("Sub - x-y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x - y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({2.0,2.0,2.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({-1.0,-1.0,-1.0,-1.0,-1.0,-1.0}, shape2).value());
+    }
+
+    SUBCASE("Sub - y-x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y - x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({-2.0,-2.0,-2.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, shape2).value());
+    }
+
+    SUBCASE("Mul - x*y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x * y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({17.0,19.0,21.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,2.0,3.0,1.0,2.0,3.0}, shape2).value());
+    }
+
+    SUBCASE("Mul - y*x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y * x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({17.0,19.0,21.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,2.0,3.0,1.0,2.0,3.0}, shape2).value());
+    }
+
+    SUBCASE("Div - x/y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x / y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({0.242857, 0.215909, 0.194444}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({-0.0204082, -0.03125, -0.037037,
+                                                  -0.01, -0.0165289, -0.0208333}, shape2).value());
+    }
+
+    SUBCASE("Div - y/x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y / x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({-17, -4.75, -2.33333}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0, 0.5, 0.333333, 1.0, 0.5, 0.333333}, shape2).value());
+    }
+}
+
+
+TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
+{
+    auto shape1 = Shape{};      // Scalar has no shape/dimension
+    auto shape2 = Shape{2, 3};
+    auto data1 = std::vector<DataType>{5};
+    auto data2 = std::vector<DataType>{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+
+    SUBCASE("Add - x+y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x + y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({6.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, shape2).value());
+    }
+
+    SUBCASE("Add - y+x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y + x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({6.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, shape2).value());
+    }
+
+    SUBCASE("Sub - x-y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x - y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({6.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({-1.0,-1.0,-1.0,-1.0,-1.0,-1.0}, shape2).value());
+    }
+
+    SUBCASE("Sub - y-x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y - x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({-6}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, shape2).value());
+    }
+
+    SUBCASE("Mul - x*y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x * y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({57.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({5.0,5.0,5.0,5.0,5.0,5.0}, shape2).value());
+    }
+
+    SUBCASE("Mul - y*x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y * x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({57.0}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({5.0,5.0,5.0,5.0,5.0,5.0}, shape2).value());
+    }
+
+    SUBCASE("Div - x/y")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = x / y;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({0.653211}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({-0.102041, -0.078125, -0.0617284,
+                                                  -0.05, -0.0413223, -0.0347222}, shape2).value());
+    }
+
+    SUBCASE("Div - y/x")
+    {
+        auto x = aix::tensor(data1, shape1, true);
+        auto y = aix::tensor(data2, shape2, true);
+        auto z = y / x;
+        z.backward();
+        CHECK(x.grad().shape() == shape1);
+        CHECK(y.grad().shape() == shape2);
+        CheckVectorApproxValues(x.grad(), tensor({-2.28}, shape1).value());
+        CheckVectorApproxValues(y.grad(), tensor({0.2,0.2,0.2,0.2,0.2,0.2}, shape2).value());
+    }
 }
