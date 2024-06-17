@@ -524,6 +524,137 @@ TEST_CASE("TensorValue - Reshape")
 }
 
 
+TEST_CASE("TensorValue - broadcastTo")
+{
+    SUBCASE("[1] to [2x3]")
+    {
+        Shape newShape{2, 3};
+        auto bct = TensorValue(1.0, {1}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 6);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0,1.0,1.0,1.0,1.0,1.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[2x1] to [2x2x3]")
+    {
+        Shape newShape{2,2,3};
+        auto bct = TensorValue({1.0,2.0}, {2,1}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 12);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0,1.0,1.0,
+                                                  2.0,2.0,2.0,
+                                                  1.0,1.0,1.0,
+                                                  2.0,2.0,2.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[1x3] to [1x3]")
+    {
+        Shape newShape{1, 3};
+        auto bct = TensorValue({1.0, 2.0, 3.0}, {1, 3}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 3);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0, 2.0, 3.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[1x3] to [2x3]")
+    {
+        Shape newShape{2, 3};
+        auto bct = TensorValue({1.0, 2.0, 3.0}, {1, 3}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 6);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[1x3] to [3x3]")
+    {
+        Shape newShape{3, 3};
+        auto bct = TensorValue({1.0, 2.0, 3.0}, {1, 3}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 9);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0, 2.0, 3.0,
+                                                  1.0, 2.0, 3.0,
+                                                  1.0, 2.0, 3.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[2x1] to [2x3]")
+    {
+        Shape newShape{2, 3};
+        auto bct = TensorValue({1.0, 2.0}, {2, 1}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 6);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0, 1.0, 1.0, 2.0, 2.0, 2.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[2x3] to [2x3]")
+    {
+        Shape newShape{2, 3};
+        auto bct = TensorValue({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, {2, 3}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 6);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[3x1] to [3x3]")
+    {
+        Shape newShape{3, 3};
+        auto bct = TensorValue({1.0, 2.0, 3.0}, {3, 1}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 9);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0, 1.0, 1.0,
+                                                  2.0, 2.0, 2.0,
+                                                  3.0, 3.0, 3.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[1x3x1] to [1x2x3x2]")
+    {
+        Shape newShape{1,2,3,2};
+        auto bct = TensorValue({1.0,2.0,3.0}, {1, 3, 1}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 12);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0, 1.0,
+                                                  2.0, 2.0,
+                                                  3.0, 3.0,
+                                                  1.0, 1.0,
+                                                  2.0, 2.0,
+                                                  3.0, 3.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("[4] to [2]")
+    {
+        CHECK_THROWS_AS(TensorValue({1.0, 2.0, 3.0, 4.0}, {4}, &testDevice).broadcastTo({2}), std::invalid_argument);
+    }
+
+    SUBCASE("[2] to [4]")
+    {
+        CHECK_THROWS_AS(TensorValue({1.0, 2.0}, {2}, &testDevice).broadcastTo({4}), std::invalid_argument);
+    }
+
+    SUBCASE("[2x3] to [6]")
+    {
+        CHECK_THROWS_AS(TensorValue({1.0, 2.0, 3.0,
+                                     4.0, 5.0, 6.0}, {2, 3}, &testDevice).broadcastTo({6}), std::invalid_argument);
+    }
+
+    SUBCASE("[2x3] to [1x3]")
+    {
+        CHECK_THROWS_AS(TensorValue({1.0, 2.0, 3.0,
+                                     4.0, 5.0, 6.0}, {2, 3}, &testDevice).broadcastTo({1, 3}), std::invalid_argument);
+    }
+
+    SUBCASE("[2x3] to [3x2]")
+    {
+        CHECK_THROWS_AS(TensorValue({1.0, 2.0, 3.0,
+                                     4.0, 5.0, 6.0}, {2, 3}, &testDevice).broadcastTo({3, 2}), std::invalid_argument);
+    }
+
+    SUBCASE("[2x1x3] to [2x3]")
+    {
+        CHECK_THROWS_AS(TensorValue({1.0, 2.0, 3.0,
+                                     4.0, 5.0, 6.0}, {2, 1, 3}, &testDevice).broadcastTo({2, 3}), std::invalid_argument);
+    }
+}
+
+
 TEST_CASE("Tensor - ones")
 {
     SUBCASE("without requiring gradient")
@@ -1064,5 +1195,26 @@ TEST_CASE("Tensor - Reshape")
         DOCTEST_CHECK_THROWS_AS(inputs.reshape({4}), std::invalid_argument);
         DOCTEST_CHECK_THROWS_AS(inputs.reshape({6}), std::invalid_argument);
         DOCTEST_CHECK_THROWS_AS(inputs.reshape({}), std::invalid_argument);
+    }
+}
+
+
+TEST_CASE("Tensor - broadcastTo")
+{
+    // NOTE: Since TensorValue tests cover the broadcast tests, Tensor does not need exhaustive broadcastTo tests.
+
+    SUBCASE("[1x3] to [2x3]")
+    {
+        Shape newShape{2, 3};
+        auto bct = tensor({1.0, 2.0, 3.0}, {1, 3}).broadcastTo(newShape);
+        CHECK(bct.value().size() == 6);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, tensor({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, newShape));
+    }
+
+    SUBCASE("[2x3] to [3x2]")
+    {
+        CHECK_THROWS_AS(tensor({1.0, 2.0, 3.0,
+                                4.0, 5.0, 6.0}, {2, 3}).broadcastTo({3, 2}), std::invalid_argument);
     }
 }

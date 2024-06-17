@@ -278,6 +278,35 @@ public:
         std::memcpy(dst, src, size * sizeof(DataType));
     }
 
+    virtual void broadcastTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
+    {
+        for (size_t index = 0; index < size; ++index)
+        {
+            // Calculate the translation index, originalIndex, to copy data from the original index to the new index.
+            size_t originalIndex  = 0;
+            size_t targetStride   = 1;
+            size_t originalStride = 1;
+
+            for (ssize_t i = newShape.size() - 1, j = shape.size() - 1; i >= 0; --i)
+            {
+                size_t dimIndex = (index / targetStride) % newShape[i];
+                if (j >= 0 && shape[j] == newShape[i])
+                {
+                    originalIndex += dimIndex * originalStride;
+                    originalStride *= shape[--j + 1];
+                }
+                else if (j >= 0 && shape[j] == 1)
+                {
+                    originalStride *= shape[--j + 1];
+                }
+                targetStride *= newShape[i];
+            }
+
+            // Copy value from original index to the new index.
+            dst[index] = src[originalIndex];
+        }
+    }
+
     virtual void commitAndWait()
     {
     }
@@ -469,6 +498,79 @@ public:
                                         std::to_string(m_size) + " vs " + std::to_string(newSize) + ").");
         }
         return {m_data, m_size, newShape, m_device};
+    }
+
+    // Returns true if two TensorValue shapes are compatible for a broadcast operation.
+    bool checkBroadcastShapes(const Shape& shape1, const Shape& shape2)
+    {
+        auto it1 = shape1.rbegin();
+        auto it2 = shape2.rbegin();
+        while (it1 != shape1.rend() || it2 != shape2.rend())
+        {
+            size_t dim1 = (it1 != shape1.rend()) ? *it1++ : 1;
+            size_t dim2 = (it2 != shape2.rend()) ? *it2++ : 1;
+            if (dim1 != dim2 && dim1 != 1 && dim2 != 1)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Returns final shape of a broadcast operation.
+    Shape broadcastShapes(const Shape& shape1, const Shape& shape2)
+    {
+        Shape result_shape;
+        auto it1 = shape1.rbegin();
+        auto it2 = shape2.rbegin();
+        while (it1 != shape1.rend() || it2 != shape2.rend())
+        {
+            size_t dim1 = (it1 != shape1.rend()) ? *it1++ : 1;
+            size_t dim2 = (it2 != shape2.rend()) ? *it2++ : 1;
+            if (dim1 != dim2 && dim1 != 1 && dim2 != 1)
+            {
+                throw std::invalid_argument("Shapes are not compatible for broadcasting.");
+            }
+            result_shape.push_back(std::max(dim1, dim2));
+        }
+        std::reverse(result_shape.begin(), result_shape.end());
+        return result_shape;
+    }
+
+    bool checkBroadcastTo(const Shape& sourceShape, const Shape& targetShape)
+    {
+        if (sourceShape.size() > targetShape.size()) return false;
+
+        auto itSrc = sourceShape.rbegin();
+        auto itTgt = targetShape.rbegin();
+
+        while (itTgt != targetShape.rend())
+        {
+            size_t dimSrc = (itSrc != sourceShape.rend()) ? *itSrc++ : 1;
+            size_t dimTgt = *itTgt++;
+
+            if (dimSrc != dimTgt && dimSrc != 1)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Returns a broadcasted TensorValue with a new shape.
+    TensorValue broadcastTo(const Shape& newShape)
+    {
+        if (!checkBroadcastTo(shape(), newShape))
+        {
+            throw std::invalid_argument("Target TensorValue shape is not broadcastable.");
+        }
+        Shape resultShape = broadcastShapes(shape(), newShape);
+        TensorValue result(resultShape, device());
+
+        device()->broadcastTo(m_data, result.data(), result.size(), shape(), resultShape);
+
+        return result;
     }
 
     // Operators
@@ -992,6 +1094,13 @@ public:
                                         std::to_string(value().size()) + " vs " + std::to_string(newSize) + ").");
         }
         return Tensor{value().data(), value().size(), newShape, isRequireGrad(), device()};
+    }
+
+    // Returns a broadcasted TensorValue with a new shape.
+    Tensor broadcastTo(const Shape & newShape) const
+    {
+        TensorValue tValue = m_data->m_value.broadcastTo(newShape);
+        return Tensor{tValue.data(), tValue.size(), tValue.shape(), isRequireGrad(), device()};
     }
 
     static void defaultBackward(TensorNode * node, const TensorValue & seed)
