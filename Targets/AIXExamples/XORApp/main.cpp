@@ -53,7 +53,7 @@ int main()
     constexpr int kNumTargets  = 1;
     constexpr int kNumEpochs   = 1000;
     constexpr int kLogInterval = 100;
-    constexpr float kLearningRate  = 0.05f;
+    constexpr float kLearningRate  = 0.02f;
     constexpr float kLossThreshold = 1e-5f;
 
     // Example inputs and targets for demonstration purposes.
