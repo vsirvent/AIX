@@ -101,11 +101,11 @@ TEST_CASE("Model - Save/Load Test")
     std::string testModelFile = "model_save_load_test.pth";
 
     aix::nn::Sequential model1;
-    model1.add(new aix::nn::Linear(kNumInputs, 1000, kNumSamples));
+    model1.add(new aix::nn::Linear(kNumInputs, 1000));
     model1.add(new aix::nn::Tanh());
-    model1.add(new aix::nn::Linear(1000, 500, kNumSamples));
+    model1.add(new aix::nn::Linear(1000, 500));
     model1.add(new aix::nn::Tanh());
-    model1.add(new aix::nn::Linear(500, kNumTargets, kNumSamples));
+    model1.add(new aix::nn::Linear(500, kNumTargets));
 
     // Example inputs and targets for demonstration purposes.
     auto inputs = aix::tensor({0.0, 0.0,
@@ -117,11 +117,11 @@ TEST_CASE("Model - Save/Load Test")
     aix::save(model1, testModelFile);
 
     aix::nn::Sequential model2;
-    model2.add(new aix::nn::Linear(kNumInputs, 1000, kNumSamples));
+    model2.add(new aix::nn::Linear(kNumInputs, 1000));
     model2.add(new aix::nn::Tanh());
-    model2.add(new aix::nn::Linear(1000, 500, kNumSamples));
+    model2.add(new aix::nn::Linear(1000, 500));
     model2.add(new aix::nn::Tanh());
-    model2.add(new aix::nn::Linear(500, kNumTargets, kNumSamples));
+    model2.add(new aix::nn::Linear(500, kNumTargets));
 
     // Load test model1 parameters into model2
     aix::load(model2, testModelFile);

@@ -22,10 +22,10 @@ public:
     Linear() = default;
 
     // Constructor
-    Linear(size_t numInputs, size_t numOutputs, size_t numSamples)
+    Linear(size_t numInputs, size_t numOutputs)
     {
-        m_w1 = aix::randn({numInputs, numOutputs},  true);  // A tensor filled with random numbers in [-1, 1].
-        m_b1 = aix::randn({numSamples, numOutputs}, true);
+        m_w1 = aix::randn({numInputs, numOutputs}, true);   // A tensor filled with random numbers in [-1, 1].
+        m_b1 = aix::randn({1,         numOutputs}, true);
 
         // Register learnable parameters.
         registerParameter(m_w1);
@@ -48,10 +48,10 @@ class NeuralNet : public aix::nn::Module
 {
 public:
     // Constructor
-    NeuralNet(size_t numInputs, size_t numOutputs, size_t numSamples)
+    NeuralNet(size_t numInputs, size_t numOutputs)
     {
-        m_fc1 = Linear(numInputs, 4, numSamples);
-        m_fc2 = Linear(4, numOutputs, numSamples);
+        m_fc1 = Linear(numInputs, 4);
+        m_fc2 = Linear(4, numOutputs);
 
         registerModule(m_fc1);
         registerModule(m_fc2);
@@ -92,7 +92,7 @@ int main()
                                 0.0}, {kNumSamples, kNumTargets});
 
     // Create a model with a single hidden layer.
-    NeuralNet model(kNumInputs, kNumTargets, kNumSamples);
+    NeuralNet model(kNumInputs, kNumTargets);
 
     // Define a loss function and an optimizer.
     aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);

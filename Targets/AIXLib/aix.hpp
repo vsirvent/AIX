@@ -1692,10 +1692,10 @@ public:
     Linear() = default;
 
     // Constructor
-    Linear(size_t numInputs, size_t numOutputs, size_t numSamples)
+    Linear(size_t numInputs, size_t numOutputs)
     {
-        m_w1 = randn({numInputs, numOutputs},  true);  // A tensor filled with random numbers in [-1, 1].
-        m_b1 = randn({numSamples, numOutputs}, true);
+        m_w1 = randn({numInputs, numOutputs}, true);        // A tensor filled with random numbers in [-1, 1].
+        m_b1 = randn({1,         numOutputs}, true);
 
         // Register learnable parameters.
         registerParameter(m_w1);
@@ -1705,7 +1705,6 @@ public:
     // Forward
     Tensor forward(Tensor x) const override
     {
-        // TODO: m_b1 needs to support broadcasting to remove numSamples params from constructor.
         return matmul(x, m_w1) + m_b1;
     }
 

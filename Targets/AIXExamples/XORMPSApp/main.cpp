@@ -29,11 +29,11 @@ int main()
     aix::DeviceMPS  device;       // Use Apple Silicon with Metal.
 
     aix::nn::Sequential  model;
-    model.add(new aix::nn::Linear(kNumInputs, 1000, kNumSamples));
+    model.add(new aix::nn::Linear(kNumInputs, 1000));
     model.add(new aix::nn::Tanh());
-    model.add(new aix::nn::Linear(1000, 500, kNumSamples));
+    model.add(new aix::nn::Linear(1000, 500));
     model.add(new aix::nn::Tanh());
-    model.add(new aix::nn::Linear(500, kNumTargets, kNumSamples));
+    model.add(new aix::nn::Linear(500, kNumTargets));
 
     model.to(device);
 

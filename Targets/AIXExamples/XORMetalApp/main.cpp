@@ -30,11 +30,11 @@ int main()
     auto device = std::unique_ptr<aix::Device>(aix::aixDeviceFactory::CreateDevice(aix::DeviceType::kGPU_METAL));
 
     aix::nn::Sequential model;
-    model.add(new aix::nn::Linear(kNumInputs, 1000, kNumSamples));
+    model.add(new aix::nn::Linear(kNumInputs, 1000));
     model.add(new aix::nn::Tanh());
-    model.add(new aix::nn::Linear(1000, 500, kNumSamples));
+    model.add(new aix::nn::Linear(1000, 500));
     model.add(new aix::nn::Tanh());
-    model.add(new aix::nn::Linear(500, kNumTargets, kNumSamples));
+    model.add(new aix::nn::Linear(500, kNumTargets));
 
     model.to(*device);
 

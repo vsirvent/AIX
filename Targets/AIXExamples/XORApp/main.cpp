@@ -18,13 +18,13 @@ class NeuralNet : public aix::nn::Module
 {
 public:
     // Constructor
-    NeuralNet(size_t numInputs, size_t numOutputs, size_t numSamples)
+    NeuralNet(size_t numInputs, size_t numOutputs)
     {
         constexpr size_t hlSize = 4;      // Hidden layer size.
         m_w1 = aix::randn({numInputs,  hlSize},     true);
-        m_b1 = aix::randn({numSamples, hlSize},     true);
+        m_b1 = aix::randn({1,          hlSize},     true);
         m_w2 = aix::randn({hlSize,     numOutputs}, true);
-        m_b2 = aix::randn({numSamples, numOutputs}, true);
+        m_b2 = aix::randn({1,          numOutputs}, true);
 
         // Register learnable parameters.
         registerParameter(m_w1);
@@ -68,7 +68,7 @@ int main()
                                 0.0}, {kNumSamples, kNumTargets});
 
     // Create a model with a single hidden layer.
-    NeuralNet model(kNumInputs, kNumTargets, kNumSamples);
+    NeuralNet model(kNumInputs, kNumTargets);
 
     // Define a loss function and an optimizer.
     aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);
