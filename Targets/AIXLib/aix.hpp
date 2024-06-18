@@ -289,9 +289,11 @@ public:
 
     virtual void reduceTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
     {
+        // Sum the values from the broadcasted tensor to the original tensor shape. The reduction involves summation
+        // because each element of the original tensor is used multiple times in the broadcasted operation.
+        // Summing the gradients correctly aggregates these contributions.
         for (size_t index = 0; index < size; ++index)
         {
-            // Sum the values from the broadcasted tensor to the original tensor shape
             dst[translationIndex(index, shape, newShape)] += src[index];
         }
     }
