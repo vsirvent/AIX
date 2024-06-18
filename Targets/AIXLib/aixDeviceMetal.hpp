@@ -131,9 +131,7 @@ protected:
 
     MTL::Buffer* newBufferWithAddress(const void* address, size_t size);
 
-    MTL::Buffer* getReadOnlyMTLBuffer(const DataType * address, size_t size);
-
-    MTL::Buffer* getReadOnlyMTLBuffer(const size_t * address, size_t size);
+    MTL::Buffer* getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType);
 
     void freeTemporaryBuffer(MTL::Buffer * buffer);
 

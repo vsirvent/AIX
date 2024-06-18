@@ -184,7 +184,7 @@ void DeviceMetal::sum(const DataType * a, const size_t size, DataType & result)
     size_t maxThreadsPerTG = std::min<size_t>(MAX_THREADS_PER_THREADGROUP,
                                               m_compFuncPSOSum->maxTotalThreadsPerThreadgroup());
 
-    auto buf1      = getReadOnlyMTLBuffer(a, size);
+    auto buf1      = getReadOnlyMTLBuffer(a, size, sizeof(DataType));
     auto bufResult = newBuffer((1 + size / maxThreadsPerTG) * sizeof(DataType));
     auto bufRec = buf1;     // Recursive data buffer pointer.
 
@@ -251,8 +251,9 @@ void DeviceMetal::matmul(const DataType * a1, const Shape & s1, const DataType *
     if (m_allocMap.find(result) == m_allocMap.end())
         throw std::invalid_argument("DeviceMetal::matmul() result must have GPU memory.");
 
-    auto buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1]);  // Memory could be a GPU allocated memory or system memory.
-    auto buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1]);  // Memory could be a GPU allocated memory or system memory.
+    // Memory could be a GPU allocated memory or system memory.
+    auto buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1], sizeof(DataType));
+    auto buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1], sizeof(DataType));
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
@@ -273,7 +274,7 @@ void DeviceMetal::transpose(const DataType * mat, const Shape & shape, DataType 
         throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1]);
+    auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1], sizeof(DataType));
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
@@ -293,7 +294,7 @@ void DeviceMetal::copy(const DataType * src, DataType * dst, size_t size)
         throw std::invalid_argument("DeviceMetal::copy() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto buf1 = getReadOnlyMTLBuffer(src, size);
+    auto buf1 = getReadOnlyMTLBuffer(src, size, sizeof(DataType));
     auto bufResult = m_allocMap[dst];
 
     // Calculate maximum thread group dimensions
@@ -325,9 +326,9 @@ void DeviceMetal::broadcastTo(const DataType* src, DataType* dst, size_t size, c
     assert(srcBufSize > 0);
 
     // Memory could be a GPU allocated memory or system memory.
-    auto bufSrc    = getReadOnlyMTLBuffer(src,             srcBufSize);
-    auto bufShape1 = getReadOnlyMTLBuffer(shape.data(),    shapeSize);
-    auto bufShape2 = getReadOnlyMTLBuffer(newShape.data(), newShapeSize);
+    auto bufSrc    = getReadOnlyMTLBuffer(src,             srcBufSize,   sizeof(DataType));
+    auto bufShape1 = getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t));
+    auto bufShape2 = getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t));
     auto bufDst    = m_allocMap[dst];
 
     if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
@@ -403,26 +404,13 @@ MTL::Buffer* DeviceMetal::newBufferWithAddress(const void* address, size_t size)
 }
 
 
-MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const DataType * address, size_t size)
+MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType)
 {
     // Memory could be from other devices. Create a temporary buffer for read only case.
     if (m_allocMap.find(address) == m_allocMap.end())
     {
         size = align(size, ALIGNMENT_SIZE);
-        return newBufferWithAddress(address, size * sizeof(DataType));
-    }
-
-    return m_allocMap[address];    // Return MTL Buffer if the memory is from the current device.
-}
-
-
-MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const size_t * address, size_t size)
-{
-    // Memory could be from other devices. Create a temporary buffer for read only case.
-    if (m_allocMap.find(address) == m_allocMap.end())
-    {
-        size = align(size, ALIGNMENT_SIZE);
-        return newBufferWithAddress(address, size * sizeof(size_t));
+        return newBufferWithAddress(address, size * sizeofType);
     }
 
     return m_allocMap[address];    // Return MTL Buffer if the memory is from the current device.
@@ -586,7 +574,7 @@ void DeviceMetal::executeArrayScalarCmd(const DataType * a,
         throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
     // Set constants
-    auto buf1      = a ? getReadOnlyMTLBuffer(a, size) : nullptr;
+    auto buf1      = a ? getReadOnlyMTLBuffer(a, size, sizeof(DataType)) : nullptr;
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
@@ -615,8 +603,9 @@ void DeviceMetal::executeDoubleArrayCmd(const DataType * a1,
     if (m_allocMap.find(result) == m_allocMap.end())
         throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
-    auto buf1 = getReadOnlyMTLBuffer(a1, size);   // Memory could be a GPU allocated memory or system memory.
-    auto buf2 = getReadOnlyMTLBuffer(a2, size);   // Memory could be a GPU allocated memory or system memory.
+    // Memory could be a GPU allocated memory or system memory.
+    auto buf1 = getReadOnlyMTLBuffer(a1, size, sizeof(DataType));
+    auto buf2 = getReadOnlyMTLBuffer(a2, size, sizeof(DataType));
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
