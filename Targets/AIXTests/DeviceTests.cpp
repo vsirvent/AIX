@@ -680,6 +680,52 @@ bool testFill(Device* testDevice, size_t n)
 }
 
 
+bool testBroadcastTo(Device* testDevice)
+{
+    auto createRandomShape = []() -> aix::Shape
+    {
+        std::uniform_int_distribution<size_t> distr(1, 5);
+        Shape shape;
+        auto n = distr(randGen);
+        for (size_t i=0; i<n; i++)
+        {
+            shape.emplace_back(distr(randGen));
+        }
+        return shape;
+    };
+
+    auto shape    = createRandomShape();
+    auto newShape = createRandomShape();
+    // Skip this test if the two random shapes cannot be broadcasted.
+    if (!TensorValue::checkBroadcastShapes(shape, newShape)) return true;
+
+    aix::Device  refDevice;     // Reference/CPU device.
+
+    auto srcTensor    = aix::randn(shape);
+    auto cpuResult    = aix::TensorValue(newShape, &refDevice);
+    auto deviceResult = aix::TensorValue(newShape, testDevice);
+
+    refDevice.broadcastTo(srcTensor.value().data(), cpuResult.data(), cpuResult.size(), shape, newShape);
+    testDevice->broadcastTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape);
+    testDevice->commitAndWait();
+
+    // Compare results with the true/reference results
+    if (!verifyResults(cpuResult, deviceResult))
+    {
+#ifdef DEBUG_LOG
+        std::cout << "----------------------" << std::endl;
+        printMatrix2D("Array1 ", array1.value());
+        printMatrix2D("Array2 ", array2.value());
+        printMatrix2D("Expected Result", cpuResult);
+        printMatrix2D("Device Result", deviceResult);
+#endif
+        return false;
+    }
+
+    return true;
+}
+
+
 TEST_CASE("Device Tests - Add")
 {
     // For each available devices, tests add operation.
@@ -1284,6 +1330,35 @@ TEST_CASE("Device Tests - Fill")
         for (auto size: testSizes)
         {
             CHECK(testFill(device, size));
+        }
+        delete device;
+    }
+}
+
+
+TEST_CASE("Device Tests - broadcastTo")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aixDeviceFactory::CreateDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+        delete device;
+
+        // Create a new device per test
+        for (size_t i=0; i<100; ++i)
+        {
+            device = aixDeviceFactory::CreateDevice(deviceType);
+            CHECK(testBroadcastTo(device));
+            delete device;
+        }
+
+        // Use the same device per test
+        device = aixDeviceFactory::CreateDevice(deviceType);
+        for (size_t i=0; i<100; ++i)
+        {
+            CHECK(testBroadcastTo(device));
         }
         delete device;
     }

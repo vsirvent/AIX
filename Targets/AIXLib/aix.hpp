@@ -518,7 +518,7 @@ public:
     }
 
     // Returns true if two TensorValue shapes are compatible for a broadcast operation.
-    bool checkBroadcastShapes(const Shape& shape1, const Shape& shape2)
+    static bool checkBroadcastShapes(const Shape& shape1, const Shape& shape2)
     {
         auto it1 = shape1.rbegin();
         auto it2 = shape2.rbegin();

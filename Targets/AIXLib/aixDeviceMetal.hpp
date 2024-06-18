@@ -133,6 +133,8 @@ protected:
 
     MTL::Buffer* getReadOnlyMTLBuffer(const DataType * address, size_t size);
 
+    MTL::Buffer* getReadOnlyMTLBuffer(const size_t * address, size_t size);
+
     void freeTemporaryBuffer(MTL::Buffer * buffer);
 
     MTL::Library* createLibrary(const char* shaders);
@@ -210,6 +212,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_S_A{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo{nullptr};
     std::vector<MTL::Buffer*>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     size_t   m_currentBatchSize{0};

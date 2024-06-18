@@ -364,6 +364,42 @@ kernel void sum_a(device const T* inA,
 }
 
 
+// -----------------------------------------------------------------
+// BroadcastTo - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2>
+kernel void broadcastTo(device const T* src,
+                        device       T* dst,
+                        device const T2* shape,
+                        device const T2* newShape,
+                        constant T2& shapeSize,
+                        constant T2& newShapeSize,
+                        uint gid [[thread_position_in_grid]])
+{
+    size_t index          = gid;
+    size_t originalIndex  = 0;
+    size_t targetStride   = 1;
+    size_t originalStride = 1;
+
+    for (int64_t i = newShapeSize - 1, j = shapeSize - 1; i >= 0; --i)
+    {
+        size_t dimIndex = (index / targetStride) % newShape[i];
+        if (j >= 0 && shape[j] == newShape[i])
+        {
+            originalIndex += dimIndex * originalStride;
+            originalStride *= shape[--j + 1];
+        }
+        else if (j >= 0 && shape[j] == 1)
+        {
+            originalStride *= shape[--j + 1];
+        }
+        targetStride *= newShape[i];
+    }
+
+    dst[index] = src[originalIndex];
+}
+
+
 // Templates
 
 
@@ -531,6 +567,16 @@ kernel void copy_s_a(device const float4*,
                      constant MatrixSize&,
                      device float4*,
                      uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("broadcastTo_float") ]]
+kernel void broadcastTo(device const float* src,
+                       device        float* dst,
+                       device const size_t* shape,
+                       device const size_t* newShape,
+                       constant size_t& shapeSize,
+                       constant size_t& newShapeSize,
+                       uint gid [[thread_position_in_grid]]);
 
 )";
 
