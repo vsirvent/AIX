@@ -47,23 +47,6 @@ bool verifyResults(const aix::TensorValue & tv1, const aix::TensorValue & tv2, f
 }
 
 
-void printMatrix2D(const std::string & label, const aix::TensorValue & tv)
-{
-    auto shape = tv.shape();
-    std::cout << label << std::endl;
-    std::cout << "Matrix " << shape[0] << "x" << shape[1] << "\n";
-    for (size_t i = 0; i < shape[0]; ++i)
-    {
-        for (size_t j = 0; j < shape[1]; ++j)
-        {
-            std::cout << tv.data()[i * shape[1] + j] << ' ';
-        }
-        std::cout << '\n';
-    }
-    std::cout << '\n';
-}
-
-
 bool testAdd(Device* testDevice, size_t n)
 {
     aix::Device  refDevice;     // Reference/CPU device.
@@ -82,10 +65,10 @@ bool testAdd(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Array2 ", array2.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Array2" << std::endl << array2.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -112,10 +95,10 @@ bool testSub(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Array2 ", array2.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Array2" << std::endl << array2.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -142,10 +125,10 @@ bool testAdd_A_S(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
         std::cout << "Scalar " << scalar << std::endl;
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -172,10 +155,10 @@ bool testAdd_S_A(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
         std::cout << "Scalar " << scalar << std::endl;
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -201,11 +184,10 @@ bool testMul_A_S(Device* testDevice, size_t n)
     if (!verifyResults(cpuResult, deviceResult))
     {
         #ifdef DEBUG_LOG
-        std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
         std::cout << "Scalar " << scalar << std::endl;
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -231,11 +213,10 @@ bool testDiv_A_S(Device* testDevice, size_t n)
     if (!verifyResults(cpuResult, deviceResult))
     {
         #ifdef DEBUG_LOG
-        std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
         std::cout << "Scalar " << scalar << std::endl;
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -261,11 +242,10 @@ bool testDiv_S_A(Device* testDevice, size_t n)
     if (!verifyResults(cpuResult, deviceResult))
     {
         #ifdef DEBUG_LOG
-        std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
         std::cout << "Scalar " << scalar << std::endl;
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -291,9 +271,9 @@ bool testUnary(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -319,9 +299,9 @@ bool testSqrt(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -347,9 +327,9 @@ bool testSin(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -375,9 +355,9 @@ bool testCos(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -403,9 +383,9 @@ bool testTanh(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -431,9 +411,9 @@ bool testLog(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -459,9 +439,9 @@ bool testExp(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -518,10 +498,10 @@ bool testMul(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Array2 ", array2.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Array2" << std::endl << array2.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -548,10 +528,10 @@ bool testDiv(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Array2 ", array2.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device result", deviceResult);
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Array2" << std::endl << array2.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -584,10 +564,10 @@ bool testMatMul(Device* testDevice, size_t n, size_t inner, size_t m)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("MatA ", matA.value());
-        printMatrix2D("MatB ", matB.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device result", deviceResult);
+        std::cout << "MatA" << std::endl << matA.value() << std::endl;
+        std::cout << "MatB" << std::endl << matB.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -613,9 +593,9 @@ bool testTranspose(Device* testDevice, size_t n, size_t m)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Mat ", mat.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device result", deviceResult);
+        std::cout << "Mat" << std::endl << mat.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -641,9 +621,9 @@ bool testCopy(Device* testDevice, size_t n)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Src", src.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Source" << std::endl << src.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -670,8 +650,8 @@ bool testFill(Device* testDevice, size_t n)
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
         std::cout << "Scalar: " << scalar << std::endl;
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
         return false;
     }
@@ -712,13 +692,12 @@ bool testBroadcastTo(Device* testDevice)
     // Compare results with the true/reference results
     if (!verifyResults(cpuResult, deviceResult))
     {
-#ifdef DEBUG_LOG
+        #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        printMatrix2D("Array1 ", array1.value());
-        printMatrix2D("Array2 ", array2.value());
-        printMatrix2D("Expected Result", cpuResult);
-        printMatrix2D("Device Result", deviceResult);
-#endif
+        std::cout << "Source" << std::endl << srcTensor << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+        #endif
         return false;
     }
 
