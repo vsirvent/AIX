@@ -1663,8 +1663,6 @@ private:
 class Sequential : public Module
 {
 public:
-    Sequential() = default;
-
     // Override the forward function.
     Tensor forward(Tensor x) const override
     {
@@ -1691,8 +1689,6 @@ protected:
 class Linear : public Module
 {
 public:
-    Linear() = default;
-
     // Constructor
     Linear(size_t numInputs, size_t numOutputs)
     {
