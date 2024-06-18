@@ -11,6 +11,7 @@ Key features include:
 - Auto differentiation
 - Dynamic computation graphs
 - Multi-dimension tensor support
+- Auto tensor shape alignment (broadcasting)
 - Comprehensive built-in neural network layers and functions
 - Plug-and-play hardware acceleration
 - Extensible API for custom operations and layers
@@ -41,7 +42,7 @@ int main()
     constexpr int   kNumInputs     = 2;
     constexpr int   kNumTargets    = 1;
     constexpr int   kNumEpochs     = 1000;
-    constexpr float kLearningRate  = 0.05f;
+    constexpr float kLearningRate  = 0.02f;
     constexpr float kLossThreshold = 1e-5f;
 
     // Create a device that uses Apple Metal for GPU computations.
@@ -49,11 +50,11 @@ int main()
 
     // Create a model.
     aix::nn::Sequential  model;
-    model.add(new aix::nn::Linear(kNumInputs, 8, kNumSamples));
+    model.add(new aix::nn::Linear(kNumInputs, 8));
     model.add(new aix::nn::Tanh());
-    model.add(new aix::nn::Linear(8, 4, kNumSamples));
+    model.add(new aix::nn::Linear(8, 4));
     model.add(new aix::nn::Tanh());
-    model.add(new aix::nn::Linear(4, kNumTargets, kNumSamples));
+    model.add(new aix::nn::Linear(4, kNumTargets));
 
     model.to(*device);      // Move the model to the device.
 
@@ -95,6 +96,7 @@ int main()
     auto predictions = model.forward(inputs);
     device->commitAndWait();
 
+    std::cout << predictions << std::endl;
     // ...
 }
 ```
