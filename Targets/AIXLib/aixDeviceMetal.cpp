@@ -310,7 +310,7 @@ void DeviceMetal::copy(const DataType * src, DataType * dst, size_t size)
     freeTemporaryBuffer(buf1);
 }
 
-void DeviceMetal::copy_immediate(const DataType* src, DataType* dst, size_t size)
+void DeviceMetal::copyImmediate(const DataType* src, DataType* dst, size_t size)
 {
     copy(src, dst, size);
     commitAndWait();

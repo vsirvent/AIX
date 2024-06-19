@@ -112,7 +112,7 @@ public:
 
     void copy(const DataType * src, DataType * dst, size_t size) override;
 
-    void copy_immediate(const DataType* src, DataType* dst, size_t size) override;
+    void copyImmediate(const DataType* src, DataType* dst, size_t size) override;
 
     void broadcastTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape) override;
 

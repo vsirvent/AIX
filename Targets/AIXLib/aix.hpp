@@ -273,7 +273,7 @@ public:
         std::memcpy(dst, src, size * sizeof(DataType));
     }
 
-    virtual void copy_immediate(const DataType* src, DataType* dst, size_t size)
+    virtual void copyImmediate(const DataType* src, DataType* dst, size_t size)
     {
         std::memcpy(dst, src, size * sizeof(DataType));
     }
@@ -343,7 +343,7 @@ public:
     TensorValue(const DataType* data, size_t size, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
         m_data = static_cast<DataType*>(device->allocate(size * sizeof(DeviceType)));
-        device->copy_immediate(data, m_data, size);
+        device->copyImmediate(data, m_data, size);
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
@@ -353,7 +353,7 @@ public:
     TensorValue(const std::vector<DataType> & data, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
         m_data = static_cast<DataType*>(device->allocate(data.size() * sizeof(DeviceType)));
-        device->copy_immediate(data.data(), m_data, data.size());
+        device->copyImmediate(data.data(), m_data, data.size());
         m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
@@ -405,7 +405,7 @@ public:
         m_strides = other.m_strides;
         m_device = other.m_device;
         m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
-        m_device->copy_immediate(other.m_data, m_data, other.m_size);
+        m_device->copyImmediate(other.m_data, m_data, other.m_size);
     }
 
     // Copy assignment operator
@@ -419,7 +419,7 @@ public:
             m_strides = other.m_strides;
             m_device = other.m_device;
             m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
-            m_device->copy_immediate(other.m_data, m_data, other.m_size);
+            m_device->copyImmediate(other.m_data, m_data, other.m_size);
         }
 
         return *this;
@@ -488,7 +488,7 @@ public:
         // Create a new array from the new device.
         auto newData = static_cast<DataType*>(device->allocate(m_size * sizeof(DeviceType)));
         // Copy old data to the new array.
-        device->copy_immediate(m_data, newData, m_size);
+        device->copyImmediate(m_data, newData, m_size);
         // Delete old data from old device.
         m_device->deallocate(m_data);
         // Set new data and the new device.
@@ -537,7 +537,7 @@ public:
     // Returns final shape of a broadcast operation.
     Shape broadcastShapes(const Shape& shape1, const Shape& shape2)
     {
-        Shape result_shape;
+        Shape resultShape;
         auto it1 = shape1.rbegin();
         auto it2 = shape2.rbegin();
         while (it1 != shape1.rend() || it2 != shape2.rend())
@@ -548,10 +548,10 @@ public:
             {
                 throw std::invalid_argument("Shapes are not compatible for broadcasting.");
             }
-            result_shape.push_back(std::max(dim1, dim2));
+            resultShape.push_back(std::max(dim1, dim2));
         }
-        std::reverse(result_shape.begin(), result_shape.end());
-        return result_shape;
+        std::reverse(resultShape.begin(), resultShape.end());
+        return resultShape;
     }
 
     static bool checkBroadcastTo(const Shape& sourceShape, const Shape& targetShape)
