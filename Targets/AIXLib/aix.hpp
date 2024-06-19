@@ -593,7 +593,8 @@ public:
     // Reduces the TensorValue back to the original shape.
     TensorValue reduceTo(const Shape & originalShape) const
     {
-        TensorValue result(originalShape, device());
+        // Ensure gradients are initialized to zero, as the reduction operation performs a summation.
+        TensorValue result(0, originalShape, device());
 
         device()->reduceTo(m_data, result.data(), m_size, m_shape, originalShape);
 
