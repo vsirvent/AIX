@@ -90,9 +90,9 @@ public:
 
     void fill(DataType scalar, const size_t size, DataType * result) override;
 
-    void sum(const DataType * a, const size_t size, DataType & result) override;
+    void sum(const DataType * a, const size_t size, DataType* result) override;
 
-    void mean(const DataType * a, const size_t size, DataType & result) override;
+    void mean(const DataType * a, const size_t size, DataType* result) override;
 
     void sqrt(const DataType * a, const size_t size, DataType * result) override;
 

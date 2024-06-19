@@ -470,11 +470,11 @@ bool testMean(Device* testDevice, size_t n)
     aix::Device  refDevice;     // Reference/CPU device.
 
     auto array1 = aix::randn({1, n});
-    float cpuResult    = 0;
-    float deviceResult = 0;
+    DataType cpuResult    = 0;
+    DataType deviceResult = 0;
 
-    refDevice.mean(array1.value().data(), n, cpuResult);
-    testDevice->mean(array1.value().data(), n, deviceResult);
+    refDevice.mean(array1.value().data(), n, &cpuResult);
+    testDevice->mean(array1.value().data(), n, &deviceResult);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results

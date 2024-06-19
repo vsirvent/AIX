@@ -110,13 +110,13 @@ public:
         mps::copy_s_a(m_mpsDevice, scalar, size, result);
     }
 
-    void sum(const DataType * a, const size_t size, DataType & result) override
+    void sum(const DataType * a, const size_t size, DataType* result) override
     {
         // TODO: Add GPU support for the following device methods.
         Device::sum(a, size, result);
     }
 
-    void mean(const DataType * a, const size_t size, DataType & result) override
+    void mean(const DataType * a, const size_t size, DataType* result) override
     {
         // TODO: Add GPU support for the following device methods.
         Device::mean(a, size, result);

@@ -173,7 +173,7 @@ void DeviceMetal::fill(DataType scalar, const size_t size, DataType * result)
     executeArrayScalarCmd(nullptr, scalar, size, result, m_compFuncPSOCopy_S_A, "copy");
 }
 
-void DeviceMetal::sum(const DataType * a, const size_t size, DataType & result)
+void DeviceMetal::sum(const DataType * a, const size_t size, DataType* result)
 {
     // If the array size is small enough, just use the Device::sum(), CPU, which is faster.
     if (size < MIN_BUFFER_SIZE_TO_CPU_FALLBACK)
@@ -207,14 +207,14 @@ void DeviceMetal::sum(const DataType * a, const size_t size, DataType & result)
     freeTemporaryBuffer(buf1);
     commitAndWait();
 
-    result = static_cast<DataType*>(bufResult->contents())[0];  // Read the final result.
+    *result = static_cast<DataType*>(bufResult->contents())[0];  // Read the final result.
     bufResult->release();       // Release temporary buffer.
 }
 
-void DeviceMetal::mean(const DataType * a, const size_t size, DataType & result)
+void DeviceMetal::mean(const DataType * a, const size_t size, DataType* result)
 {
     sum(a, size, result);
-    result /= DataType(size);
+    *result /= DataType(size);
 }
 
 void DeviceMetal::sqrt(const DataType * a, const size_t size, DataType * result)

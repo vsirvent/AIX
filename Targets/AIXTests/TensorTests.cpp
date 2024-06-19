@@ -336,7 +336,7 @@ TEST_CASE("TensorValue - Sum")
 {
     auto x = TensorValue({-1, 2.2, 0, 4.8}, {2, 2}, &testDevice);
 
-    CHECK(x.sum() == Approx(6));
+    CHECK(x.sum().item() == Approx(6));
 }
 
 
@@ -344,7 +344,7 @@ TEST_CASE("TensorValue - Mean")
 {
     auto x = TensorValue({1, 2, 3, 4}, {2, 2}, &testDevice);
 
-    CHECK(x.mean() == Approx(2.5));
+    CHECK(x.mean().item() == Approx(2.5));
 }
 
 

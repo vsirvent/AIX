@@ -165,24 +165,24 @@ public:
         }
     }
 
-    virtual void sum(const DataType* a, const size_t size, DataType & result)
+    virtual void sum(const DataType* a, const size_t size, DataType* result)
     {
         DataType sum = 0;
         for (size_t i = 0; i < size; ++i)
         {
             sum += a[i];
         }
-        result = sum;
+        *result = sum;
     }
 
-    virtual void mean(const DataType* a, const size_t size, DataType & result)
+    virtual void mean(const DataType* a, const size_t size, DataType* result)
     {
         DataType sum = 0;
         for (size_t i = 0; i < size; ++i)
         {
             sum += a[i];
         }
-        result = sum / static_cast<DataType>(size);
+        *result = sum / static_cast<DataType>(size);
     }
 
     virtual void sqrt(const DataType* a, const size_t size, DataType* result)
@@ -801,19 +801,17 @@ public:
         m_device->fill(value, m_size, m_data);
     }
 
-    DataType sum() const
+    TensorValue sum() const
     {
-        if (m_size == 0) return 0;
-        DataType result;
-        m_device->sum(m_data, m_size, result);
+        TensorValue result({}, device());
+        m_device->sum(m_data, m_size, result.data());
         return result;
     }
 
-    DataType mean() const
+    TensorValue mean() const
     {
-        if (m_size == 0) return 0;
-        DataType result;
-        m_device->mean(m_data, m_size, result);
+        TensorValue result({}, device());
+        m_device->mean(m_data, m_size, result.data());
         return result;
     }
 
@@ -1403,7 +1401,7 @@ public:
     Tensor sum() const
     {
         Tensor result({}, isRequireGrad(), device());     // Scalar tensor for the mean result.
-        result.m_data->m_value = TensorValue(m_data->m_value.sum(), {}, device());
+        result.m_data->m_value = m_data->m_value.sum();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = sumBackwardFunc;
         return result;
@@ -1412,7 +1410,7 @@ public:
     Tensor mean() const
     {
         Tensor result({}, isRequireGrad(), device());     // Scalar tensor for the mean result.
-        result.m_data->m_value = TensorValue(m_data->m_value.mean(), {}, device());
+        result.m_data->m_value = m_data->m_value.mean();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = meanBackwardFunc;
         return result;
