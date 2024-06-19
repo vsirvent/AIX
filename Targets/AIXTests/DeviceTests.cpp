@@ -55,7 +55,7 @@ aix::Shape createRandomShape(ssize_t min, ssize_t max)
     auto n = distr_int(randGen);
     for (size_t i=0; i<n; i++)
     {
-        shape.emplace_back(distr(randGen));
+        shape.emplace_back(distr_int(randGen));
     }
 
     return shape;
