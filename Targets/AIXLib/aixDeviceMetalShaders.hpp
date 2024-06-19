@@ -365,18 +365,11 @@ kernel void sum_a(device const T* inA,
 
 
 // -----------------------------------------------------------------
-// BroadcastTo - Naive Implementation
+// TranslationIndex
 // -----------------------------------------------------------------
-template<typename T, typename T2>
-kernel void broadcastTo(device const T* src,
-                        device       T* dst,
-                        device const T2* shape,
-                        device const T2* newShape,
-                        constant T2& shapeSize,
-                        constant T2& newShapeSize,
-                        uint gid [[thread_position_in_grid]])
+size_t translationIndex(size_t index, device const size_t* shape, device const size_t* newShape,
+                        size_t shapeSize, size_t newShapeSize)
 {
-    size_t index          = gid;
     size_t originalIndex  = 0;
     size_t targetStride   = 1;
     size_t originalStride = 1;
@@ -396,7 +389,41 @@ kernel void broadcastTo(device const T* src,
         targetStride *= newShape[i];
     }
 
+    return originalIndex;
+}
+
+
+// -----------------------------------------------------------------
+// BroadcastTo - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2>
+kernel void broadcastTo(device const T* src,
+                        device       T* dst,
+                        device const T2* shape,
+                        device const T2* newShape,
+                        constant T2& shapeSize,
+                        constant T2& newShapeSize,
+                        uint index [[thread_position_in_grid]])
+{
+    size_t originalIndex = translationIndex(index, shape, newShape, shapeSize, newShapeSize);
     dst[index] = src[originalIndex];
+}
+
+
+// -----------------------------------------------------------------
+// ReduceTo - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2>
+kernel void reduceTo(device const T* src,
+                     device       T* dst,
+                     device const T2* shape,
+                     device const T2* newShape,
+                     constant T2& shapeSize,
+                     constant T2& newShapeSize,
+                     uint index [[thread_position_in_grid]])
+{
+    size_t originalIndex = translationIndex(index, shape, newShape, shapeSize, newShapeSize);
+    atomic_fetch_add_explicit((device atomic_float*)&(dst[originalIndex]), src[index], memory_order_relaxed);
 }
 
 
@@ -576,7 +603,17 @@ kernel void broadcastTo(device const float* src,
                        device const size_t* newShape,
                        constant size_t& shapeSize,
                        constant size_t& newShapeSize,
-                       uint gid [[thread_position_in_grid]]);
+                       uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("reduceTo_float") ]]
+kernel void reduceTo(device const float* src,
+                     device       float* dst,
+                     device const size_t* shape,
+                     device const size_t* newShape,
+                     constant size_t& shapeSize,
+                     constant size_t& newShapeSize,
+                     uint index [[thread_position_in_grid]]);
 
 )";
 

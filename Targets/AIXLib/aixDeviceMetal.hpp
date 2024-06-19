@@ -185,6 +185,10 @@ protected:
                                const MTL::ComputePipelineState* compFuncPSO,
                                const std::string & cmdName);
 
+    // Common method for broadcastTo and reduceTo methods.
+    void translation(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape,
+                     const MTL::ComputePipelineState *computePSO, const std::string & name);
+
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
     MTL::CommandQueue*     m_cmdQueue{nullptr};
@@ -211,6 +215,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_S_A{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOReduceTo{nullptr};
     std::vector<MTL::Buffer*>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     size_t   m_currentBatchSize{0};

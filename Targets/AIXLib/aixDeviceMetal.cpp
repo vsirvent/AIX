@@ -51,6 +51,7 @@ DeviceMetal::DeviceMetal()
         m_compFuncPSOCopy_A_A     = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
         m_compFuncPSOCopy_S_A     = createComputeFuncPSO(defaultLibrary, "copy_s_a_float");
         m_compFuncPSOBroadcastTo  = createComputeFuncPSO(defaultLibrary, "broadcastTo_float");
+        m_compFuncPSOReduceTo     = createComputeFuncPSO(defaultLibrary, "reduceTo_float");
     }
     else
         throw std::invalid_argument("Metal device supports only float data type for now.");
@@ -84,6 +85,7 @@ DeviceMetal::~DeviceMetal()
     m_compFuncPSOCopy_A_A->release();
     m_compFuncPSOCopy_S_A->release();
     m_compFuncPSOBroadcastTo->release();
+    m_compFuncPSOReduceTo->release();
     m_mtlDevice->release();
     // No need to release MTL Buffer objects in m_allocMap.
     m_pool->release();
@@ -316,49 +318,14 @@ void DeviceMetal::copy_immediate(const DataType* src, DataType* dst, size_t size
 
 void DeviceMetal::broadcastTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
 {
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(dst) == m_allocMap.end())
-        throw std::invalid_argument("DeviceMetal::broadcastTo() result must have GPU memory.");
-
-    size_t shapeSize    = shape.size();
-    size_t newShapeSize = newShape.size();
-    size_t srcBufSize   = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
-    assert(srcBufSize > 0);
-
-    // Memory could be a GPU allocated memory or system memory.
-    auto bufSrc    = getReadOnlyMTLBuffer(src,             srcBufSize,   sizeof(DataType));
-    auto bufShape1 = getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t));
-    auto bufShape2 = getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t));
-    auto bufDst    = m_allocMap[dst];
-
-    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
-    // Serialize resource and states to be called by GPU
-    m_compEncoder->setComputePipelineState(m_compFuncPSOBroadcastTo);
-    m_compEncoder->setBuffer(bufSrc,    0, 0);
-    m_compEncoder->setBuffer(bufDst,    0, 1);
-    m_compEncoder->setBuffer(bufShape1, 0, 2);
-    m_compEncoder->setBuffer(bufShape2, 0, 3);
-    m_compEncoder->setBytes(&shapeSize,    sizeof(shapeSize),    4);
-    m_compEncoder->setBytes(&newShapeSize, sizeof(newShapeSize), 5);
-
-    // Calculate maximum thread group dimensions
-    NS::UInteger w = std::min(size, m_compFuncPSOBroadcastTo->maxTotalThreadsPerThreadgroup());
-
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
-
-    m_currentBatchSize++;
-    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
-
-    freeTemporaryBuffer(bufSrc);
-    freeTemporaryBuffer(bufShape1);
-    freeTemporaryBuffer(bufShape2);
+    translation(src, dst, size, shape, newShape, m_compFuncPSOBroadcastTo, "broadcastTo");
 }
 
 void DeviceMetal::reduceTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
 {
-    commitAndWait();
-    Device::reduceTo(src, dst, size, shape, newShape);
+    translation(src, dst, size, shape, newShape, m_compFuncPSOReduceTo, "reduceTo");
+    // NOTE: The ReduceTo function performs a sum operation. The order of these operations by GPU threads is not
+    // guaranteed, which might result in minor differences in the final results due to floating-point precision limits.
 }
 
 void DeviceMetal::commitAndWait()
@@ -619,6 +586,48 @@ void DeviceMetal::executeDoubleArrayCmd(const DataType * a1,
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
     // Note: We never release result buffer since it will be used.
+}
+
+void DeviceMetal::translation(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape,
+                              const MTL::ComputePipelineState *computePSO, const std::string & name)
+{
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (m_allocMap.find(dst) == m_allocMap.end())
+        throw std::invalid_argument("DeviceMetal::" + name + "() result must have GPU memory.");
+
+    size_t shapeSize    = shape.size();
+    size_t newShapeSize = newShape.size();
+    size_t srcBufSize   = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
+    assert(srcBufSize > 0);
+
+    // Memory could be a GPU allocated memory or system memory.
+    auto bufSrc    = getReadOnlyMTLBuffer(src,             srcBufSize,   sizeof(DataType));
+    auto bufShape1 = getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t));
+    auto bufShape2 = getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t));
+    auto bufDst    = m_allocMap[dst];
+
+    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
+    // Serialize resources and states to be used by the GPU.
+    m_compEncoder->setComputePipelineState(computePSO);
+    m_compEncoder->setBuffer(bufSrc,    0, 0);
+    m_compEncoder->setBuffer(bufDst,    0, 1);
+    m_compEncoder->setBuffer(bufShape1, 0, 2);
+    m_compEncoder->setBuffer(bufShape2, 0, 3);
+    m_compEncoder->setBytes(&shapeSize,    sizeof(shapeSize),    4);
+    m_compEncoder->setBytes(&newShapeSize, sizeof(newShapeSize), 5);
+
+    // Calculate maximum thread group dimensions
+    NS::UInteger w = std::min(size, computePSO->maxTotalThreadsPerThreadgroup());
+
+    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+    m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
+
+    m_currentBatchSize++;
+    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
+
+    freeTemporaryBuffer(bufSrc);
+    freeTemporaryBuffer(bufShape1);
+    freeTemporaryBuffer(bufShape2);
 }
 
 }   // namespace

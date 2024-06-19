@@ -554,7 +554,7 @@ public:
         return result_shape;
     }
 
-    bool checkBroadcastTo(const Shape& sourceShape, const Shape& targetShape)
+    static bool checkBroadcastTo(const Shape& sourceShape, const Shape& targetShape)
     {
         if (sourceShape.size() > targetShape.size()) return false;
 
