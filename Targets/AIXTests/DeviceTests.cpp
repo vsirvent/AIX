@@ -1577,6 +1577,32 @@ TEST_CASE("Device Tests - batch compute")
         }
     }
 
+    SUBCASE("sqrt")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.sqrt() + y.sqrt();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.sqrt() + y.sqrt();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({732.7961,852.7692,951.1430,1037.6198,1116.0948,1188.6305}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({100.5000,71.0643,58.0236,50.2500,44.9449,41.0290}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({37.9855,35.5321,33.5000,31.7808,30.3018,29.0118}, shape).value());
+        }
+    }
+
     SUBCASE("sin")
     {
         // For each available devices, tests add operation.

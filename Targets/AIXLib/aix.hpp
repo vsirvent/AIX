@@ -1251,6 +1251,14 @@ public:
         node->m_a->backward(-seed);
     }
 
+    static void sqrtBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // The derivative of sqrt(a) with respect to 'a' is 0.5/sqrt(a).
+        // Therefore, the gradient of the input is multiplied by 0.5/sqrt(a).
+        node->m_a->backward(0.5 / node->m_a->m_value.sqrt() * seed);   // ∂f/∂a = 0.5/sqrt(a)
+    }
+
     static void sinBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a) return;
@@ -1434,6 +1442,15 @@ public:
         return tensor / rhsTensor;
     }
 
+    Tensor sqrt() const
+    {
+        Tensor result(shape(), isRequireGrad(), device());
+        result.m_data->m_value = m_data->m_value.sqrt();
+        result.m_data->m_a = m_data;
+        result.m_data->m_backwardFunc = sqrtBackwardFunc;
+        return result;
+    };
+
     Tensor sin() const
     {
         Tensor result(shape(), isRequireGrad(), device());
@@ -1569,6 +1586,7 @@ inline Tensor zerosLike(const Tensor & tensor, bool requireGrad = false)
     return Tensor{0, tensor.shape(), requireGrad, tensor.value().device()};
 }
 
+inline Tensor sqrt(const Tensor & A)   { return A.sqrt(); }
 inline Tensor sin(const Tensor & A)    { return A.sin();  }
 inline Tensor cos(const Tensor & A)    { return A.cos();  }
 inline Tensor tanh(const Tensor & A)   { return A.tanh(); }
