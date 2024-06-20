@@ -1218,3 +1218,152 @@ TEST_CASE("Tensor - broadcastTo")
                                 4.0, 5.0, 6.0}, {2, 3}).broadcastTo({3, 2}), std::invalid_argument);
     }
 }
+
+
+TEST_CASE("TensorValue - broadcast")
+{
+    SUBCASE("([],[1],[1,1],[1,3],[2,3]) op [2x3]")
+    {
+        std::vector<Shape> shapes{{}, {1}, {1,1}, {1,3}, {2,3}};
+        for (const auto& shape : shapes)
+        {
+            Shape newShape{2,3};
+            size_t newSize = 6;
+            auto x = TensorValue(2.0, shape, &testDevice);
+            auto y = TensorValue({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, newShape, &testDevice);
+
+            auto a1 = x + y;
+            CHECK(a1.size() == newSize);
+            CHECK(a1.shape() == newShape);
+            CheckVectorApproxValues(a1, TensorValue({3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, newShape, &testDevice));
+
+            // Try reverse order
+            auto a2 = y + x;
+            CHECK(a2.size() == newSize);
+            CHECK(a2.shape() == newShape);
+            CheckVectorApproxValues(a2, TensorValue({3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, newShape, &testDevice));
+
+            auto s1 = x - y;
+            CHECK(s1.size() == newSize);
+            CHECK(s1.shape() == newShape);
+            CheckVectorApproxValues(s1, TensorValue({1.0, 0.0, -1.0, -2.0, -3.0, -4.0}, newShape, &testDevice));
+
+            // Try reverse order
+            auto s2 = y - x;
+            CHECK(s2.size() == newSize);
+            CHECK(s2.shape() == newShape);
+            CheckVectorApproxValues(s2, TensorValue({-1.0, 0.0, 1.0, 2.0, 3.0, 4.0}, newShape, &testDevice));
+
+            auto m1 = x * y;
+            CHECK(m1.size() == newSize);
+            CHECK(m1.shape() == newShape);
+            CheckVectorApproxValues(m1, TensorValue({2.0, 4.0, 6.0, 8.0, 10.0, 12.0}, newShape, &testDevice));
+
+            // Try reverse order
+            auto m2 = y * x;
+            CHECK(m2.size() == newSize);
+            CHECK(m2.shape() == newShape);
+            CheckVectorApproxValues(m2, TensorValue({2.0, 4.0, 6.0, 8.0, 10.0, 12.0}, newShape, &testDevice));
+
+            auto d1 = x / y;
+            CHECK(d1.size() == newSize);
+            CHECK(d1.shape() == newShape);
+            CheckVectorApproxValues(d1, TensorValue({2.0, 1.0, 0.666667, 0.5, 0.4, 0.333334}, newShape, &testDevice));
+
+            // Try reverse order
+            auto d2 = y / x;
+            CHECK(d2.size() == newSize);
+            CHECK(d2.shape() == newShape);
+            CheckVectorApproxValues(d2, TensorValue({0.5, 1.0, 1.5, 2.0, 2.5, 3.0}, newShape, &testDevice));
+        }
+    }
+
+    SUBCASE("([],[1],[1,1],[1,3],[2,3]) op [2x3] - In-place operations")
+    {
+        std::vector<Shape> shapes{{}, {1}, {1,1}, {1,3}, {2,3}};
+        for (const auto& shape : shapes)
+        {
+            Shape newShape{2,3};
+            size_t newSize = 6;
+            auto x = TensorValue(2.0, shape, &testDevice);
+            auto y = TensorValue({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, newShape, &testDevice);
+
+            auto a1 = x;
+            a1 += y;
+            CHECK(a1.size() == newSize);
+            CHECK(a1.shape() == newShape);
+            CheckVectorApproxValues(a1, TensorValue({3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, newShape, &testDevice));
+
+            // Try reverse order
+            auto a2 = y;
+            a2 += x;
+            CHECK(a2.size() == newSize);
+            CHECK(a2.shape() == newShape);
+            CheckVectorApproxValues(a2, TensorValue({3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, newShape, &testDevice));
+
+            auto s1 = x;
+            s1 -= y;
+            CHECK(s1.size() == newSize);
+            CHECK(s1.shape() == newShape);
+            CheckVectorApproxValues(s1, TensorValue({1.0, 0.0, -1.0, -2.0, -3.0, -4.0}, newShape, &testDevice));
+
+            // Try reverse order
+            auto s2 = y;
+            s2 -= x;
+            CHECK(s2.size() == newSize);
+            CHECK(s2.shape() == newShape);
+            CheckVectorApproxValues(s2, TensorValue({-1.0, 0.0, 1.0, 2.0, 3.0, 4.0}, newShape, &testDevice));
+
+            auto m1 = x;
+            m1 *= y;
+            CHECK(m1.size() == newSize);
+            CHECK(m1.shape() == newShape);
+            CheckVectorApproxValues(m1, TensorValue({2.0, 4.0, 6.0, 8.0, 10.0, 12.0}, newShape, &testDevice));
+
+            // Try reverse order
+            auto m2 = y;
+            m2 *= x;
+            CHECK(m2.size() == newSize);
+            CHECK(m2.shape() == newShape);
+            CheckVectorApproxValues(m2, TensorValue({2.0, 4.0, 6.0, 8.0, 10.0, 12.0}, newShape, &testDevice));
+
+            auto d1 = x;
+            d1 /= y;
+            CHECK(d1.size() == newSize);
+            CHECK(d1.shape() == newShape);
+            CheckVectorApproxValues(d1, TensorValue({2.0, 1.0, 0.666667, 0.5, 0.4, 0.333334}, newShape, &testDevice));
+
+            // Try reverse order
+            auto d2 = y;
+            d2 /= x;
+            CHECK(d2.size() == newSize);
+            CHECK(d2.shape() == newShape);
+            CheckVectorApproxValues(d2, TensorValue({0.5, 1.0, 1.5, 2.0, 2.5, 3.0}, newShape, &testDevice));
+        }
+    }
+
+    SUBCASE("[2x3] [3x2]")
+    {
+        std::vector<DataType> data{1.0, 2.0, 3.0,4.0, 5.0, 6.0};
+        Shape shape1{2,3};
+        Shape shape2{3,2};
+        auto tensorVal1 = TensorValue(data, shape1, &testDevice);
+        auto tensorVal2 = TensorValue(data, shape2, &testDevice);
+
+        // Add
+        CHECK_THROWS_AS({ auto t = tensorVal1; t += tensorVal2; }, std::invalid_argument);
+        CHECK_THROWS_AS({ auto t = tensorVal2; t += tensorVal1; }, std::invalid_argument);
+
+        // Sub
+        CHECK_THROWS_AS({ auto t = tensorVal1; t -= tensorVal2; }, std::invalid_argument);
+        CHECK_THROWS_AS({ auto t = tensorVal2; t -= tensorVal1; }, std::invalid_argument);
+
+        // Mul
+        CHECK_THROWS_AS({ auto t = tensorVal1; t *= tensorVal2; }, std::invalid_argument);
+        CHECK_THROWS_AS({ auto t = tensorVal2; t *= tensorVal1; }, std::invalid_argument);
+
+        // Div
+        CHECK_THROWS_AS({ auto t = tensorVal1; t /= tensorVal2; }, std::invalid_argument);
+        CHECK_THROWS_AS({ auto t = tensorVal2; t /= tensorVal1; }, std::invalid_argument);
+    }
+}

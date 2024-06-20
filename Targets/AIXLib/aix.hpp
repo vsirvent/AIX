@@ -535,7 +535,7 @@ public:
     }
 
     // Returns final shape of a broadcast operation.
-    Shape broadcastShapes(const Shape& shape1, const Shape& shape2)
+    static Shape broadcastShapes(const Shape& shape1, const Shape& shape2)
     {
         Shape resultShape;
         auto it1 = shape1.rbegin();
@@ -576,7 +576,7 @@ public:
     }
 
     // Returns a broadcasted TensorValue with a new shape.
-    TensorValue broadcastTo(const Shape& newShape)
+    TensorValue broadcastTo(const Shape& newShape) const
     {
         if (!checkBroadcastTo(shape(), newShape))
         {
@@ -606,8 +606,16 @@ public:
     // Overload the + operator
     TensorValue operator+(const TensorValue & other) const
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            TensorValue result(bcShape, m_device);
+            m_device->add(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data());
+            return result;
+        }
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
@@ -618,8 +626,16 @@ public:
     // Overload the - operator
     TensorValue operator-(const TensorValue & other) const
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            TensorValue result(bcShape, m_device);
+            m_device->sub(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data());
+            return result;
+        }
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
@@ -630,8 +646,16 @@ public:
     // Overload the * operator
     TensorValue operator*(const TensorValue & other) const
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            TensorValue result(bcShape, m_device);
+            m_device->mul(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data());
+            return result;
+        }
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
@@ -642,8 +666,16 @@ public:
     // Overload the / operator
     TensorValue operator/(const TensorValue & other) const
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            TensorValue result(bcShape, m_device);
+            m_device->div(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data());
+            return result;
+        }
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device);
@@ -654,44 +686,76 @@ public:
     // Overload the += operator - In-place operation.
     TensorValue & operator+=(const TensorValue & other)
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
-
-        // Perform element-wise.
-        m_device->add(m_data, other.m_data, m_size, m_data);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            m_device->add(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data());
+            *this = bcLHSTensor;
+        }
+        else
+        {
+            m_device->add(m_data, other.m_data, m_size, m_data);
+        }
         return *this;
     }
 
     // Overload the -= operator - In-place operation.
     TensorValue & operator-=(const TensorValue & other)
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
-
-        // Perform element-wise.
-        m_device->sub(m_data, other.m_data, m_size, m_data);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            m_device->sub(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data());
+            *this = bcLHSTensor;
+        }
+        else
+        {
+            m_device->sub(m_data, other.m_data, m_size, m_data);
+        }
         return *this;
     }
 
     // Overload the *= operator - In-place operation.
     TensorValue & operator*=(const TensorValue & other)
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
-
-        // Perform element-wise.
-        m_device->mul(m_data, other.m_data, m_size, m_data);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            m_device->mul(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data());
+            *this = bcLHSTensor;
+        }
+        else
+        {
+            m_device->mul(m_data, other.m_data, m_size, m_data);
+        }
         return *this;
     }
 
     // Overload the /= operator - In-place operation.
     TensorValue & operator/=(const TensorValue & other)
     {
-        // Check if the shapes of the two tensors are the same.
-        validateShapes(m_shape, other.m_shape);
-
-        // Perform element-wise.
-        m_device->div(m_data, other.m_data, m_size, m_data);
+        // If shapes are different then try broadcasting.
+        if (m_shape != other.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, other.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcRHSTensor = other.broadcastTo(bcShape);
+            m_device->div(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data());
+            *this = bcLHSTensor;
+        }
+        else
+        {
+            m_device->div(m_data, other.m_data, m_size, m_data);
+        }
         return *this;
     }
 
@@ -1144,7 +1208,7 @@ public:
     {
         if (node->m_requireGrad)
         {
-            node->m_grad = node->m_grad + const_cast<TensorValue*>(&seed)->broadcastTo(node->m_grad.shape());
+            node->m_grad = node->m_grad + seed;
         }
     }
 
