@@ -27,7 +27,7 @@ std::vector<size_t>  testSizes = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
                                    127, 128, 129, 255, 256, 257, 511, 512, 513, 1023, 1024, 1025, 2047, 2048, 2049,
                                    4095, 4096, 4097, 8191, 8192, 8193, 100'000 };
 
-std::vector<DeviceType>  testDeviceTypes = { aix::DeviceType::kGPU_METAL };
+std::vector<DeviceType>  testDeviceTypes = { aix::DeviceType::kCPU , aix::DeviceType::kGPU_METAL };
 
 
 bool verifyResults(const aix::TensorValue & tv1, const aix::TensorValue & tv2, float epsilon = EPSILON)
