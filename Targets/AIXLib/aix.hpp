@@ -1259,6 +1259,14 @@ public:
         node->m_a->backward(node->m_a->m_value.cos() * seed);   // ∂f/∂a = cos(a)
     }
 
+    static void cosBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // The derivative of cos(a) with respect to 'a' is -sin(a).
+        // Therefore, the gradient of the input is multiplied by -sin(a).
+        node->m_a->backward(-node->m_a->m_value.sin() * seed);   // ∂f/∂a = -sin(a)
+    }
+
     static void tanhBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a) return;
@@ -1435,6 +1443,15 @@ public:
         return result;
     };
 
+    Tensor cos() const
+    {
+        Tensor result(shape(), isRequireGrad(), device());
+        result.m_data->m_value = m_data->m_value.cos();
+        result.m_data->m_a = m_data;
+        result.m_data->m_backwardFunc = cosBackwardFunc;
+        return result;
+    };
+
     Tensor tanh() const
     {
         Tensor result(shape(), isRequireGrad(), device());
@@ -1553,6 +1570,7 @@ inline Tensor zerosLike(const Tensor & tensor, bool requireGrad = false)
 }
 
 inline Tensor sin(const Tensor & A)    { return A.sin();  }
+inline Tensor cos(const Tensor & A)    { return A.cos();  }
 inline Tensor tanh(const Tensor & A)   { return A.tanh(); }
 inline Tensor log(const Tensor & A)    { return A.log();  }
 inline Tensor exp(const Tensor & A)    { return A.exp();  }

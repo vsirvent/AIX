@@ -1603,6 +1603,32 @@ TEST_CASE("Device Tests - batch compute")
         }
     }
 
+    SUBCASE("cos")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.cos() + y.cos();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.cos() + y.cos();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({260.1352,-112.8908,-382.1257,-300.0356,57.9055,362.6089}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({-169.1358,-182.7688,-28.3652,152.1176,192.7436,56.1625}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({-132.0546,-198.8614,-82.8357,109.3483,200.9977,107.8513}, shape).value());
+        }
+    }
+
     SUBCASE("log")
     {
         // For each available devices, tests add operation.
