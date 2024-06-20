@@ -1707,6 +1707,32 @@ TEST_CASE("Device Tests - batch compute")
             CheckVectorApproxValues(y.grad(), aix::tensor({1407,2211,1809,2613}, matShape).value());
         }
     }
+
+    SUBCASE("complex equation")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x + y - (x * y).log() + y/x.exp() + (x-y) * x * x.sin() / y;
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x + y*y / x.sum() - (x * y).sin()- y / y.exp() + (x-y) * x * x.sin() / y.tanh() + (y * y) / (x*x).mean();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({178.2879,-264.8438,1748.9033,6566.8809,9716.0850,6445.9224}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({-2764.4619,1425.6165,3467.7439,4074.8318,-2422.4048,-5619.4829}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({1.1793,384.1357,500.5189,1594.3270,1437.5804,2042.0659}, shape).value());
+        }
+    }
 }
 
 
