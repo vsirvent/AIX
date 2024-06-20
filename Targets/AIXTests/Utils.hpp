@@ -15,11 +15,9 @@
 #include <doctest/doctest.h>
 // System includes
 
-#define EPSILON  1e-5
-
-inline auto Approx(auto value)
+inline auto Approx(auto value, double epsilon = 1e-5)
 {
-    return doctest::Approx(value).epsilon(EPSILON);
+    return doctest::Approx(value).epsilon(epsilon);
 }
 
 inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix::TensorValue & expected)

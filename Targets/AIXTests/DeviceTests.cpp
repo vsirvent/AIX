@@ -8,6 +8,7 @@
 //  material is strictly forbidden unless prior written permission is obtained from Arkin Terli.
 
 // Project includes
+#include "Utils.hpp"
 #include <aix.hpp>
 #include <aixDevices.hpp>
 // External includes
@@ -1406,5 +1407,304 @@ TEST_CASE("Device Tests - reduceTo")
             CHECK(testReduceTo(device));
         }
         delete device;
+    }
+}
+
+
+TEST_CASE("Device Tests - batch compute")
+{
+    // If a device uses an advanced command queuing method, subsequent commands should be executed properly once the
+    // commitAndWait method is called.
+
+    Shape shape{2,3};
+    std::vector<DataType> data1{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    std::vector<DataType> data2{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+    size_t queueSize = 200;
+
+    SUBCASE("Add")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x + y;
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x + y;
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({1608,2010,2412,2814,3216,3618},  shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
+        }
+    }
+
+    SUBCASE("Sub")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x - y;
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z - x - y;
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({-1606,-2006,-2406,-2806,-3206,-3606},  shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({-199,-199,-199,-199,-199,-199}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({-201,-201,-201,-201,-201,-201}, shape).value());
+        }
+    }
+
+    SUBCASE("Mul")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x * y;
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x * y;
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({1407,3216,5427,8040,11055,14472}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({1407,1608,1809,2010,2211,2412}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({201,402,603,804,1005,1206}, shape).value());
+        }
+    }
+
+    SUBCASE("Div")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x / y;
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x / y;
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({28.7143,50.25,66.9999,80.4002,91.3635,100.5}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({28.7143,25.125,22.3333,20.1,18.2727,16.75}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({-4.1020,-6.2812,-7.4444,-8.0400,-8.3058,-8.3750}, shape).value());
+        }
+    }
+
+    SUBCASE("Sum")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.sum() + y.sum();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.sum() + y.sum();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor(15678));
+            CheckVectorApproxValues(x.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
+        }
+    }
+
+    SUBCASE("Mean")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.mean() + y.mean();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.mean() + y.mean();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor(2613));
+            CheckVectorApproxValues(x.grad(), aix::tensor({33.5,33.5,33.5,33.5,33.5,33.5}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({33.5,33.5,33.5,33.5,33.5,33.5}, shape).value());
+        }
+    }
+
+    SUBCASE("sin")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.sin() + y.sin();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.sin() + y.sin();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({301.1897,381.6301,111.2009,-261.4660,-393.7420,-164.0143}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({108.6004,-83.6453,-198.9882,-131.3821,57.0160,192.9943}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({151.5342,-29.2455,-183.1375,-168.6533,0.889566,169.6149}, shape).value());
+        }
+    }
+
+    SUBCASE("log")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.log() + y.log();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.log() + y.log();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({391.1286,557.2905,662.4633,741.4656,805.4725,859.6092}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({201.0000,100.5000,66.9999,50.2500,40.2001,33.5000}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({28.7143,25.1250,22.3333,20.1000,18.2727,16.7500}, shape).value());
+        }
+    }
+
+    SUBCASE("exp")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.exp() + y.exp();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.exp() + y.exp();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({220970,600657,1.63276e+06,4.43829e+06,1.20645e+07,3.27948e+07}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({546.375,1485.2,4037.19,10974.3,29831.1,81089.3}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({220424,599173,1.62872e+06,4.42732e+06,1.20347e+07,3.27137e+07}, shape).value());
+        }
+    }
+
+    SUBCASE("tanh")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+
+            auto z = x.tanh() + y.tanh();
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.tanh() + y.tanh();
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({354.0808,394.7695,401.0063,401.8651,401.9816,401.9982}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({84.4149,14.2008,1.98307,0.269514,0.0365,0.00493598}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({0.00067091,9.58443e-05,2.39611e-05,0,0,0}, shape).value());
+        }
+    }
+
+    SUBCASE("matmul")
+    {
+        Shape matShape{2, 2};
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor({1.0, 2.0, 3.0, 4.0}, matShape, true);
+            auto y = aix::tensor({5.0, 6.0, 7.0, 8.0}, matShape, true);
+
+            auto z = x.matmul(y) + y.matmul(x);
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.matmul(y) + y.matmul(x);
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({8442,11256,14874,19296}, matShape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({4623,5427,5025,5829}, matShape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({1407,2211,1809,2613}, matShape).value());
+        }
     }
 }

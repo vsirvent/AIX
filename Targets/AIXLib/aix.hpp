@@ -1144,7 +1144,7 @@ public:
     {
         if (node->m_requireGrad)
         {
-            node->m_grad = node->m_grad + seed;
+            node->m_grad = node->m_grad + const_cast<TensorValue*>(&seed)->broadcastTo(node->m_grad.shape());
         }
     }
 
