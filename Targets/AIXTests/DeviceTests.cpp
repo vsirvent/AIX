@@ -470,15 +470,15 @@ bool testMean(Device* testDevice, size_t n)
     aix::Device  refDevice;     // Reference/CPU device.
 
     auto array1 = aix::randn({1, n});
-    DataType cpuResult    = 0;
-    DataType deviceResult = 0;
+    TensorValue cpuResult(0, {}, &refDevice);
+    TensorValue deviceResult(0, {}, testDevice);
 
-    refDevice.mean(array1.value().data(), n, &cpuResult);
-    testDevice->mean(array1.value().data(), n, &deviceResult);
+    refDevice.mean(array1.value().data(), n, cpuResult.data());
+    testDevice->mean(array1.value().data(), n, deviceResult.data());
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
-    auto errorPercent = std::abs((cpuResult - deviceResult) / cpuResult);
+    auto errorPercent = std::abs((cpuResult.item() - deviceResult.item()) / cpuResult.item());
     if ( errorPercent > EPSILON_PERCENT)
     {
         #ifdef DEBUG_LOG
