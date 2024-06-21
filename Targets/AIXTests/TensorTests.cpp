@@ -207,6 +207,14 @@ TEST_CASE("TensorValue::exp 2x2")
 }
 
 
+TEST_CASE("TensorValue::pow 2x2")
+{
+    auto x = TensorValue({1.0, 2.0, 3.0, 4.0}, {2, 2}, &testDevice);
+    auto exp = TensorValue({1.0, 2.0, 3.0, 4.0}, {2, 2}, &testDevice);
+    CheckVectorApproxValues(x.pow(exp), TensorValue({1.0, 4.0, 27.0, 256.0}, x.shape(), &testDevice));
+}
+
+
 TEST_CASE("TensorValue::transpose 1x1")
 {
     auto a = TensorValue(2, {1, 1}, &testDevice).transpose();

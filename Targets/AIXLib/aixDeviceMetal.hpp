@@ -106,6 +106,8 @@ public:
 
     void exp(const DataType* a, const size_t size, DataType* result) override;
 
+    void pow(const DataType* a, const DataType* exp, const size_t size, DataType* result) override;
+
     void matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result) override;
 
     void transpose(const DataType * mat, const Shape & shape, DataType * result) override;
@@ -209,6 +211,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOTanh{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOLog{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOExp{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOPow{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOSum{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatMul{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};

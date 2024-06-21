@@ -45,6 +45,7 @@ DeviceMetal::DeviceMetal()
         m_compFuncPSOTanh         = createComputeFuncPSO(defaultLibrary, "tanh_a_float");
         m_compFuncPSOLog          = createComputeFuncPSO(defaultLibrary, "log_a_float");
         m_compFuncPSOExp          = createComputeFuncPSO(defaultLibrary, "exp_a_float");
+        m_compFuncPSOPow          = createComputeFuncPSO(defaultLibrary, "pow_float");
         m_compFuncPSOSum          = createComputeFuncPSO(defaultLibrary, "sum_a_float");
         m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
         m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "matrix_transpose_float");
@@ -79,6 +80,7 @@ DeviceMetal::~DeviceMetal()
     m_compFuncPSOTanh->release();
     m_compFuncPSOLog->release();
     m_compFuncPSOExp->release();
+    m_compFuncPSOPow->release();
     m_compFuncPSOSum->release();
     m_compFuncPSOMatMul->release();
     m_compFuncPSOMatTranspose->release();
@@ -245,6 +247,11 @@ void DeviceMetal::log(const DataType* a, const size_t size, DataType* result)
 void DeviceMetal::exp(const DataType* a, const size_t size, DataType* result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOExp, "exp");
+}
+
+void DeviceMetal::pow(const DataType* a, const DataType* exp, const size_t size, DataType* result)
+{
+    executeDoubleArrayCmd(a, exp, size, result, m_compFuncPSOPow, "pow");
 }
 
 void DeviceMetal::matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result)

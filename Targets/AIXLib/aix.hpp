@@ -233,6 +233,14 @@ public:
         }
     }
 
+    virtual void pow(const DataType* a, const DataType* exp, const size_t size, DataType* result)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            result[i] = std::pow(a[i], exp[i]);
+        }
+    }
+
     virtual void matmul(const DataType* a1, const Shape & s1, const DataType* a2, const Shape & s2, DataType* result)
     {
         // NOTE: Since TensorValue validated the parameters, device method do not validate again.
@@ -927,6 +935,25 @@ public:
         return result;
     }
 
+    TensorValue pow(const TensorValue & exp) const
+    {
+        // If shapes are different then try broadcasting.
+        if (m_shape != exp.m_shape)
+        {
+            Shape bcShape = broadcastShapes(m_shape, exp.shape());
+            auto bcLHSTensor = broadcastTo(bcShape);
+            auto bcEXPTensor = exp.broadcastTo(bcShape);
+            TensorValue result(bcShape, m_device);
+            m_device->pow(bcLHSTensor.data(), bcEXPTensor.data(), result.size(), result.data());
+            return result;
+        }
+
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(m_shape, m_device);
+        m_device->pow(m_data, exp.m_data, m_size, result.m_data);
+        return result;
+    }
+
     // Matrix multiplication for 2D tensors.
     TensorValue matmul(const TensorValue & b) const
     {
@@ -1299,6 +1326,14 @@ public:
         node->m_a->backward(seed * node->m_a->m_value.exp());  // ∂f/∂a = exp(a)
     }
 
+    static void powBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a || !node->m_b) return;
+        // The derivative of pow(a, b) with respect to 'a' is b * a^(b-1).
+        // ∂f/∂a = b * pow(a, b-1)
+        node->m_a->backward(seed * node->m_b->m_value * node->m_a->m_value.pow(node->m_b->m_value - DataType(1.0)));
+    }
+
     static void matmulBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a || !node->m_b) return;
@@ -1514,6 +1549,20 @@ public:
         return result;
     }
 
+    Tensor pow(const Tensor & exp) const
+    {
+        Shape bcShape = broadcastShape(exp.shape());
+        auto bcLHSTensor = broadcastTo(bcShape);
+        auto bcEXPTensor = exp.broadcastTo(bcShape);
+
+        Tensor result(bcShape, isRequireGrad(), device());
+        result.m_data->m_value = bcLHSTensor.m_data->m_value.pow(bcEXPTensor.m_data->m_value);
+        result.m_data->m_a = bcLHSTensor.m_data;
+        result.m_data->m_b = bcEXPTensor.m_data;    // Exponent tensor.
+        result.m_data->m_backwardFunc = powBackwardFunc;
+        return result;
+    }
+
     Tensor matmul(const Tensor & mat) const
     {
         Tensor result({shape()[0], mat.shape()[1]}, isRequireGrad() || mat.isRequireGrad(), device());
@@ -1594,6 +1643,7 @@ inline Tensor log(const Tensor & A)    { return A.log();  }
 inline Tensor exp(const Tensor & A)    { return A.exp();  }
 inline Tensor sum(const Tensor & A)    { return A.sum();  }
 inline Tensor mean(const Tensor & A)   { return A.mean(); }
+inline Tensor pow(const Tensor & A, const Tensor & exp)     { return A.pow(exp); }
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 
 

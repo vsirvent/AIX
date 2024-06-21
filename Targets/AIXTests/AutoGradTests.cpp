@@ -215,6 +215,21 @@ TEST_CASE("Auto Grad - exp Test - 2x2")
 }
 
 
+TEST_CASE("Auto Grad - pow Test - 2x2")
+{
+    aix::Shape shape{2,2};
+
+    auto x = aix::tensor({1.0, 2.0, 3.0, 4.0}, shape, true);
+    auto exp = aix::tensor({1.0, 2.0, 3.0, 4.0}, shape);
+    auto z = pow(x, exp);
+    z.backward();
+
+    // Check shapes
+    CHECK(x.grad().shape() == shape);
+    CheckVectorApproxValues(x.grad(), tensor({1.0, 4.0, 27.0, 256.0}, shape).value());
+}
+
+
 TEST_CASE("Auto Grad - sum Test - 2x2")
 {
     aix::Shape shape{2,2};

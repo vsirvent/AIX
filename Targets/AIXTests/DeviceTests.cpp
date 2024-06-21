@@ -466,6 +466,36 @@ bool testExp(Device* testDevice, size_t n)
 }
 
 
+bool testPow(Device* testDevice, size_t n)
+{
+    aix::Device  refDevice;     // Reference/CPU device.
+
+    auto array1 = aix::randn({1, n});
+    auto exp    = 3 + aix::randn({1, n}) * 2;       // Random numbers in [1,5]
+    auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
+    auto deviceResult = aix::TensorValue({1, n}, testDevice);
+
+    refDevice.pow(array1.value().data(), exp.value().data(), n, cpuResult.data());
+    testDevice->pow(array1.value().data(), exp.value().data(), n, deviceResult.data());
+    testDevice->commitAndWait();
+
+    // Compare results with the true/reference results
+    if (!verifyResults(cpuResult, deviceResult, EPSILON))
+    {
+        #ifdef DEBUG_LOG
+        std::cout << "----------------------" << std::endl;
+        std::cout << "Array1" << std::endl << array1.value() << std::endl;
+        std::cout << "Exponents" << std::endl << exp.value() << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+        #endif
+        return false;
+    }
+
+    return true;
+}
+
+
 bool testMean(Device* testDevice, size_t n)
 {
     aix::Device  refDevice;     // Reference/CPU device.
@@ -1149,6 +1179,35 @@ TEST_CASE("Device Tests - Exp")
 }
 
 
+TEST_CASE("Device Tests - Pow")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aixDeviceFactory::CreateDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+        delete device;
+
+        // Create a new device per test
+        for (auto size: testSizes)
+        {
+            device = aixDeviceFactory::CreateDevice(deviceType);
+            CHECK(testPow(device, size));
+            delete device;
+        }
+
+        // Use the same device per test
+        device = aixDeviceFactory::CreateDevice(deviceType);
+        for (auto size: testSizes)
+        {
+            CHECK(testPow(device, size));
+        }
+        delete device;
+    }
+}
+
+
 TEST_CASE("Device Tests - Mean")
 {
     // For each available devices, tests add operation.
@@ -1704,6 +1763,33 @@ TEST_CASE("Device Tests - batch compute")
             CheckVectorApproxValues(z, aix::tensor({220970,600657,1.63276e+06,4.43829e+06,1.20645e+07,3.27948e+07}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({546.375,1485.2,4037.19,10974.3,29831.1,81089.3}, shape).value());
             CheckVectorApproxValues(y.grad(), aix::tensor({220424,599173,1.62872e+06,4.42732e+06,1.20347e+07,3.27137e+07}, shape).value());
+        }
+    }
+
+    SUBCASE("pow")
+    {
+        // For each available devices, tests add operation.
+        for (auto deviceType : testDeviceTypes)
+        {
+            // Check if the devices is available.
+            auto device = std::unique_ptr<aix::Device>(aixDeviceFactory::CreateDevice(deviceType));
+            if (!device) continue;      // Skip if the device is not available.
+
+            auto x = aix::tensor(data1, shape, true);
+            auto y = aix::tensor(data2, shape, true);
+            auto exp = aix::tensor(2.0);
+
+            auto z = x.pow(exp) + y.pow(exp);
+            for (size_t i=0; i<queueSize; ++i)
+            {
+                z = z + x.pow(exp) + y.pow(exp);
+            }
+            z.backward();
+            device->commitAndWait();
+
+            CheckVectorApproxValues(z, aix::tensor({10050,13668,18090,23316,29346,36180}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({402,804,1206,1608,2010,2412}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({2814,3216,3618,4020,4422,4824}, shape).value());
         }
     }
 

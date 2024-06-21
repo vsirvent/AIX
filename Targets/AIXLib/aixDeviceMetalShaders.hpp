@@ -257,6 +257,24 @@ kernel void exp_a(device const T* inA,
         result[index + i] = exp(inA[index + i]);
 }
 
+
+// -----------------------------------------------------------------
+// Pow
+// -----------------------------------------------------------------
+template<typename T>
+kernel void pow(device const T* inA,
+                device const T* expA,
+                device T* result,
+                constant MatrixSize& aSize,
+                constant MatrixSize& bSize,
+                uint index [[thread_position_in_grid]])
+{
+    index *= ITERATION_SIZE;
+    for (size_t i=0; i<ITERATION_SIZE; ++i)
+        result[index + i] = pow(inA[index + i], expA[index + i]);
+}
+
+
 // -----------------------------------------------------------------
 // Matrix Multiply - Naive implementation
 // -----------------------------------------------------------------
@@ -552,6 +570,15 @@ kernel void exp_a(device const float4*,
                   constant MatrixSize&,
                   device float4*,
                   uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("pow_float") ]]
+kernel void pow(device const float4*,
+                device const float4*,
+                device float4*,
+                constant MatrixSize&,
+                constant MatrixSize&,
+                uint index [[thread_position_in_grid]]);
 
 
 template [[ host_name("sum_a_float") ]]
