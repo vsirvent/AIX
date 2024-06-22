@@ -48,7 +48,8 @@ DeviceMetal::DeviceMetal()
         m_compFuncPSOPow          = createComputeFuncPSO(defaultLibrary, "pow_float");
         m_compFuncPSOSum          = createComputeFuncPSO(defaultLibrary, "sum_a_float");
         m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
-        m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "matrix_transpose_float");
+        m_compFuncPSOMatTranspose2D = createComputeFuncPSO(defaultLibrary, "transpose2D_float");
+        m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "transpose_float");
         m_compFuncPSOCopy_A_A     = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
         m_compFuncPSOCopy_S_A     = createComputeFuncPSO(defaultLibrary, "copy_s_a_float");
         m_compFuncPSOBroadcastTo  = createComputeFuncPSO(defaultLibrary, "broadcastTo_float");
@@ -83,6 +84,7 @@ DeviceMetal::~DeviceMetal()
     m_compFuncPSOPow->release();
     m_compFuncPSOSum->release();
     m_compFuncPSOMatMul->release();
+    m_compFuncPSOMatTranspose2D->release();
     m_compFuncPSOMatTranspose->release();
     m_compFuncPSOCopy_A_A->release();
     m_compFuncPSOCopy_S_A->release();
@@ -276,24 +278,57 @@ void DeviceMetal::matmul(const DataType * a1, const Shape & s1, const DataType *
     freeTemporaryBuffer(buf2);
 }
 
-void DeviceMetal::transpose(const DataType * mat, const Shape & shape, DataType * result)
+void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, const Shape& shape,
+                            const Shape& strides, const Shape& newStrides, const size_t size, DataType* result)
 {
+    // Use fast and simplified version of the general transpose for matrix transpose operations.
+    if (shape.size() == 2 && dim0 == 0 && dim1 == 1)
+    {
+        transpose2D(data, shape, result);
+        return;
+    }
+
+    if (strides.size() > 16)
+        throw std::invalid_argument("Metal device does not support tensors with more than 16 dimensions for acceleration.");
+
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (m_allocMap.find(result) == m_allocMap.end())
         throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1], sizeof(DataType));
-    auto bufResult = m_allocMap[result];
+    auto bufData       = getReadOnlyMTLBuffer(data, size, sizeof(DataType));
+    auto bufResult     = m_allocMap[result];
+    auto bufStrides    = getReadOnlyMTLBuffer(strides.data(), strides.size(), sizeof(size_t));
+    size_t stridesSize = strides.size();
+    auto bufNewStrides = getReadOnlyMTLBuffer(newStrides.data(), newStrides.size(), sizeof(size_t));
+    size_t newStridesSize = newStrides.size();
+
+    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
+    // Serialize resources and states to be used by the GPU.
+    m_compEncoder->setComputePipelineState(m_compFuncPSOMatTranspose);
+    m_compEncoder->setBuffer(bufData,        0,                       0);
+    m_compEncoder->setBuffer(bufResult,      0,                       1);
+    m_compEncoder->setBytes(&dim0,           sizeof(dim0),            2);
+    m_compEncoder->setBytes(&dim1,           sizeof(dim1),            3);
+    m_compEncoder->setBuffer(bufStrides,     0,                       4);
+    m_compEncoder->setBytes(&stridesSize,    sizeof(stridesSize),     5);
+    m_compEncoder->setBuffer(bufNewStrides,  0,                       6);
+    m_compEncoder->setBytes(&newStridesSize, sizeof(newStridesSize),  7);
+    m_compEncoder->setBytes(&size,           sizeof(size),            8);
 
     // Calculate maximum thread group dimensions
-    NS::UInteger w = m_compFuncPSOMatTranspose->threadExecutionWidth();
-    NS::UInteger h = m_compFuncPSOMatTranspose->maxTotalThreadsPerThreadgroup() / w;
+    NS::UInteger w = std::min(size, m_compFuncPSOMatTranspose->maxTotalThreadsPerThreadgroup());
 
-    sendComputeCommandSingleBuffer(buf1, {shape[0], shape[1]}, bufResult,
-                                   m_compFuncPSOMatTranspose, {shape[0], shape[1], 1}, {w, h, 1});
+    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+    m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
 
-    freeTemporaryBuffer(buf1);
+    m_currentBatchSize++;
+    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
+
+    freeTemporaryBuffer(bufData);
+    freeTemporaryBuffer(bufResult);
+    freeTemporaryBuffer(bufStrides);
+    freeTemporaryBuffer(bufNewStrides);
 }
 
 void DeviceMetal::copy(const DataType * src, DataType * dst, size_t size)
@@ -635,6 +670,26 @@ void DeviceMetal::translation(const DataType* src, DataType* dst, size_t size, c
     freeTemporaryBuffer(bufSrc);
     freeTemporaryBuffer(bufShape1);
     freeTemporaryBuffer(bufShape2);
+}
+
+void DeviceMetal::transpose2D(const DataType * mat, const Shape& shape, DataType * result)
+{
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (m_allocMap.find(result) == m_allocMap.end())
+        throw std::invalid_argument("DeviceMetal::transpose2D() result must have GPU memory.");
+
+    // Memory could be a GPU allocated memory or system memory.
+    auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1], sizeof(DataType));
+    auto bufResult = m_allocMap[result];
+
+    // Calculate maximum thread group dimensions
+    NS::UInteger w = m_compFuncPSOMatTranspose2D->threadExecutionWidth();
+    NS::UInteger h = m_compFuncPSOMatTranspose2D->maxTotalThreadsPerThreadgroup() / w;
+
+    sendComputeCommandSingleBuffer(buf1, {shape[0], shape[1]}, bufResult,
+                                   m_compFuncPSOMatTranspose2D, {shape[0], shape[1], 1}, {w, h, 1});
+
+    freeTemporaryBuffer(buf1);
 }
 
 }   // namespace

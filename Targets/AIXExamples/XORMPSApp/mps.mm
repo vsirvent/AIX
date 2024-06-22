@@ -16,9 +16,11 @@
 // System includes
 #import <string>
 #import <unordered_map>
+#import <vector>
 
 typedef float DataType;
 MPSDataType mpsDataType = MPSDataTypeFloat32;
+using Shape = std::vector<size_t>;
 
 #ifdef DEBUG
     #define CHECK(value) if (!value) \
@@ -565,7 +567,10 @@ void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1,
     [mpsRes release];
 }
 
-void transpose(void* device, const DataType * mat, size_t rows, size_t cols, DataType * result)
+void transpose(void* device, [[maybe_unused]] size_t dim0, [[maybe_unused]] size_t dim1,
+               const DataType* data, [[maybe_unused]] const Shape& shape,
+               [[maybe_unused]] const Shape& strides, [[maybe_unused]] const Shape& newStrides,
+               [[maybe_unused]] const size_t size, DataType* result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
     CHECK(mpsDevice);
@@ -574,13 +579,13 @@ void transpose(void* device, const DataType * mat, size_t rows, size_t cols, Dat
     if (mpsDevice->allocMap.find(result) == mpsDevice->allocMap.end())
         throw std::invalid_argument("DeviceMPS::transpose() - Result buffer must have GPU memory.");
 
-    auto srcBuf = getReadOnlyMTLBuffer(mpsDevice, mat, rows * cols);
+    auto srcBuf = getReadOnlyMTLBuffer(mpsDevice, data, shape[0] * shape[1]);
     auto dstBuf = mpsDevice->allocMap[result];
     CHECK(srcBuf);
     CHECK(dstBuf);
 
-    size_t M = rows;
-    size_t N = cols;
+    size_t M = shape[0];
+    size_t N = shape[1];
     size_t rowInBytes  = N * sizeof(DataType);
     size_t rowInBytesT = M * sizeof(DataType);
 
@@ -619,7 +624,7 @@ void transpose(void* device, const DataType * mat, size_t rows, size_t cols, Dat
     [cmdBuffer commit];
     [cmdBuffer waitUntilCompleted];
 
-    freeTemporaryBuffer(mpsDevice, srcBuf, mat);
+    freeTemporaryBuffer(mpsDevice, srcBuf, data);
     // Release only if object is allocated with alloc() method.
     [kernel release];
     [srcMat release];

@@ -622,16 +622,24 @@ bool testMatMul(Device* testDevice, size_t n, size_t inner, size_t m)
 }
 
 
-bool testTranspose(Device* testDevice, size_t n, size_t m)
+bool testTranspose2D(Device* testDevice, size_t n, size_t m)
 {
     aix::Device  refDevice;     // Reference/CPU device.
 
-    auto mat = aix::randn({n, m});
-    auto cpuResult    = aix::TensorValue({n, m}, &refDevice);
-    auto deviceResult = aix::TensorValue({n, m}, testDevice);
+    size_t dim0 = 0;
+    size_t dim1 = 1;
+    auto tensor = aix::randn({n, m});
 
-    refDevice.transpose(mat.value().data(), {n, m}, cpuResult.data());
-    testDevice->transpose(mat.value().data(), {n, m}, deviceResult.data());
+    Shape newShape = tensor.shape();
+    std::swap(newShape[dim0], newShape[dim1]);
+    auto cpuResult    = aix::TensorValue(newShape, &refDevice);
+    auto deviceResult = aix::TensorValue(newShape, testDevice);
+
+    refDevice.transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), cpuResult.strides(),
+                        cpuResult.size(), cpuResult.data());
+
+    testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
+                          deviceResult.size(), deviceResult.data());
     testDevice->commitAndWait();
 
     // Compare true/cpu result with gpu result
@@ -639,7 +647,48 @@ bool testTranspose(Device* testDevice, size_t n, size_t m)
     {
         #ifdef DEBUG_LOG
         std::cout << "----------------------" << std::endl;
-        std::cout << "Mat" << std::endl << mat.value() << std::endl;
+        std::cout << "Dim (" << dim0 << "," << dim1 << ")" << std::endl;
+        std::cout << "Tensor" << std::endl << tensor << std::endl;
+        std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+        std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+        #endif
+        return false;
+    }
+
+    return true;
+}
+
+
+bool testTranspose(Device* testDevice)
+{
+    aix::Device  refDevice;     // Reference/CPU device.
+    ssize_t maxDim = 5;
+    auto tensor = aix::randn(createRandomShape(1, maxDim));
+
+    std::uniform_int_distribution<size_t> distr_int(0, 1000);
+    size_t dim0 = distr_int(randGen) % tensor.shape().size();
+    size_t dim1 = distr_int(randGen) % tensor.shape().size();
+
+    Shape newShape = tensor.shape();
+    std::swap(newShape[dim0], newShape[dim1]);
+
+    auto cpuResult    = aix::TensorValue(newShape, &refDevice);
+    auto deviceResult = aix::TensorValue(newShape, testDevice);
+
+    refDevice.transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), cpuResult.strides(),
+                        cpuResult.size(), cpuResult.data());
+
+    testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
+                          deviceResult.size(), deviceResult.data());
+    testDevice->commitAndWait();
+
+    // Compare true/cpu result with gpu result
+    if (!verifyResults(cpuResult, deviceResult))
+    {
+        #ifdef DEBUG_LOG
+        std::cout << "----------------------" << std::endl;
+        std::cout << "Dim (" << dim0 << "," << dim1 << ")" << std::endl;
+        std::cout << "Tensor" << std::endl << tensor << std::endl;
         std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
         std::cout << "Device Result" << std::endl << deviceResult << std::endl;
         #endif
@@ -1326,7 +1375,7 @@ TEST_CASE("Device Tests - MatMul")
 }
 
 
-TEST_CASE("Device Tests - Transpose")
+TEST_CASE("Device Tests - Transpose2D")
 {
     // For each available devices, tests add operation.
     for (auto deviceType : testDeviceTypes)
@@ -1339,17 +1388,34 @@ TEST_CASE("Device Tests - Transpose")
         {
             for (size_t m = 1; m < 8; m+=2)
             {
-                CHECK(testTranspose(device, n, m));
+                CHECK(testTranspose2D(device, n, m));
             }
         }
 
-        CHECK(testTranspose(device, 129, 513));
-        CHECK(testTranspose(device, 130, 514));
-        CHECK(testTranspose(device, 128, 512));
-        CHECK(testTranspose(device, 127, 511));
-        CHECK(testTranspose(device, 126, 510));
+        CHECK(testTranspose2D(device, 129, 513));
+        CHECK(testTranspose2D(device, 130, 514));
+        CHECK(testTranspose2D(device, 128, 512));
+        CHECK(testTranspose2D(device, 127, 511));
+        CHECK(testTranspose2D(device, 126, 510));
 
         delete device;
+    }
+}
+
+
+TEST_CASE("Device Tests - Transpose")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = std::unique_ptr<Device>(aixDeviceFactory::CreateDevice(deviceType));
+        if (!device) continue;      // Skip if the device is not available.
+
+        for (size_t n = 0; n < 100; ++n)
+        {
+            CHECK(testTranspose(device.get()));
+        }
     }
 }
 

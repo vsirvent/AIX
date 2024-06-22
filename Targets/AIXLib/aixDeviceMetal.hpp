@@ -110,7 +110,8 @@ public:
 
     void matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result) override;
 
-    void transpose(const DataType * mat, const Shape & shape, DataType * result) override;
+    virtual void transpose(size_t dim0, size_t dim1, const DataType* data, [[maybe_unused]] const Shape& shape,
+                           const Shape& strides, const Shape& newStrides, const size_t size, DataType* result) override;
 
     void copy(const DataType * src, DataType * dst, size_t size) override;
 
@@ -191,6 +192,8 @@ protected:
     void translation(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape,
                      const MTL::ComputePipelineState *computePSO, const std::string & name);
 
+    void transpose2D(const DataType * mat, const Shape& shape, DataType * result);
+
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
     MTL::CommandQueue*     m_cmdQueue{nullptr};
@@ -214,6 +217,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOPow{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOSum{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatMul{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOMatTranspose2D{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatTranspose{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_A_A{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopy_S_A{nullptr};

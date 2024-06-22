@@ -258,6 +258,32 @@ TEST_CASE("Auto Grad - sigmoid Test - 2x2")
 }
 
 
+TEST_CASE("Auto Grad - transpose")
+{
+    SUBCASE("3x2")
+    {
+        aix::Shape shape{3,2};
+
+        auto x = aix::tensor({1.0,2.0,3.0,4.0,5.0,6.0}, shape, true);
+        auto z = x.transpose(0, 1);
+        z.backward(1, {2,3});       // Starting with the transposed shape
+
+        // Check shapes
+        CHECK(x.grad().shape() == shape);
+        CheckVectorApproxValues(x.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, shape).value());
+    }
+
+    SUBCASE("back propagation initial gradient shape must be transposed")
+    {
+        aix::Shape shape{3,2};
+        auto x = aix::tensor({1.0,2.0,3.0,4.0,5.0,6.0}, shape, true);
+        auto z = x.transpose(0, 1);
+        DOCTEST_CHECK_THROWS_AS(z.backward(), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(z.backward(1, {3,2}), std::invalid_argument);
+    }
+}
+
+
 TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 {
     auto shape1 = Shape{1, 3};

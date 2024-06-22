@@ -160,18 +160,24 @@ TEST_CASE("TensorValue - matmul()")
 
 TEST_CASE("TensorValue - transpose()")
 {
-    SUBCASE("Must fail if dimension size is different than 2")
+    SUBCASE("Must fail if dimension size is higher")
     {
         TensorValue input1 = TensorValue({1.0,2.0,3.0,4.0}, {2,1,2}, &testDevice);
-        DOCTEST_CHECK_THROWS_AS(input1.transpose(), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(input1.transpose(1, 3), std::invalid_argument);
         TensorValue input2 = TensorValue({1.0,2.0,3.0,4.0}, {4}, &testDevice);
-        DOCTEST_CHECK_THROWS_AS(input2.transpose(), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(input2.transpose(0, 1), std::invalid_argument);
+    }
+
+    SUBCASE("{} transpose")
+    {
+        TensorValue A = TensorValue(1.0, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(A.transpose(0, 0), std::invalid_argument);
     }
 
     SUBCASE("1x1 transpose")
     {
         TensorValue A = TensorValue(1.0, {1,1}, &testDevice);
-        auto result = A.transpose();
+        auto result = A.transpose(0, 1);
         CHECK(result.shape() == Shape{1,1});
         CheckVectorApproxValues(result, TensorValue(1.0, {1,1}, &testDevice));
     }
@@ -179,9 +185,75 @@ TEST_CASE("TensorValue - transpose()")
     SUBCASE("3x2 transpose")
     {
         TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice);
-        auto result = A.transpose();
+        auto result = A.transpose(0, 1);
         CHECK(result.shape() == Shape{2,3});
         CheckVectorApproxValues(result, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0}, {2,3}, &testDevice));
+    }
+
+    SUBCASE("3x2 transpose - dims(0,0)")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice);
+        auto result = A.transpose(0, 0);
+        CHECK(result.shape() == Shape{3,2});
+        CheckVectorApproxValues(result, TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice));
+    }
+
+    SUBCASE("3x2 transpose - dims(1,1)")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice);
+        auto result = A.transpose(1, 1);
+        CHECK(result.shape() == Shape{3,2});
+        CheckVectorApproxValues(result, TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice));
+    }
+
+    SUBCASE("3x2 transpose - dims(1,0)")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice);
+        auto result = A.transpose(1, 0);
+        CHECK(result.shape() == Shape{2,3});
+        CheckVectorApproxValues(result, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0}, {2,3}, &testDevice));
+    }
+
+    SUBCASE("3x2x2 transpose(0,1) -> 2x3x2")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0}, {3,2,2}, &testDevice);
+        auto result1 = A.transpose(0, 1);
+        CHECK(result1.shape() == Shape{2,3,2});
+        CheckVectorApproxValues(result1, TensorValue({1.0,2.0,5.0,6.0,9.0,10.0,
+                                                      3.0,4.0,7.0,8.0,11.0,12.0}, {2,3,2}, &testDevice));
+
+        auto result2 = A.transpose(1, 0);
+        CHECK(result2.shape() == Shape{2,3,2});
+        CheckVectorApproxValues(result2, TensorValue({1.0,2.0,5.0,6.0,9.0,10.0,
+                                                      3.0,4.0,7.0,8.0,11.0,12.0}, {2,3,2}, &testDevice));
+    }
+
+    SUBCASE("3x2x2 transpose(0,2) -> 2x2x3")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0}, {3,2,2}, &testDevice);
+        auto result1 = A.transpose(0, 2);
+        CHECK(result1.shape() == Shape{2,2,3});
+        CheckVectorApproxValues(result1, TensorValue({1.0,5.0,9.0,3.0,7.0,11.0,
+                                                      2.0,6.0,10.0,4.0,8.0,12.0}, {2,2,3}, &testDevice));
+
+        auto result2 = A.transpose(2, 0);
+        CHECK(result2.shape() == Shape{2,2,3});
+        CheckVectorApproxValues(result2, TensorValue({1.0,5.0,9.0,3.0,7.0,11.0,
+                                                      2.0,6.0,10.0,4.0,8.0,12.0}, {2,2,3}, &testDevice));
+    }
+
+    SUBCASE("2x3x2 transpose(1,2) -> 2x2x3")
+    {
+        TensorValue A = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0}, {2,3,2}, &testDevice);
+        auto result1 = A.transpose(1, 2);
+        CHECK(result1.shape() == Shape{2,2,3});
+        CheckVectorApproxValues(result1, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0,
+                                                      7.0,9.0,11.0,8.0,10.0,12.0}, {2,2,3}, &testDevice));
+
+        auto result2 = A.transpose(2, 1);
+        CHECK(result2.shape() == Shape{2,2,3});
+        CheckVectorApproxValues(result2, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0,
+                                                      7.0,9.0,11.0,8.0,10.0,12.0}, {2,2,3}, &testDevice));
     }
 }
 
@@ -212,22 +284,6 @@ TEST_CASE("TensorValue::pow 2x2")
     auto x = TensorValue({1.0, 2.0, 3.0, 4.0}, {2, 2}, &testDevice);
     auto exp = TensorValue({1.0, 2.0, 3.0, 4.0}, {2, 2}, &testDevice);
     CheckVectorApproxValues(x.pow(exp), TensorValue({1.0, 4.0, 27.0, 256.0}, x.shape(), &testDevice));
-}
-
-
-TEST_CASE("TensorValue::transpose 1x1")
-{
-    auto a = TensorValue(2, {1, 1}, &testDevice).transpose();
-    CHECK(a.shape() == Shape{1, 1});
-    CheckVectorApproxValues(a, TensorValue(2, a.shape(), &testDevice));
-}
-
-
-TEST_CASE("TensorValue::transpose 2x3")
-{
-    auto a = TensorValue({1, 2, 3, 4, 5, 6}, {2, 3}, &testDevice).transpose();
-    CHECK(a.shape() == Shape{3, 2});
-    CheckVectorApproxValues(a, TensorValue({1, 4, 2, 5, 3, 6}, a.shape(), &testDevice));
 }
 
 

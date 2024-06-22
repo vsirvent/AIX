@@ -298,19 +298,70 @@ kernel void matrix_mul(device const T* inA,
 }
 
 // -----------------------------------------------------------------
-// Matrix Transpose - Naive implementation
+// Transpose2D - Naive implementation
 // -----------------------------------------------------------------
 template<typename T>
-kernel void matrix_transpose(constant const T* mat,
-                             device T* result,
-                             constant MatrixSize& matSize,
-                             uint2 gid [[thread_position_in_grid]],
-                             uint2 tid [[thread_position_in_threadgroup]])
+kernel void transpose2D(device const T* mat,
+                        device T* result,
+                        constant MatrixSize& matSize,
+                        uint2 gid [[thread_position_in_grid]],
+                        uint2 tid [[thread_position_in_threadgroup]])
 {
     uint ofs1 = gid.y * matSize.rows + gid.x;
     uint ofs2 = gid.x * matSize.cols + gid.y;
     result[ofs1] = mat[ofs2];
 }
+
+
+// -----------------------------------------------------------------
+// Transpose - Naive implementation
+// -----------------------------------------------------------------
+
+size_t flattenIndex(thread size_t* indices, size_t indicesSize, device const size_t* strides)
+{
+    size_t index = 0;
+    for (size_t i = 0; i < indicesSize; ++i)
+    {
+        index += indices[i] * strides[i];
+    }
+    return index;
+}
+
+void unflattenIndex(size_t index, device const size_t* strides, size_t stridesSize, thread size_t* outIndices)
+{
+    for (size_t i = 0; i < stridesSize; ++i)
+    {
+        outIndices[i] = index / strides[i];
+        index %= strides[i];
+    }
+}
+
+void swap(thread size_t& a, thread size_t& b)
+{
+    size_t temp = a;
+    a = b;
+    b = temp;
+}
+
+template<typename T>
+kernel void transpose(device const T* data,
+                      device T* result,
+                      constant size_t& dim0,
+                      constant size_t& dim1,
+                      device const size_t* strides,
+                      constant size_t& stridesSize,
+                      device const size_t* newStrides,
+                      constant size_t& newStridesSize,
+                      constant size_t& size,
+                      uint index [[thread_position_in_grid]])
+{
+    thread size_t oldIndices[16];
+    unflattenIndex(index, strides, stridesSize, oldIndices);
+    swap(oldIndices[dim0], oldIndices[dim1]);
+    size_t newIndex = flattenIndex(oldIndices, stridesSize, newStrides);
+    result[newIndex] = data[index];
+}
+
 
 // -----------------------------------------------------------------
 // Copy - Src To Dst
@@ -600,12 +651,25 @@ kernel void matrix_mul(device const float*,
                        uint2 gid [[thread_position_in_grid]]);
 
 
-template [[ host_name("matrix_transpose_float") ]]
-kernel void matrix_transpose(constant const float*,
-                             device float*,
-                             constant MatrixSize&,
-                             uint2 gid,
-                             uint2 tid);
+template [[ host_name("transpose2D_float") ]]
+kernel void transpose2D(device const float*,
+                        device float*,
+                        constant MatrixSize&,
+                        uint2 gid,
+                        uint2 tid);
+
+
+template [[ host_name("transpose_float") ]]
+kernel void transpose(device const float* data,
+                      device float* result,
+                      constant size_t& dim0,
+                      constant size_t& dim1,
+                      device const size_t* strides,
+                      constant size_t& stridesSize,
+                      device const size_t* newStrides,
+                      constant size_t& newStridesSize,
+                      constant size_t& size,
+                      uint index [[thread_position_in_grid]]);
 
 
 template [[ host_name("copy_a_a_float") ]]

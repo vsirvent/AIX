@@ -263,16 +263,16 @@ public:
         }
     }
 
-    virtual void transpose(const DataType* a, const Shape & shape, DataType* result)
+    virtual void transpose(size_t dim0, size_t dim1, const DataType* data, [[maybe_unused]] const Shape& shape,
+                           const Shape& strides, const Shape& newStrides, const size_t size, DataType* result)
     {
-        // Perform the transpose operation.
-        for (size_t i = 0; i < shape[0]; ++i)
+        // Perform the generalized transpose operation.
+        for (size_t i=0; i<size; ++i)
         {
-            for (size_t j = 0; j < shape[1]; ++j)
-            {
-                // Swap the indices for the transposition.
-                result[j * shape[0] + i] = a[i * shape[1] + j];
-            }
+            auto oldIndices = unflattenIndex(i, strides);
+            std::swap(oldIndices[dim0], oldIndices[dim1]);
+            size_t newIndex = flattenIndex(oldIndices, newStrides);
+            result[newIndex] = data[i];
         }
     }
 
@@ -334,6 +334,27 @@ protected:
         }
 
         return originalIndex;
+    }
+
+    size_t flattenIndex(const Shape& indices, const Shape& strides) const
+    {
+        size_t index = 0;
+        for (size_t i = 0; i < indices.size(); ++i)
+        {
+            index += indices[i] * strides[i];
+        }
+        return index;
+    }
+
+    Shape unflattenIndex(size_t index, const Shape& strides) const
+    {
+        Shape indices(strides.size());
+        for (size_t i = 0; i < strides.size(); ++i)
+        {
+            indices[i] = index / strides[i];
+            index %= strides[i];
+        }
+        return indices;
     }
 };
 
@@ -976,19 +997,20 @@ public:
         return result;
     }
 
-    // Transpose of the tensor for 2D tensors.
-    TensorValue transpose() const
+    // Generalized transpose function.
+    TensorValue transpose(size_t dim0, size_t dim1) const
     {
-        // Ensure the tensor is 2D.
-        if (m_shape.size() != 2)
+        // Check dimensions
+        if (dim0 >= m_shape.size() || dim1 >= m_shape.size())
         {
-            throw std::invalid_argument("Transpose operation is currently implemented for 2D tensors only.");
+            throw std::invalid_argument("Invalid dimensions for transpose.");
         }
 
-        // The shape of the transposed tensor will have swapped dimensions.
-        TensorValue transposed({m_shape[1], m_shape[0]}, m_device);
-        m_device->transpose(m_data, m_shape, transposed.m_data);
-        return transposed;
+        Shape newShape = m_shape;
+        std::swap(newShape[dim0], newShape[dim1]);
+        TensorValue result(newShape, device());
+        m_device->transpose(dim0, dim1, m_data, m_shape, m_strides, result.strides(), result.size(), result.data());
+        return result;
     }
 
     // Friend function to overload operator<<
@@ -1149,6 +1171,8 @@ public:
     bool  m_requireGrad;
     std::shared_ptr<TensorNode>  m_a{nullptr};
     std::shared_ptr<TensorNode>  m_b{nullptr};
+    size_t m_dim0{0};
+    size_t m_dim1{0};
     std::function<void(TensorNode * tensor, const TensorValue & seed)>  m_backwardFunc{nullptr};
 };
 
@@ -1342,8 +1366,14 @@ public:
         // Compute gradients with respect to a and b
 
         // Corrected to use matrix multiplication for backward pass calculations
-        node->m_a->backward(seed.matmul(node->m_b->m_value.transpose()));      // ∂E/∂a = ∂E/∂c * b^T
-        node->m_b->backward(node->m_a->m_value.transpose().matmul(seed));      // ∂E/∂b = a^T * ∂E/∂c
+        node->m_a->backward(seed.matmul(node->m_b->m_value.transpose(0, 1)));      // ∂E/∂a = ∂E/∂c * b^T
+        node->m_b->backward(node->m_a->m_value.transpose(0, 1).matmul(seed));      // ∂E/∂b = a^T * ∂E/∂c
+    }
+
+    static void transposeBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        node->m_a->backward(seed.transpose(node->m_dim0, node->m_dim1));
     }
 
     static void sumBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -1570,6 +1600,17 @@ public:
         result.m_data->m_a = m_data;
         result.m_data->m_b = mat.m_data;
         result.m_data->m_backwardFunc = matmulBackwardFunc;
+        return result;
+    }
+
+    Tensor transpose(const size_t dim0, size_t dim1) const
+    {
+        Tensor result(shape(), isRequireGrad(), device());     // Scalar tensor for the mean result.
+        result.m_data->m_value = m_data->m_value.transpose(dim0, dim1);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = dim0;
+        result.m_data->m_dim1 = dim1;
+        result.m_data->m_backwardFunc = transposeBackwardFunc;
         return result;
     }
 

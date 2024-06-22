@@ -157,11 +157,6 @@ public:
         mps::matmul(m_mpsDevice, a1, s1[0], s1[1], a2, s2[0], s2[1], result);
     }
 
-    void transpose(const DataType * mat, const Shape & shape, DataType * result) override
-    {
-        mps::transpose(m_mpsDevice, mat, shape[0], shape[1], result);
-    }
-
     void copy(const DataType * src, DataType * dst, size_t size) override
     {
         mps::copy_a_a(m_mpsDevice, src, dst, size);
