@@ -30,7 +30,7 @@ public:
     }
 
     // Destructor
-    virtual ~DeviceMPS()
+    ~DeviceMPS() override
     {
         mps::releaseMPSDevice(m_mpsDevice);
     }

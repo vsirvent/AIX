@@ -51,7 +51,7 @@ public:
     DeviceMetal();
 
     // Destructor
-    virtual ~DeviceMetal();
+    ~DeviceMetal() override;
 
     DeviceType type() const override { return DeviceType::kGPU_METAL; }
 
