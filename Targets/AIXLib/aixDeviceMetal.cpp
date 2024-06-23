@@ -179,14 +179,6 @@ void DeviceMetal::fill(DataType scalar, size_t size, DataType * result)
 
 void DeviceMetal::sum(const DataType * a, size_t size, DataType* result)
 {
-    // If the array size is small enough, just use the Device::sum(), CPU, which is faster.
-    if (size < MIN_BUFFER_SIZE_TO_CPU_FALLBACK)
-    {
-        commitAndWait();
-        Device::sum(a, size, result);
-        return;
-    }
-
     size_t maxThreadsPerTG = std::min<size_t>(MAX_THREADS_PER_THREADGROUP,
                                               m_compFuncPSOSum->maxTotalThreadsPerThreadgroup());
 
