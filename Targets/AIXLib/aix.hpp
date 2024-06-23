@@ -372,7 +372,7 @@ public:
     // Constructor
     TensorValue(const DataType* data, size_t size, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
-        m_data = static_cast<DataType*>(device->allocate(size * sizeof(DeviceType)));
+        m_data = static_cast<DataType*>(device->allocate(size * sizeof(DataType)));
         device->copyImmediate(data, m_data, size);
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
@@ -382,7 +382,7 @@ public:
     // Constructor
     TensorValue(const std::vector<DataType> & data, Shape shape, Device * device) : m_shape(std::move(shape)), m_device(device)
     {
-        m_data = static_cast<DataType*>(device->allocate(data.size() * sizeof(DeviceType)));
+        m_data = static_cast<DataType*>(device->allocate(data.size() * sizeof(DataType)));
         device->copyImmediate(data.data(), m_data, data.size());
         m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
@@ -394,7 +394,7 @@ public:
     {
         m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
-        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DeviceType)));
+        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DataType)));
         // initialize data.
         for (size_t i=0; i<m_size; ++i) m_data[i] = value;
         computeStrides();
@@ -405,7 +405,7 @@ public:
     {
         m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
-        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DeviceType)));
+        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DataType)));
         computeStrides();
     }
 
@@ -414,7 +414,7 @@ public:
     {
         // Each tensor array must use device specific memory allocator.
         m_size = 1;
-        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DeviceType)));
+        m_data = static_cast<DataType *>(device->allocate(m_size * sizeof(DataType)));
         for(size_t i=0; i<m_size; ++i) m_data[i] = value;
         computeStrides();
     }
@@ -434,7 +434,7 @@ public:
         m_size = other.m_size;
         m_strides = other.m_strides;
         m_device = other.m_device;
-        m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
+        m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DataType)));
         m_device->copyImmediate(other.m_data, m_data, other.m_size);
     }
 
@@ -448,7 +448,7 @@ public:
             m_size = other.m_size;
             m_strides = other.m_strides;
             m_device = other.m_device;
-            m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DeviceType)));
+            m_data = static_cast<DataType*>(m_device->allocate(other.m_size * sizeof(DataType)));
             m_device->copyImmediate(other.m_data, m_data, other.m_size);
         }
 
@@ -516,7 +516,7 @@ public:
         if (m_device == device) return;
         // Move data to the new device. Create a new data with new device and copy the data. Deallocate the old data.
         // Create a new array from the new device.
-        auto newData = static_cast<DataType*>(device->allocate(m_size * sizeof(DeviceType)));
+        auto newData = static_cast<DataType*>(device->allocate(m_size * sizeof(DataType)));
         // Copy old data to the new array.
         device->copyImmediate(m_data, newData, m_size);
         // Delete old data from old device.
