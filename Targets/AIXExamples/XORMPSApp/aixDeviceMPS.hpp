@@ -49,105 +49,105 @@ public:
         mps::deallocate(m_mpsDevice, memory);
     }
 
-    void add(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
+    void add(const DataType * a1, const DataType * a2, size_t size, DataType * result) override
     {
         mps::add_a_a(m_mpsDevice, a1, a2, size, result);
     }
 
-    void sub(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
+    void sub(const DataType * a1, const DataType * a2, size_t size, DataType * result) override
     {
         mps::sub_a_a(m_mpsDevice, a1, a2, size, result);
     }
 
-    void mul(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
+    void mul(const DataType * a1, const DataType * a2, size_t size, DataType * result) override
     {
         mps::mul_a_a(m_mpsDevice, a1, a2, size, result);
     }
 
-    void div(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override
+    void div(const DataType * a1, const DataType * a2, size_t size, DataType * result) override
     {
         mps::div_a_a(m_mpsDevice, a1, a2, size, result);
     }
 
-    void add(const DataType * a, DataType scalar, const size_t size, DataType * result) override
+    void add(const DataType * a, DataType scalar, size_t size, DataType * result) override
     {
         mps::add_a_s(m_mpsDevice, a, scalar, size, result);
     }
 
-    void sub(const DataType * a, DataType scalar, const size_t size, DataType * result) override
+    void sub(const DataType * a, DataType scalar, size_t size, DataType * result) override
     {
         mps::add_a_s(m_mpsDevice, a, -scalar, size, result);
     }
 
-    void sub(DataType scalar, const DataType * a, const size_t size, DataType * result) override
+    void sub(DataType scalar, const DataType * a, size_t size, DataType * result) override
     {
         mps::sub_s_a(m_mpsDevice, scalar, a, size, result);
     }
 
-    void mul(const DataType * a, DataType scalar, const size_t size, DataType * result) override
+    void mul(const DataType * a, DataType scalar, size_t size, DataType * result) override
     {
         mps::mul_a_s(m_mpsDevice, a, scalar, size, result);
     }
 
-    void div(const DataType * a, DataType scalar, const size_t size, DataType * result) override
+    void div(const DataType * a, DataType scalar, size_t size, DataType * result) override
     {
         mps::div_a_s(m_mpsDevice, a, scalar, size, result);
     }
 
-    void div(DataType scalar, const DataType * a, const size_t size, DataType * result) override
+    void div(DataType scalar, const DataType * a, size_t size, DataType * result) override
     {
         mps::div_s_a(m_mpsDevice, scalar, a, size, result);
     }
 
 
-    void unary(const DataType * a, const size_t size, DataType * result) override
+    void unary(const DataType * a, size_t size, DataType * result) override
     {
         mps::mul_a_s(m_mpsDevice, a, DataType(-1), size, result);
     }
 
-    void fill(DataType scalar, const size_t size, DataType * result) override
+    void fill(DataType scalar, size_t size, DataType * result) override
     {
         mps::copy_s_a(m_mpsDevice, scalar, size, result);
     }
 
-    void sum(const DataType * a, const size_t size, DataType* result) override
+    void sum(const DataType * a, size_t size, DataType* result) override
     {
         // TODO: Add GPU support for the following device methods.
         Device::sum(a, size, result);
     }
 
-    void mean(const DataType * a, const size_t size, DataType* result) override
+    void mean(const DataType * a, size_t size, DataType* result) override
     {
         // TODO: Add GPU support for the following device methods.
         Device::mean(a, size, result);
     }
 
-    void sqrt(const DataType * a, const size_t size, DataType * result) override
+    void sqrt(const DataType * a, size_t size, DataType * result) override
     {
         mps::sqrt_a(m_mpsDevice, a, size, result);
     }
 
-    void sin(const DataType * a, const size_t size, DataType * result) override
+    void sin(const DataType * a, size_t size, DataType * result) override
     {
         mps::sin_a(m_mpsDevice, a, size, result);
     }
 
-    void cos(const DataType * a, const size_t size, DataType * result) override
+    void cos(const DataType * a, size_t size, DataType * result) override
     {
         mps::cos_a(m_mpsDevice, a, size, result);
     }
 
-    void tanh(const DataType * a, const size_t size, DataType * result) override
+    void tanh(const DataType * a, size_t size, DataType * result) override
     {
         mps::tanh_a(m_mpsDevice, a, size, result);
     }
 
-    void log(const DataType * a, const size_t size, DataType * result) override
+    void log(const DataType * a, size_t size, DataType * result) override
     {
         mps::log_a(m_mpsDevice, a, size, result);
     }
 
-    void exp(const DataType * a, const size_t size, DataType * result) override
+    void exp(const DataType * a, size_t size, DataType * result) override
     {
         mps::exp_a(m_mpsDevice, a, size, result);
     }

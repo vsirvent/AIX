@@ -117,67 +117,67 @@ void DeviceMetal::deallocate(void * memory)
     mtlBuf->release();
 }
 
-void DeviceMetal::add(const DataType * a1, const DataType * a2, const size_t size, DataType * result)
+void DeviceMetal::add(const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOAdd, "add");
 }
 
-void DeviceMetal::sub(const DataType * a1, const DataType * a2, const size_t size, DataType * result)
+void DeviceMetal::sub(const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOSub, "sub");
 }
 
-void DeviceMetal::mul(const DataType * a1, const DataType * a2, const size_t size, DataType * result)
+void DeviceMetal::mul(const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOMul, "mul");
 }
 
-void DeviceMetal::div(const DataType * a1, const DataType * a2, const size_t size, DataType * result)
+void DeviceMetal::div(const DataType * a1, const DataType * a2, size_t size, DataType * result)
 {
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSODiv, "div");
 }
 
-void DeviceMetal::add(const DataType * a, DataType scalar, const size_t size, DataType * result)
+void DeviceMetal::add(const DataType * a, DataType scalar, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSOAdd_A_S, "add");
 }
 
-void DeviceMetal::sub(const DataType * a, DataType scalar, const size_t size, DataType * result)
+void DeviceMetal::sub(const DataType * a, DataType scalar, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, -scalar, size, result, m_compFuncPSOAdd_A_S, "sub");
 }
 
-void DeviceMetal::sub(DataType scalar, const DataType * a, const size_t size, DataType * result)
+void DeviceMetal::sub(DataType scalar, const DataType * a, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSOSub_S_A, "sub");
 }
 
-void DeviceMetal::mul(const DataType * a, DataType scalar, const size_t size, DataType * result)
+void DeviceMetal::mul(const DataType * a, DataType scalar, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSOMul_A_S, "mul");
 }
 
-void DeviceMetal::div(const DataType * a, DataType scalar, const size_t size, DataType * result)
+void DeviceMetal::div(const DataType * a, DataType scalar, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSODiv_A_S, "div");
 }
 
-void DeviceMetal::div(DataType scalar, const DataType * a, const size_t size, DataType * result)
+void DeviceMetal::div(DataType scalar, const DataType * a, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSODiv_S_A, "div");
 }
 
-void DeviceMetal::unary(const DataType * a, const size_t size, DataType * result)
+void DeviceMetal::unary(const DataType * a, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, DataType(-1), size, result, m_compFuncPSOMul_A_S, "unary");
 }
 
-void DeviceMetal::fill(DataType scalar, const size_t size, DataType * result)
+void DeviceMetal::fill(DataType scalar, size_t size, DataType * result)
 {
     executeArrayScalarCmd(nullptr, scalar, size, result, m_compFuncPSOCopy_S_A, "copy");
 }
 
-void DeviceMetal::sum(const DataType * a, const size_t size, DataType* result)
+void DeviceMetal::sum(const DataType * a, size_t size, DataType* result)
 {
     // If the array size is small enough, just use the Device::sum(), CPU, which is faster.
     if (size < MIN_BUFFER_SIZE_TO_CPU_FALLBACK)
@@ -215,43 +215,43 @@ void DeviceMetal::sum(const DataType * a, const size_t size, DataType* result)
     bufResult->release();       // Release temporary buffer.
 }
 
-void DeviceMetal::mean(const DataType * a, const size_t size, DataType* result)
+void DeviceMetal::mean(const DataType * a, size_t size, DataType* result)
 {
     sum(a, size, result);
     *result /= DataType(size);
 }
 
-void DeviceMetal::sqrt(const DataType * a, const size_t size, DataType * result)
+void DeviceMetal::sqrt(const DataType * a, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSqrt, "sqrt");
 }
 
-void DeviceMetal::sin(const DataType * a, const size_t size, DataType * result)
+void DeviceMetal::sin(const DataType * a, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSin, "sin");
 }
 
-void DeviceMetal::cos(const DataType * a, const size_t size, DataType * result)
+void DeviceMetal::cos(const DataType * a, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOCos, "cos");
 }
 
-void DeviceMetal::tanh(const DataType * a, const size_t size, DataType * result)
+void DeviceMetal::tanh(const DataType * a, size_t size, DataType * result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOTanh, "tanh");
 }
 
-void DeviceMetal::log(const DataType* a, const size_t size, DataType* result)
+void DeviceMetal::log(const DataType* a, size_t size, DataType* result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOLog, "log");
 }
 
-void DeviceMetal::exp(const DataType* a, const size_t size, DataType* result)
+void DeviceMetal::exp(const DataType* a, size_t size, DataType* result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOExp, "exp");
 }
 
-void DeviceMetal::pow(const DataType* a, const DataType* exp, const size_t size, DataType* result)
+void DeviceMetal::pow(const DataType* a, const DataType* exp, size_t size, DataType* result)
 {
     executeDoubleArrayCmd(a, exp, size, result, m_compFuncPSOPow, "pow");
 }
@@ -279,7 +279,7 @@ void DeviceMetal::matmul(const DataType * a1, const Shape & s1, const DataType *
 }
 
 void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, const Shape& shape,
-                            const Stride& strides, const Stride& newStrides, const size_t size, DataType* result)
+                            const Stride& strides, const Stride& newStrides, size_t size, DataType* result)
 {
     // Use fast and simplified version of the general transpose for matrix transpose operations.
     if (shape.size() == 2 && dim0 == 0 && dim1 == 1)
@@ -520,7 +520,7 @@ void DeviceMetal::encodeComputeCommandDoubleBuffer(const MTL::Buffer* buf1, cons
 }
 
 void DeviceMetal::encodeComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                                  const DataType scalar, MTL::Buffer* bufResult,
+                                                  DataType scalar, MTL::Buffer* bufResult,
                                                   MTL::ComputeCommandEncoder* computeEncoder,
                                                   const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                                   const MTL::Size & threadsPerTG) const
@@ -559,7 +559,7 @@ void DeviceMetal::sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const 
     if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
 }
 
-void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, const DataType scalar,
+void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, DataType scalar,
                                                 MTL::Buffer* bufResult, const MTL::ComputePipelineState* compFuncPSO,
                                                 const MTL::Size & gridSize, const MTL::Size & threadsPerTG)
 {
@@ -631,7 +631,7 @@ void DeviceMetal::executeDoubleArrayCmd(const DataType * a1,
 }
 
 void DeviceMetal::translation(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape,
-                              const MTL::ComputePipelineState *computePSO, const std::string & name)
+                              const MTL::ComputePipelineState* computePSO, const std::string & name)
 {
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (m_allocMap.find(dst) == m_allocMap.end())

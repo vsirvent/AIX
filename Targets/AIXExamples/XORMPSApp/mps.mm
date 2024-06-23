@@ -570,7 +570,7 @@ void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1,
 void transpose(void* device, [[maybe_unused]] size_t dim0, [[maybe_unused]] size_t dim1,
                const DataType* data, [[maybe_unused]] const Shape& shape,
                [[maybe_unused]] const Stride& strides, [[maybe_unused]] const Stride& newStrides,
-               [[maybe_unused]] const size_t size, DataType* result)
+               [[maybe_unused]] size_t size, DataType* result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);
     CHECK(mpsDevice);

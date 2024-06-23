@@ -66,52 +66,52 @@ public:
     // Deallocate GPU memory if it's allocated by current device.
     void deallocate(void * memory) override;
 
-    void add(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override;
+    void add(const DataType * a1, const DataType * a2, size_t size, DataType * result) override;
 
-    void sub(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override;
+    void sub(const DataType * a1, const DataType * a2, size_t size, DataType * result) override;
 
-    void mul(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override;
+    void mul(const DataType * a1, const DataType * a2, size_t size, DataType * result) override;
 
-    void div(const DataType * a1, const DataType * a2, const size_t size, DataType * result) override;
+    void div(const DataType * a1, const DataType * a2, size_t size, DataType * result) override;
 
-    void add(const DataType * a, DataType scalar, const size_t size, DataType * result) override;
+    void add(const DataType * a, DataType scalar, size_t size, DataType * result) override;
 
-    void sub(const DataType * a, DataType scalar, const size_t size, DataType * result) override;
+    void sub(const DataType * a, DataType scalar, size_t size, DataType * result) override;
 
-    void sub(DataType scalar, const DataType * a, const size_t size, DataType * result) override;
+    void sub(DataType scalar, const DataType * a, size_t size, DataType * result) override;
 
-    void mul(const DataType * a, DataType scalar, const size_t size, DataType * result) override;
+    void mul(const DataType * a, DataType scalar, size_t size, DataType * result) override;
 
-    void div(const DataType * a, DataType scalar, const size_t size, DataType * result) override;
+    void div(const DataType * a, DataType scalar, size_t size, DataType * result) override;
 
-    void div(DataType scalar, const DataType * a, const size_t size, DataType * result) override;
+    void div(DataType scalar, const DataType * a, size_t size, DataType * result) override;
 
-    void unary(const DataType * a, const size_t size, DataType * result) override;
+    void unary(const DataType * a, size_t size, DataType * result) override;
 
-    void fill(DataType scalar, const size_t size, DataType * result) override;
+    void fill(DataType scalar, size_t size, DataType * result) override;
 
-    void sum(const DataType * a, const size_t size, DataType* result) override;
+    void sum(const DataType * a, size_t size, DataType* result) override;
 
-    void mean(const DataType * a, const size_t size, DataType* result) override;
+    void mean(const DataType * a, size_t size, DataType* result) override;
 
-    void sqrt(const DataType * a, const size_t size, DataType * result) override;
+    void sqrt(const DataType * a, size_t size, DataType * result) override;
 
-    void sin(const DataType * a, const size_t size, DataType * result) override;
+    void sin(const DataType * a, size_t size, DataType * result) override;
 
-    void cos(const DataType * a, const size_t size, DataType * result) override;
+    void cos(const DataType * a, size_t size, DataType * result) override;
 
-    void tanh(const DataType * a, const size_t size, DataType * result) override;
+    void tanh(const DataType * a, size_t size, DataType * result) override;
 
-    void log(const DataType* a, const size_t size, DataType* result) override;
+    void log(const DataType* a, size_t size, DataType* result) override;
 
-    void exp(const DataType* a, const size_t size, DataType* result) override;
+    void exp(const DataType* a, size_t size, DataType* result) override;
 
-    void pow(const DataType* a, const DataType* exp, const size_t size, DataType* result) override;
+    void pow(const DataType* a, const DataType* exp, size_t size, DataType* result) override;
 
     void matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result) override;
 
-    virtual void transpose(size_t dim0, size_t dim1, const DataType* data, [[maybe_unused]] const Shape& shape,
-                           const Stride& strides, const Stride& newStrides, const size_t size, DataType* result) override;
+    void transpose(size_t dim0, size_t dim1, const DataType* data, [[maybe_unused]] const Shape& shape,
+                   const Stride& strides, const Stride& newStrides, size_t size, DataType* result) override;
 
     void copy(const DataType * src, DataType * dst, size_t size) override;
 
@@ -156,7 +156,7 @@ protected:
                                           const MTL::Size& threadsPerTG) const;
 
     void encodeComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                         const DataType scalar, MTL::Buffer* bufResult,
+                                         DataType scalar, MTL::Buffer* bufResult,
                                          MTL::ComputeCommandEncoder* computeEncoder,
                                          const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                          const MTL::Size & threadsPerTG) const;
@@ -170,7 +170,7 @@ protected:
                                         const MTL::ComputePipelineState* compFuncPSO, const MTL::Size & gridSize,
                                         const MTL::Size & threadsPerTG);
 
-    void sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, const DataType scalar,
+    void sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, DataType scalar,
                                        MTL::Buffer* bufResult, const MTL::ComputePipelineState* compFuncPSO,
                                        const MTL::Size & gridSize, const MTL::Size & threadsPerTG);
 
