@@ -54,11 +54,6 @@ public:
 
     DeviceType type() const override { return DeviceType::kGPU_METAL; }
 
-    size_t align(size_t size, size_t alignment)
-    {
-        return (size + alignment - 1) & ~(alignment - 1);       // Padding for alignment.
-    }
-
     // Allocate GPU memory and return MTL Buffer contents and keeps MTL Buffer pointers in a hashmap.
     void * allocate(size_t size) override;
 
@@ -128,6 +123,11 @@ protected:
         size_t rows;
         size_t cols;
     };
+
+    static size_t align(size_t size, size_t alignment)
+    {
+        return (size + alignment - 1) & ~(alignment - 1);       // Padding for alignment.
+    }
 
     MTL::Buffer* newBuffer(size_t size);
 
