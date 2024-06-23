@@ -279,7 +279,7 @@ void DeviceMetal::matmul(const DataType * a1, const Shape & s1, const DataType *
 }
 
 void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, const Shape& shape,
-                            const Shape& strides, const Shape& newStrides, const size_t size, DataType* result)
+                            const Stride& strides, const Stride& newStrides, const size_t size, DataType* result)
 {
     // Use fast and simplified version of the general transpose for matrix transpose operations.
     if (shape.size() == 2 && dim0 == 0 && dim1 == 1)

@@ -45,9 +45,10 @@ enum class DeviceType
     kGPU_METAL,
 };
 
-// Tensor Shape and Index Types
-using Shape = std::vector<size_t>;
-using Index = std::vector<size_t>;
+// Tensor Index, Shape and Stride Types
+using Index  = std::vector<size_t>;
+using Shape  = std::vector<size_t>;
+using Stride = std::vector<size_t>;
 
 
 class Device
@@ -264,7 +265,7 @@ public:
     }
 
     virtual void transpose(size_t dim0, size_t dim1, const DataType* data, [[maybe_unused]] const Shape& shape,
-                           const Shape& strides, const Shape& newStrides, const size_t size, DataType* result)
+                           const Stride& strides, const Stride& newStrides, const size_t size, DataType* result)
     {
         // Perform the generalized transpose operation.
         for (size_t i=0; i<size; ++i)
@@ -336,7 +337,7 @@ protected:
         return originalIndex;
     }
 
-    size_t flattenIndex(const Shape& indices, const Shape& strides) const
+    size_t flattenIndex(const Stride& indices, const Stride& strides) const
     {
         size_t index = 0;
         for (size_t i = 0; i < indices.size(); ++i)
@@ -346,9 +347,9 @@ protected:
         return index;
     }
 
-    Shape unflattenIndex(size_t index, const Shape& strides) const
+    Stride unflattenIndex(size_t index, const Stride& strides) const
     {
-        Shape indices(strides.size());
+        Stride indices(strides.size());
         for (size_t i = 0; i < strides.size(); ++i)
         {
             indices[i] = index / strides[i];
@@ -497,7 +498,7 @@ public:
     const Shape & shape() const    { return m_shape; }
 
     // Get the strides of the tensor
-    const Shape & strides() const  { return m_strides; }
+    const Stride & strides() const  { return m_strides; }
 
     // Get the raw data of the tensor
     const DataType* data() const   { return m_data; }
@@ -1036,14 +1037,6 @@ private:
         return std::inner_product(indices.begin(), indices.end(), m_strides.begin(), 0);
     }
 
-    inline void validateShapes(const auto & shape1, const auto & shape2) const
-    {
-        if (shape1 != shape2)
-        {
-            throw std::invalid_argument("Shapes of the tensors must be the same.");
-        }
-    }
-
     // Print Tensor data
     void print(std::ostream & os) const
     {
@@ -1140,7 +1133,7 @@ private:
     DataType* m_data{nullptr};  // The flat array of tensor elements.
     size_t    m_size;           // Number of DataType elements.
     Shape     m_shape;          // The shape of the tensor.
-    Index     m_strides;        // The strides for indexing the tensor.
+    Stride    m_strides;        // The strides for indexing the tensor.
     Device *  m_device{nullptr};
 };
 

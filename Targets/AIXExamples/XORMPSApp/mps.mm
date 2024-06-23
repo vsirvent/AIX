@@ -9,6 +9,7 @@
 
 // Project includes
 #import "aixDeviceMetalShaders.hpp"
+#import "mps.hpp"
 // External includes
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
@@ -18,9 +19,8 @@
 #import <unordered_map>
 #import <vector>
 
-typedef float DataType;
+using namespace aix;
 MPSDataType mpsDataType = MPSDataTypeFloat32;
-using Shape = std::vector<size_t>;
 
 #ifdef DEBUG
     #define CHECK(value) if (!value) \
@@ -569,7 +569,7 @@ void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1,
 
 void transpose(void* device, [[maybe_unused]] size_t dim0, [[maybe_unused]] size_t dim1,
                const DataType* data, [[maybe_unused]] const Shape& shape,
-               [[maybe_unused]] const Shape& strides, [[maybe_unused]] const Shape& newStrides,
+               [[maybe_unused]] const Stride& strides, [[maybe_unused]] const Stride& newStrides,
                [[maybe_unused]] const size_t size, DataType* result)
 {
     auto mpsDevice = static_cast<MPSDevice*>(device);

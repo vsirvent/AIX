@@ -111,7 +111,7 @@ public:
     void matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result) override;
 
     virtual void transpose(size_t dim0, size_t dim1, const DataType* data, [[maybe_unused]] const Shape& shape,
-                           const Shape& strides, const Shape& newStrides, const size_t size, DataType* result) override;
+                           const Stride& strides, const Stride& newStrides, const size_t size, DataType* result) override;
 
     void copy(const DataType * src, DataType * dst, size_t size) override;
 

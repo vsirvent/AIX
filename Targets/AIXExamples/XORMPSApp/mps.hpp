@@ -9,11 +9,12 @@
 
 #pragma once
 
+#include <aix.hpp>
+
 namespace mps
 {
 
-typedef float DataType;
-using Shape = std::vector<size_t>;
+using namespace aix;
 
 extern "C"
 {
@@ -43,7 +44,7 @@ extern "C"
 
     void  matmul(void* device, const DataType * a1, size_t rows1, size_t cols1, const DataType * a2, size_t rows2, size_t cols2, DataType * result);
     void  transpose(void* device, size_t dim0, size_t dim1, const DataType* data, [[maybe_unused]] const Shape& shape,
-                    const Shape& strides, const Shape& newStrides, const size_t size, DataType* result);
+                    const Stride& strides, const Stride& newStrides, const size_t size, DataType* result);
 
     void  copy_a_a(void* device, const DataType* src, DataType* dst, size_t size);
     void  copy_s_a(void* device, DataType scalar, size_t size, DataType * result);
