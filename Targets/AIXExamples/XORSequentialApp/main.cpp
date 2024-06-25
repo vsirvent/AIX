@@ -72,19 +72,18 @@ int main()
         optimizer.step();                                   // Update neural net's learnable parameters.
 
         // Log loss value.
-        if (epoch % kLogInterval == 0 || loss.value().item() <= kLossThreshold)
-            std::cout << "Epoch: " << epoch << " Loss = " << loss.value().item()<< std::endl << std::flush;
+        if (epoch % kLogInterval == 0 || loss.value().item<float>() <= kLossThreshold)
+            std::cout << "Epoch: " << epoch << " Loss = " << loss.value().item<float>()<< std::endl << std::flush;
 
         // Stop training process when loss is lower than the threshold.
-        if (loss.value().item() <= kLossThreshold)
+        if (loss.value().item<float>() <= kLossThreshold)
             break;
     }
     std::cout << std::endl;
 
     auto timeEnd = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
-    std::cout << "Training: " << duration << " ms"
-              << " - Avg Iteration: " << duration/double(epoch) << " ms\n";
+    std::cout << "Training: " << duration << " ms - Avg Iteration: " << duration/double(epoch) << " ms\n";
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);

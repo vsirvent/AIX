@@ -84,7 +84,7 @@ TEST_CASE("Simple TensorValue 2 dim - Copy Const")
 {
     auto x = TensorValue({1, 2, 3, 4, 5, 6},    {2, 3}, &testDevice);
     auto z = x;
-    z.data()[0] = 1;
+    z.data<float>()[0] = 1;
 
     CHECK(z.shape() == x.shape());
     CheckVectorApproxValues(z, x);
@@ -107,16 +107,16 @@ TEST_CASE("TensorValue - item()")
     SUBCASE("Must fail due to a non-scalar tensor")
     {
         TensorValue input = TensorValue({1.0,2.0}, {2}, &testDevice);
-        DOCTEST_CHECK_THROWS_AS(input.item(), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(input.item<float>(), std::invalid_argument);
 
         TensorValue input2 = TensorValue({1.0,2.0,3.0,4.0}, {2, 2}, &testDevice);
-        DOCTEST_CHECK_THROWS_AS(input2.item(), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(input2.item<float>(), std::invalid_argument);
     }
 
     SUBCASE("Should return a scalar value")
     {
         TensorValue input = TensorValue(1.0, Shape{}, &testDevice);
-        CHECK(input.item() == 1.0);
+        CHECK(input.item<float>() == 1.0);
     }
 }
 
@@ -290,7 +290,7 @@ TEST_CASE("TensorValue::pow 2x2")
 TEST_CASE("TensorValue - In-place Add with Scalar")
 {
     auto x = TensorValue({1, 2, 3}, {1, 3}, &testDevice);
-    DataType scalar = 5;
+    float scalar = 5;
     x += scalar;
 
     CHECK(x.shape() == Shape{1, 3});
@@ -301,7 +301,7 @@ TEST_CASE("TensorValue - In-place Add with Scalar")
 TEST_CASE("TensorValue - In-place Sub with Scalar")
 {
     auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
-    DataType scalar = 5;
+    float scalar = 5;
     x -= scalar;
 
     CHECK(x.shape() == Shape{1, 3});
@@ -312,7 +312,7 @@ TEST_CASE("TensorValue - In-place Sub with Scalar")
 TEST_CASE("TensorValue - In-place Mul with Scalar")
 {
     auto x = TensorValue({1, 2, 3}, {1, 3}, &testDevice);
-    DataType scalar = 5;
+    float scalar = 5;
     x *= scalar;
 
     CHECK(x.shape() == Shape{1, 3});
@@ -323,7 +323,7 @@ TEST_CASE("TensorValue - In-place Mul with Scalar")
 TEST_CASE("TensorValue - In-place Div with Scalar")
 {
     auto x = TensorValue({6, 7, 8}, {1, 3}, &testDevice);
-    DataType scalar = 2;
+    float scalar = 2;
     x /= scalar;
 
     CHECK(x.shape() == Shape{1, 3});
@@ -388,7 +388,7 @@ TEST_CASE("TensorValue - Unary Minus")
 TEST_CASE("TensorValue - Fill")
 {
     auto x = TensorValue({1, 1, 1}, {1, 3}, &testDevice);
-    DataType fillValue = 7;
+    float fillValue = 7;
     x.fill(fillValue);
 
     CHECK(x.shape() == Shape{1, 3});
@@ -400,7 +400,7 @@ TEST_CASE("TensorValue - Sum")
 {
     auto x = TensorValue({-1, 2.2, 0, 4.8}, {2, 2}, &testDevice);
 
-    CHECK(x.sum().item() == Approx(6));
+    CHECK(x.sum().item<float>() == Approx(6));
 }
 
 
@@ -408,7 +408,7 @@ TEST_CASE("TensorValue - Mean")
 {
     auto x = TensorValue({1, 2, 3, 4}, {2, 2}, &testDevice);
 
-    CHECK(x.mean().item() == Approx(2.5));
+    CHECK(x.mean().item<float>() == Approx(2.5));
 }
 
 
@@ -428,9 +428,9 @@ TEST_CASE("TensorValue - Sin")
     auto y = x.sin();
 
     CHECK(y.shape() == Shape{1, 3});
-    CheckVectorApproxValues(y, TensorValue({DataType(std::sin(0.5)),
-                                            DataType(std::sin(0)),
-                                            DataType(std::sin(-0.5))}, y.shape(), &testDevice));
+    CheckVectorApproxValues(y, TensorValue({float(std::sin(0.5)),
+                                            float(std::sin(0)),
+                                            float(std::sin(-0.5))}, y.shape(), &testDevice));
 }
 
 
@@ -440,9 +440,9 @@ TEST_CASE("TensorValue - Cos")
     auto y = x.cos();
 
     CHECK(y.shape() == Shape{1, 3});
-    CheckVectorApproxValues(y, TensorValue({DataType(std::cos(0.5)),
-                                            DataType(std::cos(0)),
-                                            DataType(std::cos(-0.5))}, y.shape(), &testDevice));
+    CheckVectorApproxValues(y, TensorValue({float(std::cos(0.5)),
+                                            float(std::cos(0)),
+                                            float(std::cos(-0.5))}, y.shape(), &testDevice));
 }
 
 
@@ -522,7 +522,7 @@ TEST_CASE("TensorValue - Reshape")
 
     SUBCASE("1x3 dimension -> 3 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0};
         auto input = TensorValue(data, {1,3}, &testDevice);
         auto newShape = Shape{3};
         auto x = input.reshape(newShape);
@@ -533,7 +533,7 @@ TEST_CASE("TensorValue - Reshape")
 
     SUBCASE("2x3 dimension -> 6 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = TensorValue(data, {2,3}, &testDevice);
         auto newShape = Shape{6};
         auto x = input.reshape(newShape);
@@ -544,7 +544,7 @@ TEST_CASE("TensorValue - Reshape")
 
     SUBCASE("6 dimension -> 2x3 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = TensorValue(data, {6}, &testDevice);
         auto newShape = Shape{2, 3};
         auto x = input.reshape(newShape);
@@ -555,7 +555,7 @@ TEST_CASE("TensorValue - Reshape")
 
     SUBCASE("2x3 dimension -> 3x1x2 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = TensorValue(data, {2,3}, &testDevice);
         auto newShape = Shape{3, 1, 2};
         auto x = input.reshape(newShape);
@@ -566,7 +566,7 @@ TEST_CASE("TensorValue - Reshape")
 
     SUBCASE("2x3 dimension -> 2x3 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = TensorValue(data, {2,3}, &testDevice);
         auto newShape = Shape{2,3};
         auto x = input.reshape(newShape);
@@ -972,9 +972,9 @@ TEST_CASE("Tensor - print")
 
 TEST_CASE("Tensor - Tensor OP Scalar")
 {
-    DataType scalar = 5;
+    float scalar = 5;
     Shape shape{2, 2};
-    std::vector<DataType> testData = {1.0, -2.0, 0.0, 3.0};
+    std::vector<float> testData = {1.0, -2.0, 0.0, 3.0};
 
     SUBCASE("Add")
     {
@@ -982,7 +982,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto input = aix::tensor(data, shape);
         auto result = input + scalar;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x += scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x += scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -992,7 +992,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto input = aix::tensor(data, shape);
         auto result = input - scalar;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x -= scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x -= scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1002,7 +1002,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto input = aix::tensor(data, shape);
         auto result = input * scalar;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x *= scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x *= scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1012,7 +1012,7 @@ TEST_CASE("Tensor - Tensor OP Scalar")
         auto input = aix::tensor(data, shape);
         auto result = input / scalar;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x /= scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x /= scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 }
@@ -1020,9 +1020,9 @@ TEST_CASE("Tensor - Tensor OP Scalar")
 
 TEST_CASE("Tensor - Scalar OP Tensor")
 {
-    DataType scalar = 5;
+    float scalar = 5;
     Shape shape{2, 2};
-    std::vector<DataType> testData = {1.0, -2.0, 0.5, 3.0};
+    std::vector<float> testData = {1.0, -2.0, 0.5, 3.0};
 
     SUBCASE("Add")
     {
@@ -1030,7 +1030,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto input = aix::tensor(data, shape);
         auto result = scalar + input;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar + x; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x = scalar + x; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1040,7 +1040,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto input = aix::tensor(data, shape);
         auto result = scalar - input;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar - x; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x = scalar - x; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1050,7 +1050,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto input = aix::tensor(data, shape);
         auto result = scalar * input;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar * x; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x = scalar * x; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1060,7 +1060,7 @@ TEST_CASE("Tensor - Scalar OP Tensor")
         auto input = aix::tensor(data, shape);
         auto result = scalar / input;
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x = scalar / x; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x = scalar / x; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 }
@@ -1068,10 +1068,10 @@ TEST_CASE("Tensor - Scalar OP Tensor")
 
 TEST_CASE("Tensor - Tensor OP Scalar Tensor")
 {
-    DataType scalar = 5;
+    float scalar = 5;
     Tensor scalarTensor = tensor(scalar);
     Shape shape{2, 2};
-    std::vector<DataType> testData = {1.0, -2.0, 0.0, 3.0};
+    std::vector<float> testData = {1.0, -2.0, 0.0, 3.0};
 
     // Scalar tensor has no dimension.
     CHECK(scalarTensor.shape().size() == 0);
@@ -1083,7 +1083,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         auto result = input + scalarTensor;
         CHECK(result.shape() == input.shape());
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x += scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x += scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1094,7 +1094,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         auto result = input - scalarTensor;
         CHECK(result.shape() == input.shape());
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x -= scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x -= scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1105,7 +1105,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         auto result = input * scalarTensor;
         CHECK(result.shape() == input.shape());
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x *= scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x *= scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 
@@ -1116,7 +1116,7 @@ TEST_CASE("Tensor - Tensor OP Scalar Tensor")
         auto result = input / scalarTensor;
         CHECK(result.shape() == input.shape());
 
-        std::for_each(data.begin(), data.end(), [scalar](DataType & x) { x /= scalar; });
+        std::for_each(data.begin(), data.end(), [scalar](float & x) { x /= scalar; });
         CheckVectorApproxValues(result, tensor(data, shape));
     }
 }
@@ -1186,7 +1186,7 @@ TEST_CASE("Tensor - Reshape")
 
     SUBCASE("1x3 dimension -> 3 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0};
         auto input = Tensor(data.data(), data.size(), {1,3});
         auto newShape = Shape{3};
         auto x = input.reshape(newShape);
@@ -1197,7 +1197,7 @@ TEST_CASE("Tensor - Reshape")
 
     SUBCASE("2x3 dimension -> 6 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = Tensor(data.data(), data.size(), {2,3});
         auto newShape = Shape{6};
         auto x = input.reshape(newShape);
@@ -1208,7 +1208,7 @@ TEST_CASE("Tensor - Reshape")
 
     SUBCASE("6 dimension -> 2x3 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = Tensor(data.data(), data.size(), {6});
         auto newShape = Shape{2, 3};
         auto x = input.reshape(newShape);
@@ -1219,7 +1219,7 @@ TEST_CASE("Tensor - Reshape")
 
     SUBCASE("2x3 dimension -> 3x1x2 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = Tensor(data.data(), data.size(), {2,3});
         auto newShape = Shape{3, 1, 2};
         auto x = input.reshape(newShape);
@@ -1230,7 +1230,7 @@ TEST_CASE("Tensor - Reshape")
 
     SUBCASE("2x3 dimension -> 2x3 dimension")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = Tensor(data.data(), data.size(), {2,3});
         auto newShape = Shape{2,3};
         auto x = input.reshape(newShape);
@@ -1241,7 +1241,7 @@ TEST_CASE("Tensor - Reshape")
 
     SUBCASE("Size mismatch")
     {
-        auto data = std::vector<DataType>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+        auto data = std::vector<float>{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
         auto input = Tensor(data.data(), data.size(), {2,3});
         auto newShape = Shape{2,3};
         auto x = input.reshape(newShape);
@@ -1408,7 +1408,7 @@ TEST_CASE("TensorValue - broadcast")
 
     SUBCASE("[2x3] [3x2]")
     {
-        std::vector<DataType> data{1.0, 2.0, 3.0,4.0, 5.0, 6.0};
+        std::vector<float> data{1.0, 2.0, 3.0,4.0, 5.0, 6.0};
         Shape shape1{2,3};
         Shape shape2{3,2};
         auto tensorVal1 = TensorValue(data, shape1, &testDevice);

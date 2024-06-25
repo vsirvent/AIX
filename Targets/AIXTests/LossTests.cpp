@@ -27,7 +27,7 @@ TEST_CASE("Loss Func - BinaryCrossEntropy - Scalar")
 
     loss.backward();   // grad [1] shape 1x1
 
-    CHECK(loss.value().item() == doctest::Approx(0.544805));
+    CHECK(loss.value().item<float>() == doctest::Approx(0.544805));
     // Note: Results are consistent with those from PyTorch.
 }
 
@@ -44,6 +44,6 @@ TEST_CASE("Loss Func - BinaryCrossEntropy - 2x2")
 
     loss.backward(1, shape);   // grad [1,1,1,1] shape 2x2
 
-    CHECK(loss.value().item() == doctest::Approx(0.648247));
+    CHECK(loss.value().item<float>() == doctest::Approx(0.648247));
     // Note: Results are consistent with those from PyTorch.
 }

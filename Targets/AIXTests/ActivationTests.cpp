@@ -24,7 +24,7 @@ TEST_CASE("Activation Func - Softmax")
         auto input = tensor(0.5);
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
-        CHECK(result.sum().value().item() == 1.0);
+        CHECK(result.sum().value().item<float>() == 1.0);
         CheckVectorApproxValues(result, tensor(1.0));
     }
 
@@ -33,7 +33,7 @@ TEST_CASE("Activation Func - Softmax")
         auto input = tensor({0.5}, Shape{1});
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
-        CHECK(result.sum().value().item() == 1.0);
+        CHECK(result.sum().value().item<float>() == 1.0);
         CheckVectorApproxValues(result, tensor({1.0}, input.shape()));
     }
 
@@ -42,7 +42,7 @@ TEST_CASE("Activation Func - Softmax")
         auto input = tensor({1.0, 2.0, 3.0, 4.0}, Shape{4});
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
-        CHECK(result.sum().value().item() == 1.0);
+        CHECK(result.sum().value().item<float>() == 1.0);
         CheckVectorApproxValues(result, tensor({0.0320586, 0.0871443, 0.236883, 0.643914}, input.shape()));
     }
 
@@ -51,7 +51,7 @@ TEST_CASE("Activation Func - Softmax")
         auto input = tensor({0.5}, Shape{1,1});
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
-        CHECK(result.sum().value().item() == 1.0);
+        CHECK(result.sum().value().item<float>() == 1.0);
         CheckVectorApproxValues(result, tensor({1.0}, input.shape()));
     }
 
@@ -60,7 +60,7 @@ TEST_CASE("Activation Func - Softmax")
         auto input = tensor({1.0, 2.0, 3.0, 4.0}, Shape{2,2});
         auto result = nn::Softmax().forward(input);
         CHECK(result.shape() == input.shape());
-        CHECK(result.sum().value().item() == 1.0);
+        CHECK(result.sum().value().item<float>() == 1.0);
         CheckVectorApproxValues(result, tensor({0.0320586, 0.0871443, 0.236883, 0.643914}, input.shape()));
     }
 

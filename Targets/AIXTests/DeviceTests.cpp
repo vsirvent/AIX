@@ -21,13 +21,13 @@ using namespace aix;
 #define EPSILON_PERCENT     1
 //#define DEBUG_LOG
 
-std::uniform_real_distribution<aix::DataType>  distr(-1, 1);
+std::uniform_real_distribution<float>  distr(-1, 1);
 
 std::vector<size_t>  testSizes = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 31, 32, 33, 63, 64, 65,
                                    127, 128, 129, 255, 256, 257, 511, 512, 513, 1023, 1024, 1025, 2047, 2048, 2049,
                                    4095, 4096, 4097, 8191, 8192, 8193, 100'000 };
 
-std::vector<DeviceType>  testDeviceTypes = { aix::DeviceType::kCPU , aix::DeviceType::kGPU_METAL };
+std::vector<DeviceType>  testDeviceTypes = { aix::DeviceType::kGPU_METAL };
 
 
 bool verifyResults(const aix::TensorValue & tv1, const aix::TensorValue & tv2, float epsilon = EPSILON)
@@ -38,7 +38,7 @@ bool verifyResults(const aix::TensorValue & tv1, const aix::TensorValue & tv2, f
     }
     for (size_t i=0; i < tv1.size(); ++i)
     {
-        if (std::abs(tv1.data()[i] - tv2.data()[i]) > epsilon)
+        if (std::abs(tv1.data<float>()[i] - tv2.data<float>()[i]) > epsilon)
         {
             return false;
         }
@@ -63,6 +63,24 @@ aix::Shape createRandomShape(ssize_t min, ssize_t max)
 };
 
 
+bool testAllocate(Device* testDevice, size_t n)
+{
+    aix::Device  refDevice;     // Reference/CPU device.
+
+    auto cpuBuf    = static_cast<float*>(refDevice.allocate(n, DataType::kFloat32));
+    auto deviceBuf = static_cast<float*>(testDevice->allocate(n, DataType::kFloat32));
+
+    // Device should be able to allocate memory, and it should be accessible by CPU to read and write.
+    for (size_t i=0; i<n; ++i)
+    {
+        cpuBuf[i]    = float(i);
+        deviceBuf[i] = float(i);
+    }
+
+    return true;
+}
+
+
 bool testAdd(Device* testDevice, size_t n)
 {
     aix::Device  refDevice;     // Reference/CPU device.
@@ -72,8 +90,8 @@ bool testAdd(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data());
-    testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data());
+    refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -102,8 +120,8 @@ bool testSub(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data());
-    testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data());
+    refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -132,8 +150,8 @@ bool testAdd_A_S(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.add(array1.value().data(), scalar, n, cpuResult.data());
-    testDevice->add(array1.value().data(), scalar, n, deviceResult.data());
+    refDevice.addAS(array1.value().data(), &scalar, n, cpuResult.data(), DataType::kFloat32);
+    testDevice->addAS(array1.value().data(), &scalar, n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -153,7 +171,7 @@ bool testAdd_A_S(Device* testDevice, size_t n)
 }
 
 
-bool testAdd_S_A(Device* testDevice, size_t n)
+bool testSub_S_A(Device* testDevice, size_t n)
 {
     aix::Device  refDevice;     // Reference/CPU device.
 
@@ -162,8 +180,8 @@ bool testAdd_S_A(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.sub(scalar, array1.value().data(), n, cpuResult.data());
-    testDevice->sub(scalar, array1.value().data(), n, deviceResult.data());
+    refDevice.subSA(&scalar, array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->subSA(&scalar, array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -192,8 +210,8 @@ bool testMul_A_S(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.mul(array1.value().data(), scalar, n, cpuResult.data());
-    testDevice->mul(array1.value().data(), scalar, n, deviceResult.data());
+    refDevice.mulAS(array1.value().data(), &scalar, n, cpuResult.data(), DataType::kFloat32);
+    testDevice->mulAS(array1.value().data(), &scalar, n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -221,8 +239,8 @@ bool testDiv_A_S(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.div(array1.value().data(), scalar, n, cpuResult.data());
-    testDevice->div(array1.value().data(), scalar, n, deviceResult.data());
+    refDevice.divAS(array1.value().data(), &scalar, n, cpuResult.data(), DataType::kFloat32);
+    testDevice->divAS(array1.value().data(), &scalar, n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -250,8 +268,8 @@ bool testDiv_S_A(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.div(scalar, array1.value().data(), n, cpuResult.data());
-    testDevice->div(scalar, array1.value().data(), n, deviceResult.data());
+    refDevice.divSA(&scalar, array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->divSA(&scalar, array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -278,8 +296,8 @@ bool testUnary(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.unary(array1.value().data(), n, cpuResult.data());
-    testDevice->unary(array1.value().data(), n, deviceResult.data());
+    refDevice.unary(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->unary(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -306,8 +324,8 @@ bool testSqrt(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.sqrt(array1.value().data(), n, cpuResult.data());
-    testDevice->sqrt(array1.value().data(), n, deviceResult.data());
+    refDevice.sqrt(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->sqrt(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -334,8 +352,8 @@ bool testSin(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.sin(array1.value().data(), n, cpuResult.data());
-    testDevice->sin(array1.value().data(), n, deviceResult.data());
+    refDevice.sin(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->sin(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -362,8 +380,8 @@ bool testCos(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.cos(array1.value().data(), n, cpuResult.data());
-    testDevice->cos(array1.value().data(), n, deviceResult.data());
+    refDevice.cos(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->cos(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -390,8 +408,8 @@ bool testTanh(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.tanh(array1.value().data(), n, cpuResult.data());
-    testDevice->tanh(array1.value().data(), n, deviceResult.data());
+    refDevice.tanh(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->tanh(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -418,8 +436,8 @@ bool testLog(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.log(array1.value().data(), n, cpuResult.data());
-    testDevice->log(array1.value().data(), n, deviceResult.data());
+    refDevice.log(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->log(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -446,8 +464,8 @@ bool testExp(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.exp(array1.value().data(), n, cpuResult.data());
-    testDevice->exp(array1.value().data(), n, deviceResult.data());
+    refDevice.exp(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->exp(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -475,8 +493,8 @@ bool testPow(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.pow(array1.value().data(), exp.value().data(), n, cpuResult.data());
-    testDevice->pow(array1.value().data(), exp.value().data(), n, deviceResult.data());
+    refDevice.pow(array1.value().data(), exp.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->pow(array1.value().data(), exp.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -504,12 +522,12 @@ bool testMean(Device* testDevice, size_t n)
     TensorValue cpuResult(0, {}, &refDevice);
     TensorValue deviceResult(0, {}, testDevice);
 
-    refDevice.mean(array1.value().data(), n, cpuResult.data());
-    testDevice->mean(array1.value().data(), n, deviceResult.data());
+    refDevice.mean(array1.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->mean(array1.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
-    auto errorPercent = std::abs((cpuResult.item() - deviceResult.item()) / cpuResult.item());
+    auto errorPercent = std::abs((cpuResult.item<float>() - deviceResult.item<float>()) / cpuResult.item<float>());
     if ( errorPercent > EPSILON_PERCENT)
     {
         #ifdef DEBUG_LOG
@@ -535,8 +553,8 @@ bool testMul(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.mul(array1.value().data(), array2.value().data(), n, cpuResult.data());
-    testDevice->mul(array1.value().data(), array2.value().data(), n, deviceResult.data());
+    refDevice.mul(array1.value().data(), array2.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->mul(array1.value().data(), array2.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -565,8 +583,8 @@ bool testDiv(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.div(array1.value().data(), array2.value().data(), n, cpuResult.data());
-    testDevice->div(array1.value().data(), array2.value().data(), n, deviceResult.data());
+    refDevice.div(array1.value().data(), array2.value().data(), n, cpuResult.data(), DataType::kFloat32);
+    testDevice->div(array1.value().data(), array2.value().data(), n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -597,11 +615,11 @@ bool testMatMul(Device* testDevice, size_t n, size_t inner, size_t m)
 
     refDevice.matmul(matA.value().data(), {n, inner},
                      matB.value().data(), {inner, m},
-                     cpuResult.data());
+                     cpuResult.data(), DataType::kFloat32);
 
     testDevice->matmul(matA.value().data(), {n, inner},
                        matB.value().data(), {inner, m},
-                       deviceResult.data());
+                       deviceResult.data(), DataType::kFloat32);
 
     testDevice->commitAndWait();
 
@@ -636,10 +654,10 @@ bool testTranspose2D(Device* testDevice, size_t n, size_t m)
     auto deviceResult = aix::TensorValue(newShape, testDevice);
 
     refDevice.transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), cpuResult.strides(),
-                        cpuResult.size(), cpuResult.data());
+                        cpuResult.size(), cpuResult.data(), DataType::kFloat32);
 
     testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
-                          deviceResult.size(), deviceResult.data());
+                          deviceResult.size(), deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare true/cpu result with gpu result
@@ -676,10 +694,10 @@ bool testTranspose(Device* testDevice)
     auto deviceResult = aix::TensorValue(newShape, testDevice);
 
     refDevice.transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), cpuResult.strides(),
-                        cpuResult.size(), cpuResult.data());
+                        cpuResult.size(), cpuResult.data(), DataType::kFloat32);
 
     testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
-                          deviceResult.size(), deviceResult.data());
+                          deviceResult.size(), deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare true/cpu result with gpu result
@@ -707,8 +725,8 @@ bool testCopy(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.copy(src.value().data(), cpuResult.data(), n);
-    testDevice->copy(src.value().data(), deviceResult.data(), n);
+    refDevice.copy(src.value().data(), cpuResult.data(), n, DataType::kFloat32);
+    testDevice->copy(src.value().data(), deviceResult.data(), n, DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -735,8 +753,8 @@ bool testFill(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.fill(scalar, n, cpuResult.data());
-    testDevice->fill(scalar, n, deviceResult.data());
+    refDevice.fill(&scalar, n, cpuResult.data(), DataType::kFloat32);
+    testDevice->fill(&scalar, n, deviceResult.data(), DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -768,8 +786,8 @@ bool testBroadcastTo(Device* testDevice)
     auto cpuResult    = aix::TensorValue(newShape, &refDevice);
     auto deviceResult = aix::TensorValue(newShape, testDevice);
 
-    refDevice.broadcastTo(srcTensor.value().data(), cpuResult.data(), cpuResult.size(), shape, newShape);
-    testDevice->broadcastTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape);
+    refDevice.broadcastTo(srcTensor.value().data(), cpuResult.data(), cpuResult.size(), shape, newShape, DataType::kFloat32);
+    testDevice->broadcastTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape, DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -802,8 +820,8 @@ bool testReduceTo(Device* testDevice)
     auto cpuResult    = aix::TensorValue(0, shape, &refDevice);
     auto deviceResult = aix::TensorValue(0, shape, testDevice);
 
-    refDevice.reduceTo(srcTensor.value().data(),   cpuResult.data(),    cpuResult.size(),    shape, newShape);
-    testDevice->reduceTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape);
+    refDevice.reduceTo(srcTensor.value().data(),   cpuResult.data(),    cpuResult.size(),    shape, newShape, DataType::kFloat32);
+    testDevice->reduceTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape, DataType::kFloat32);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -819,6 +837,35 @@ bool testReduceTo(Device* testDevice)
     }
 
     return true;
+}
+
+
+TEST_CASE("Device Tests - Allocate")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aixDeviceFactory::CreateDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+        delete device;
+
+        // Create a new device per test
+        for (auto size: testSizes)
+        {
+            device = aixDeviceFactory::CreateDevice(deviceType);
+            CHECK(testAllocate(device, size));
+            delete device;
+        }
+
+        // Use the same device per test
+        device = aixDeviceFactory::CreateDevice(deviceType);
+        for (auto size: testSizes)
+        {
+            CHECK(testAllocate(device, size));
+        }
+        delete device;
+    }
 }
 
 
@@ -880,6 +927,35 @@ TEST_CASE("Device Tests - Sub")
 }
 
 
+TEST_CASE("Device Tests - Sub_Scalar_Array")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aixDeviceFactory::CreateDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+        delete device;
+
+        // Create a new device per test
+        for (auto size: testSizes)
+        {
+            device = aixDeviceFactory::CreateDevice(deviceType);
+            CHECK(testSub_S_A(device, size));
+            delete device;
+        }
+
+        // Use the same device per test
+        device = aixDeviceFactory::CreateDevice(deviceType);
+        for (auto size: testSizes)
+        {
+            CHECK(testSub_S_A(device, size));
+        }
+        delete device;
+    }
+}
+
+
 TEST_CASE("Device Tests - Add_Array_Scalar")
 {
     // For each available devices, tests add operation.
@@ -903,35 +979,6 @@ TEST_CASE("Device Tests - Add_Array_Scalar")
         for (auto size: testSizes)
         {
             CHECK(testAdd_A_S(device, size));
-        }
-        delete device;
-    }
-}
-
-
-TEST_CASE("Device Tests - Add_Scalar_Array")
-{
-    // For each available devices, tests add operation.
-    for (auto deviceType : testDeviceTypes)
-    {
-        // Check if the devices is available.
-        auto device = aixDeviceFactory::CreateDevice(deviceType);
-        if (!device) continue;      // Skip if the device is not available.
-        delete device;
-
-        // Create a new device per test
-        for (auto size: testSizes)
-        {
-            device = aixDeviceFactory::CreateDevice(deviceType);
-            CHECK(testAdd_S_A(device, size));
-            delete device;
-        }
-
-        // Use the same device per test
-        device = aixDeviceFactory::CreateDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testAdd_S_A(device, size));
         }
         delete device;
     }
@@ -1542,8 +1589,8 @@ TEST_CASE("Device Tests - batch compute")
     // commitAndWait method is called.
 
     Shape shape{2,3};
-    std::vector<DataType> data1{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
-    std::vector<DataType> data2{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+    std::vector<float> data1{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    std::vector<float> data2{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
     size_t queueSize = 200;
 
     SUBCASE("Add")
@@ -2000,7 +2047,7 @@ TEST_CASE("Tensor - broadcast")
 
     SUBCASE("[2x3] [3x2]")
     {
-        std::vector<DataType> data{1.0, 2.0, 3.0,4.0, 5.0, 6.0};
+        std::vector<float> data{1.0, 2.0, 3.0,4.0, 5.0, 6.0};
         Shape shape1{2,3};
         Shape shape2{3,2};
         auto tensor1 = tensor(data, shape1);

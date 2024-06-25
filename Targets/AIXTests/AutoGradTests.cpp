@@ -19,10 +19,10 @@ using namespace aix;
 
 struct TestModel : public aix::nn::Module
 {
-    TestModel(const std::vector<DataType> & xData,
-              const std::vector<DataType> & yData,
-              const std::vector<DataType> & tData,
-              const std::vector<DataType> & uData,
+    TestModel(const std::vector<float> & xData,
+              const std::vector<float> & yData,
+              const std::vector<float> & tData,
+              const std::vector<float> & uData,
               const Shape & shape)
     {
         m_x = tensor(xData, shape, true);
@@ -76,11 +76,11 @@ TEST_CASE("Auto Grad - Module Test - 1x1 Tensor")
     CHECK(tm.m_u.value().shape() == shape);
     CHECK(m.value().shape()      == shape);
 
-    CHECK(tm.m_x.grad().item() == Approx(5));
-    CHECK(tm.m_y.grad().item() == Approx(0.999999));
-    CHECK(tm.m_t.grad().item() == Approx(-1.25));
-    CHECK(tm.m_u.grad().item() == Approx(0.459387));
-    CHECK(m.value().item()     == Approx(-1.79462));
+    CHECK(tm.m_x.grad().item<float>() == Approx(5));
+    CHECK(tm.m_y.grad().item<float>() == Approx(0.999999));
+    CHECK(tm.m_t.grad().item<float>() == Approx(-1.25));
+    CHECK(tm.m_u.grad().item<float>() == Approx(0.459387));
+    CHECK(m.value().item<float>()     == Approx(-1.79462));
 }
 
 
@@ -288,8 +288,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 {
     auto shape1 = Shape{1, 3};
     auto shape2 = Shape{2, 3};
-    auto data1 = std::vector<DataType>{1.0, 2.0, 3.0};
-    auto data2 = std::vector<DataType>{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+    auto data1 = std::vector<float>{1.0, 2.0, 3.0};
+    auto data2 = std::vector<float>{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
 
     SUBCASE("Add - x+y")
     {
@@ -394,8 +394,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 {
     auto shape1 = Shape{};      // Scalar has no shape/dimension
     auto shape2 = Shape{2, 3};
-    auto data1 = std::vector<DataType>{5};
-    auto data2 = std::vector<DataType>{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+    auto data1 = std::vector<float>{5};
+    auto data2 = std::vector<float>{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
 
     SUBCASE("Add - x+y")
     {

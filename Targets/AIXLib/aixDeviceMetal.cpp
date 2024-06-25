@@ -28,35 +28,30 @@ DeviceMetal::DeviceMetal()
     m_mtlDevice = reinterpret_cast<MTL::Device*>(MTL::CopyAllDevices()->object(0));   // Get first available device.
     auto defaultLibrary = createLibrary(aix::shaders::aixDeviceMetalShaders);
     // Compile time evaluation.
-    if constexpr (std::is_same_v<DataType, float>)
-    {
-        m_compFuncPSOAdd          = createComputeFuncPSO(defaultLibrary, "add_float");
-        m_compFuncPSOSub          = createComputeFuncPSO(defaultLibrary, "sub_float");
-        m_compFuncPSOMul          = createComputeFuncPSO(defaultLibrary, "mul_float");
-        m_compFuncPSODiv          = createComputeFuncPSO(defaultLibrary, "div_float");
-        m_compFuncPSOAdd_A_S      = createComputeFuncPSO(defaultLibrary, "add_a_s_float");
-        m_compFuncPSOSub_S_A      = createComputeFuncPSO(defaultLibrary, "sub_s_a_float");
-        m_compFuncPSOMul_A_S      = createComputeFuncPSO(defaultLibrary, "mul_a_s_float");
-        m_compFuncPSODiv_A_S      = createComputeFuncPSO(defaultLibrary, "div_a_s_float");
-        m_compFuncPSODiv_S_A      = createComputeFuncPSO(defaultLibrary, "div_s_a_float");
-        m_compFuncPSOSqrt         = createComputeFuncPSO(defaultLibrary, "sqrt_a_float");
-        m_compFuncPSOSin          = createComputeFuncPSO(defaultLibrary, "sin_a_float");
-        m_compFuncPSOCos          = createComputeFuncPSO(defaultLibrary, "cos_a_float");
-        m_compFuncPSOTanh         = createComputeFuncPSO(defaultLibrary, "tanh_a_float");
-        m_compFuncPSOLog          = createComputeFuncPSO(defaultLibrary, "log_a_float");
-        m_compFuncPSOExp          = createComputeFuncPSO(defaultLibrary, "exp_a_float");
-        m_compFuncPSOPow          = createComputeFuncPSO(defaultLibrary, "pow_float");
-        m_compFuncPSOSum          = createComputeFuncPSO(defaultLibrary, "sum_a_float");
-        m_compFuncPSOMatMul       = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
-        m_compFuncPSOMatTranspose2D = createComputeFuncPSO(defaultLibrary, "transpose2D_float");
-        m_compFuncPSOMatTranspose = createComputeFuncPSO(defaultLibrary, "transpose_float");
-        m_compFuncPSOCopy_A_A     = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
-        m_compFuncPSOCopy_S_A     = createComputeFuncPSO(defaultLibrary, "copy_s_a_float");
-        m_compFuncPSOBroadcastTo  = createComputeFuncPSO(defaultLibrary, "broadcastTo_float");
-        m_compFuncPSOReduceTo     = createComputeFuncPSO(defaultLibrary, "reduceTo_float");
-    }
-    else
-        throw std::invalid_argument("Metal device supports only float data type for now.");
+    m_compFuncPSOAddF32         = createComputeFuncPSO(defaultLibrary, "add_float");
+    m_compFuncPSOSubF32         = createComputeFuncPSO(defaultLibrary, "sub_float");
+    m_compFuncPSOMulF32         = createComputeFuncPSO(defaultLibrary, "mul_float");
+    m_compFuncPSODivF32         = createComputeFuncPSO(defaultLibrary, "div_float");
+    m_compFuncPSOAddASF32       = createComputeFuncPSO(defaultLibrary, "add_a_s_float");
+    m_compFuncPSOSubSAF32       = createComputeFuncPSO(defaultLibrary, "sub_s_a_float");
+    m_compFuncPSOMulASF32       = createComputeFuncPSO(defaultLibrary, "mul_a_s_float");
+    m_compFuncPSODivASF32       = createComputeFuncPSO(defaultLibrary, "div_a_s_float");
+    m_compFuncPSODivSAF32       = createComputeFuncPSO(defaultLibrary, "div_s_a_float");
+    m_compFuncPSOSqrtF32        = createComputeFuncPSO(defaultLibrary, "sqrt_a_float");
+    m_compFuncPSOSinF32         = createComputeFuncPSO(defaultLibrary, "sin_a_float");
+    m_compFuncPSOCosF32         = createComputeFuncPSO(defaultLibrary, "cos_a_float");
+    m_compFuncPSOTanhF32        = createComputeFuncPSO(defaultLibrary, "tanh_a_float");
+    m_compFuncPSOLogF32         = createComputeFuncPSO(defaultLibrary, "log_a_float");
+    m_compFuncPSOExpF32         = createComputeFuncPSO(defaultLibrary, "exp_a_float");
+    m_compFuncPSOPowF32         = createComputeFuncPSO(defaultLibrary, "pow_float");
+    m_compFuncPSOSumF32         = createComputeFuncPSO(defaultLibrary, "sum_a_float");
+    m_compFuncPSOMatMulF32      = createComputeFuncPSO(defaultLibrary, "matrix_mul_float");
+    m_compFuncPSOTranspose2DF32 = createComputeFuncPSO(defaultLibrary, "transpose2D_float");
+    m_compFuncPSOTransposeF32   = createComputeFuncPSO(defaultLibrary, "transpose_float");
+    m_compFuncPSOCopyAAF32      = createComputeFuncPSO(defaultLibrary, "copy_a_a_float");
+    m_compFuncPSOCopySAF32      = createComputeFuncPSO(defaultLibrary, "copy_s_a_float");
+    m_compFuncPSOBroadcastToF32 = createComputeFuncPSO(defaultLibrary, "broadcastTo_float");
+    m_compFuncPSOReduceToF32    = createComputeFuncPSO(defaultLibrary, "reduceTo_float");
 
     m_cmdQueue = createCommandQueue();
     m_cmdBuffer = m_cmdQueue->commandBuffer();
@@ -66,45 +61,47 @@ DeviceMetal::DeviceMetal()
 DeviceMetal::~DeviceMetal()
 {
     m_cmdQueue->release();
-    m_compFuncPSOAdd->release();
-    m_compFuncPSOSub->release();
-    m_compFuncPSOMul->release();
-    m_compFuncPSODiv->release();
-    m_compFuncPSOAdd_A_S->release();
-    m_compFuncPSOSub_S_A->release();
-    m_compFuncPSOMul_A_S->release();
-    m_compFuncPSODiv_A_S->release();
-    m_compFuncPSODiv_S_A->release();
-    m_compFuncPSOSqrt->release();
-    m_compFuncPSOSin->release();
-    m_compFuncPSOCos->release();
-    m_compFuncPSOTanh->release();
-    m_compFuncPSOLog->release();
-    m_compFuncPSOExp->release();
-    m_compFuncPSOPow->release();
-    m_compFuncPSOSum->release();
-    m_compFuncPSOMatMul->release();
-    m_compFuncPSOMatTranspose2D->release();
-    m_compFuncPSOMatTranspose->release();
-    m_compFuncPSOCopy_A_A->release();
-    m_compFuncPSOCopy_S_A->release();
-    m_compFuncPSOBroadcastTo->release();
-    m_compFuncPSOReduceTo->release();
+    m_compFuncPSOAddF32->release();
+    m_compFuncPSOSubF32->release();
+    m_compFuncPSOMulF32->release();
+    m_compFuncPSODivF32->release();
+    m_compFuncPSOAddASF32->release();
+    m_compFuncPSOSubSAF32->release();
+    m_compFuncPSOMulASF32->release();
+    m_compFuncPSODivASF32->release();
+    m_compFuncPSODivSAF32->release();
+    m_compFuncPSOSqrtF32->release();
+    m_compFuncPSOSinF32->release();
+    m_compFuncPSOCosF32->release();
+    m_compFuncPSOTanhF32->release();
+    m_compFuncPSOLogF32->release();
+    m_compFuncPSOExpF32->release();
+    m_compFuncPSOPowF32->release();
+    m_compFuncPSOSumF32->release();
+    m_compFuncPSOMatMulF32->release();
+    m_compFuncPSOTranspose2DF32->release();
+    m_compFuncPSOTransposeF32->release();
+    m_compFuncPSOCopyAAF32->release();
+    m_compFuncPSOCopySAF32->release();
+    m_compFuncPSOBroadcastToF32->release();
+    m_compFuncPSOReduceToF32->release();
     m_mtlDevice->release();
     // No need to release MTL Buffer objects in m_allocMap.
     m_pool->release();
 }
 
 // Allocate GPU memory and return MTL Buffer contents and keeps MTL Buffer pointers in a hashmap.
-void * DeviceMetal::allocate(size_t size)
+void* DeviceMetal::allocate(size_t size)
 {
-    // Size in bytes.
-    size = align(size, ALIGNMENT_SIZE * sizeof(DataType));
-    // Allocate GPU memory and save the mtl buffer to be used later.
     auto mtlBuf = newBuffer(size);
     auto contentPtr = mtlBuf->contents();
     m_allocMap[contentPtr] = mtlBuf;
     return contentPtr;
+}
+
+void* DeviceMetal::allocate(size_t size, DataType dtype)
+{
+    return allocate(size * dataTypeSize(dtype));
 }
 
 // Deallocate GPU memory if it's allocated by current device.
@@ -117,73 +114,344 @@ void DeviceMetal::deallocate(void * memory)
     mtlBuf->release();
 }
 
-void DeviceMetal::add(const DataType * a1, const DataType * a2, size_t size, DataType * result)
+void DeviceMetal::add(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOAdd, "add");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::addF32,
+    };
+    // Call the appropriate function from the table.
+    (this->*funcTable[static_cast<size_t>(dtype)])(a1, a2, size, result);
 }
 
-void DeviceMetal::sub(const DataType * a1, const DataType * a2, size_t size, DataType * result)
+void DeviceMetal::sub(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOSub, "sub");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::subF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a1, a2, size, result);
 }
 
-void DeviceMetal::mul(const DataType * a1, const DataType * a2, size_t size, DataType * result)
+void DeviceMetal::mul(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOMul, "mul");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::mulF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a1, a2, size, result);
 }
 
-void DeviceMetal::div(const DataType * a1, const DataType * a2, size_t size, DataType * result)
+void DeviceMetal::div(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSODiv, "div");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::divF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a1, a2, size, result);
 }
 
-void DeviceMetal::add(const DataType * a, DataType scalar, size_t size, DataType * result)
+void DeviceMetal::addAS(const void* a1, const void* scalar, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSOAdd_A_S, "add");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::addASF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a1, scalar, size, result);
 }
 
-void DeviceMetal::sub(const DataType * a, DataType scalar, size_t size, DataType * result)
+void DeviceMetal::subAS(const void* a1, const void* scalar, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(a, -scalar, size, result, m_compFuncPSOAdd_A_S, "sub");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::subASF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a1, scalar, size, result);
 }
 
-void DeviceMetal::sub(DataType scalar, const DataType * a, size_t size, DataType * result)
+void DeviceMetal::subSA(const void* scalar, const void* a1, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSOSub_S_A, "sub");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::subSAF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(scalar, a1, size, result);
 }
 
-void DeviceMetal::mul(const DataType * a, DataType scalar, size_t size, DataType * result)
+void DeviceMetal::mulAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSOMul_A_S, "mul");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::mulASF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, scalar, size, result);
 }
 
-void DeviceMetal::div(const DataType * a, DataType scalar, size_t size, DataType * result)
+void DeviceMetal::divAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSODiv_A_S, "div");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::divASF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, scalar, size, result);
 }
 
-void DeviceMetal::div(DataType scalar, const DataType * a, size_t size, DataType * result)
+void DeviceMetal::divSA(const void* scalar, const void* a, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(a, scalar, size, result, m_compFuncPSODiv_S_A, "div");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::divSAF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(scalar, a, size, result);
 }
 
-void DeviceMetal::unary(const DataType * a, size_t size, DataType * result)
+void DeviceMetal::unary(const void* a, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(a, DataType(-1), size, result, m_compFuncPSOMul_A_S, "unary");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::unaryF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
 }
 
-void DeviceMetal::fill(DataType scalar, size_t size, DataType * result)
+void DeviceMetal::fill(const void* scalar, size_t size, void* result, DataType dtype)
 {
-    executeArrayScalarCmd(nullptr, scalar, size, result, m_compFuncPSOCopy_S_A, "copy");
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::fillF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(scalar, size, result);
 }
 
-void DeviceMetal::sum(const DataType * a, size_t size, DataType* result)
+void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::sumF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::mean(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::meanF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::sqrt(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::sqrtF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::sin(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::sinF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::cos(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::cosF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::tanh(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::tanhF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::log(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::logF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::exp(const void* a, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::expF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, size, result);
+}
+
+void DeviceMetal::pow(const void* a, const void* exp, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::powF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a, exp, size, result);
+}
+
+void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::matmulF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(a1, s1, a2, s2, result);
+}
+
+void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
+                            const Stride& strides, const Stride& newStrides, size_t size, void* result, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::transposeF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(dim0, dim1, data, shape, strides, newStrides, size, result);
+}
+
+void DeviceMetal::copy(const void* src, void* dst, size_t size, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::copyF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(src, dst, size);
+}
+
+void DeviceMetal::copyImmediate(const void* src, void* dst, size_t size, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::copyImmediateF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(src, dst, size);
+}
+
+void DeviceMetal::broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::broadcastToF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(src, dst, size, shape, newShape);
+}
+
+void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)
+{
+    static const auto funcTable = std::array
+    {
+        &DeviceMetal::reduceToF32,
+    };
+    // Call the appropriate function from the table.
+    return (this->*funcTable[static_cast<size_t>(dtype)])(src, dst, size, shape, newShape);
+}
+
+void DeviceMetal::addF32(const void* a1, const void* a2, const size_t size, void* result)
+{
+    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOAddF32, "addFloat");
+}
+
+void DeviceMetal::subF32(const void* a1, const void* a2, size_t size, void* result)
+{
+    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOSubF32, "subFloat");
+}
+
+void DeviceMetal::mulF32(const void* a1, const void* a2, size_t size, void* result)
+{
+    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOMulF32, "mulFloat");
+}
+
+void DeviceMetal::divF32(const void* a1, const void* a2, size_t size, void* result)
+{
+    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSODivF32, "divFloat");
+}
+
+void DeviceMetal::addASF32(const void* a, const void* scalar, size_t size, void* result)
+{
+    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOAddASF32, "addASFloat");
+}
+
+void DeviceMetal::subASF32(const void* a1, const void* scalar, size_t size, void* result)
+{
+    executeArrayScalarCmd(a1, -(*(float*)scalar), size, result, m_compFuncPSOAddASF32, "subASFloat");
+}
+
+void DeviceMetal::subSAF32(const void* scalar, const void* a, size_t size, void* result)
+{
+    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOSubSAF32, "subSAFloat");
+}
+
+void DeviceMetal::mulASF32(const void* a, const void* scalar, size_t size, void* result)
+{
+    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOMulASF32, "mulASFloat");
+}
+
+void DeviceMetal::divASF32(const void* a, const void* scalar, size_t size, void* result)
+{
+    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSODivASF32, "divASFloat");
+}
+
+void DeviceMetal::divSAF32(const void* scalar, const void* a, size_t size, void* result)
+{
+    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSODivSAF32, "divSAFloat");
+}
+
+void DeviceMetal::unaryF32(const void* a, size_t size, void* result)
+{
+    executeArrayScalarCmd(a, -1.0f, size, result, m_compFuncPSOMulASF32, "unaryFloat");
+}
+
+void DeviceMetal::fillF32(const void* scalar, size_t size, void* result)
+{
+    executeArrayScalarCmd(nullptr, *(float*)scalar, size, result, m_compFuncPSOCopySAF32, "copyFloat");
+}
+
+void DeviceMetal::sumF32(const void* a, size_t size, void* result)
 {
     size_t maxThreadsPerTG = std::min<size_t>(MAX_THREADS_PER_THREADGROUP,
-                                              m_compFuncPSOSum->maxTotalThreadsPerThreadgroup());
+                                              m_compFuncPSOSumF32->maxTotalThreadsPerThreadgroup());
 
-    auto buf1      = getReadOnlyMTLBuffer(a, size, sizeof(DataType));
-    auto bufResult = newBuffer((1 + size / maxThreadsPerTG) * sizeof(DataType));
+    auto buf1      = getReadOnlyMTLBuffer(a, size, sizeof(float));
+    auto bufResult = newBuffer((1 + size / maxThreadsPerTG) * sizeof(float));
     auto bufRec = buf1;     // Recursive data buffer pointer.
 
     // Apply Parallel Reduction Sum.
@@ -194,7 +462,7 @@ void DeviceMetal::sum(const DataType * a, size_t size, DataType* result)
         NS::UInteger w = std::min<size_t>(length+1, maxThreadsPerTG);
         // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
         sendComputeCommandArrayScalar(bufRec, {1, length+1}, 0, bufResult,
-                                      m_compFuncPSOSum, {length+1, 1, 1}, {w, 1, 1});
+                                      m_compFuncPSOSumF32, {length + 1, 1, 1}, {w, 1, 1});
         length = (length-1) / maxThreadsPerTG;
         bufRec = bufResult;
     }
@@ -203,80 +471,80 @@ void DeviceMetal::sum(const DataType * a, size_t size, DataType* result)
     freeTemporaryBuffer(buf1);
     commitAndWait();
 
-    *result = static_cast<DataType*>(bufResult->contents())[0];  // Read the final result.
+    *(float*)result = static_cast<float*>(bufResult->contents())[0];  // Read the final result.
     bufResult->release();       // Release temporary buffer.
 }
 
-void DeviceMetal::mean(const DataType * a, size_t size, DataType* result)
+void DeviceMetal::meanF32(const void* a, size_t size, void* result)
 {
-    sum(a, size, result);
-    *result /= DataType(size);
+    sumF32(a, size, result);
+    *(float*)result /= size;
 }
 
-void DeviceMetal::sqrt(const DataType * a, size_t size, DataType * result)
+void DeviceMetal::sqrtF32(const void* a, size_t size, void* result)
 {
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSqrt, "sqrt");
+    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSqrtF32, "sqrtFloat");
 }
 
-void DeviceMetal::sin(const DataType * a, size_t size, DataType * result)
+void DeviceMetal::sinF32(const void* a, size_t size, void* result)
 {
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSin, "sin");
+    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSinF32, "sinFloat");
 }
 
-void DeviceMetal::cos(const DataType * a, size_t size, DataType * result)
+void DeviceMetal::cosF32(const void* a, size_t size, void* result)
 {
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOCos, "cos");
+    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOCosF32, "cosFloat");
 }
 
-void DeviceMetal::tanh(const DataType * a, size_t size, DataType * result)
+void DeviceMetal::tanhF32(const void* a, size_t size, void* result)
 {
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOTanh, "tanh");
+    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOTanhF32, "tanhFloat");
 }
 
-void DeviceMetal::log(const DataType* a, size_t size, DataType* result)
+void DeviceMetal::logF32(const void* a, size_t size, void* result)
 {
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOLog, "log");
+    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOLogF32, "logFloat");
 }
 
-void DeviceMetal::exp(const DataType* a, size_t size, DataType* result)
+void DeviceMetal::expF32(const void* a, size_t size, void* result)
 {
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOExp, "exp");
+    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOExpF32, "expFloat");
 }
 
-void DeviceMetal::pow(const DataType* a, const DataType* exp, size_t size, DataType* result)
+void DeviceMetal::powF32(const void* a, const void* exp, size_t size, void* result)
 {
-    executeDoubleArrayCmd(a, exp, size, result, m_compFuncPSOPow, "pow");
+    executeDoubleArrayCmd(a, exp, size, result, m_compFuncPSOPowF32, "powFloat");
 }
 
-void DeviceMetal::matmul(const DataType * a1, const Shape & s1, const DataType * a2, const Shape & s2, DataType * result)
+void DeviceMetal::matmulF32(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result)
 {
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (m_allocMap.find(result) == m_allocMap.end())
         throw std::invalid_argument("DeviceMetal::matmul() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1], sizeof(DataType));
-    auto buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1], sizeof(DataType));
+    auto buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1], sizeof(float));
+    auto buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1], sizeof(float));
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
-    NS::UInteger w = m_compFuncPSOMatMul->threadExecutionWidth();
-    NS::UInteger h = m_compFuncPSOMatMul->maxTotalThreadsPerThreadgroup() / w;
+    NS::UInteger w = m_compFuncPSOMatMulF32->threadExecutionWidth();
+    NS::UInteger h = m_compFuncPSOMatMulF32->maxTotalThreadsPerThreadgroup() / w;
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     sendComputeCommandDoubleBuffer(buf1, {s1[0], s1[1]}, buf2, {s2[0], s2[1]}, bufResult,
-                                   m_compFuncPSOMatMul, {s2[1], s1[0], 1}, {w, h, 1});
+                                   m_compFuncPSOMatMulF32, {s2[1], s1[0], 1}, {w, h, 1});
 
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
 }
 
-void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, const Shape& shape,
-                            const Stride& strides, const Stride& newStrides, size_t size, DataType* result)
+void DeviceMetal::transposeF32(size_t dim0, size_t dim1, const void* data, const Shape& shape,
+                                 const Stride& strides, const Stride& newStrides, size_t size, void* result)
 {
     // Use fast and simplified version of the general transpose for matrix transpose operations.
     if (shape.size() == 2 && dim0 == 0 && dim1 == 1)
     {
-        transpose2D(data, shape, result);
+        transpose2DF32(data, shape, result);
         return;
     }
 
@@ -288,7 +556,7 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, cons
         throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto bufData       = getReadOnlyMTLBuffer(data, size, sizeof(DataType));
+    auto bufData       = getReadOnlyMTLBuffer(data, size, sizeof(float));
     auto bufResult     = m_allocMap[result];
     auto bufStrides    = getReadOnlyMTLBuffer(strides.data(), strides.size(), sizeof(size_t));
     size_t stridesSize = strides.size();
@@ -297,7 +565,7 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, cons
 
     if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
     // Serialize resources and states to be used by the GPU.
-    m_compEncoder->setComputePipelineState(m_compFuncPSOMatTranspose);
+    m_compEncoder->setComputePipelineState(m_compFuncPSOTransposeF32);
     m_compEncoder->setBuffer(bufData,        0,                       0);
     m_compEncoder->setBuffer(bufResult,      0,                       1);
     m_compEncoder->setBytes(&dim0,           sizeof(dim0),            2);
@@ -309,7 +577,7 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, cons
     m_compEncoder->setBytes(&size,           sizeof(size),            8);
 
     // Calculate maximum thread group dimensions
-    NS::UInteger w = std::min(size, m_compFuncPSOMatTranspose->maxTotalThreadsPerThreadgroup());
+    NS::UInteger w = std::min(size, m_compFuncPSOTransposeF32->maxTotalThreadsPerThreadgroup());
 
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
@@ -323,41 +591,41 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const DataType* data, cons
     freeTemporaryBuffer(bufNewStrides);
 }
 
-void DeviceMetal::copy(const DataType * src, DataType * dst, size_t size)
+void DeviceMetal::copyF32(const void* src, void* dst, size_t size)
 {
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (m_allocMap.find(dst) == m_allocMap.end())
         throw std::invalid_argument("DeviceMetal::copy() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto buf1 = getReadOnlyMTLBuffer(src, size, sizeof(DataType));
+    auto buf1 = getReadOnlyMTLBuffer(src, size, sizeof(float));
     auto bufResult = m_allocMap[dst];
 
     // Calculate maximum thread group dimensions
     auto asize = align(size, ALIGNMENT_SIZE);
-    NS::UInteger w = std::min(asize, m_compFuncPSOCopy_A_A->maxTotalThreadsPerThreadgroup()) / ALIGNMENT_SIZE;
+    NS::UInteger w = std::min(asize, m_compFuncPSOCopyAAF32->maxTotalThreadsPerThreadgroup()) / ALIGNMENT_SIZE;
     asize /= ALIGNMENT_SIZE;
 
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    sendComputeCommandSingleBuffer(buf1, {1, size}, bufResult, m_compFuncPSOCopy_A_A, {asize, 1, 1}, {w, 1, 1});
+    sendComputeCommandSingleBuffer(buf1, {1, size}, bufResult, m_compFuncPSOCopyAAF32, {asize, 1, 1}, {w, 1, 1});
 
     freeTemporaryBuffer(buf1);
 }
 
-void DeviceMetal::copyImmediate(const DataType* src, DataType* dst, size_t size)
+void DeviceMetal::copyImmediateF32(const void* src, void* dst, size_t size)
 {
-    copy(src, dst, size);
+    copyF32(src, dst, size);
     commitAndWait();
 }
 
-void DeviceMetal::broadcastTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
+void DeviceMetal::broadcastToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)
 {
-    translation(src, dst, size, shape, newShape, m_compFuncPSOBroadcastTo, "broadcastTo");
+    translationF32(src, dst, size, shape, newShape, m_compFuncPSOBroadcastToF32, "broadcastToFloat");
 }
 
-void DeviceMetal::reduceTo(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape)
+void DeviceMetal::reduceToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)
 {
-    translation(src, dst, size, shape, newShape, m_compFuncPSOReduceTo, "reduceTo");
+    translationF32(src, dst, size, shape, newShape, m_compFuncPSOReduceToF32, "reduceToFloat");
     // NOTE: The ReduceTo function performs a sum operation. The order of these operations by GPU threads is not
     // guaranteed, which might result in minor differences in the final results due to floating-point precision limits.
 }
@@ -512,7 +780,7 @@ void DeviceMetal::encodeComputeCommandDoubleBuffer(const MTL::Buffer* buf1, cons
 }
 
 void DeviceMetal::encodeComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                                  DataType scalar, MTL::Buffer* bufResult,
+                                                  float scalar, MTL::Buffer* bufResult,
                                                   MTL::ComputeCommandEncoder* computeEncoder,
                                                   const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                                   const MTL::Size & threadsPerTG) const
@@ -520,7 +788,7 @@ void DeviceMetal::encodeComputeCommandArrayScalar(const MTL::Buffer* buf1, const
     // Encode the pipeline state object and its parameters.
     computeEncoder->setComputePipelineState(compFuncPSO);
     computeEncoder->setBuffer(buf1, 0, 0);
-    computeEncoder->setBytes(&scalar, sizeof(DataType), 1);
+    computeEncoder->setBytes(&scalar, sizeof(float), 1);
     computeEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
     computeEncoder->setBuffer(bufResult, 0, 3);
     computeEncoder->dispatchThreads(gridSize, threadsPerTG);
@@ -551,7 +819,7 @@ void DeviceMetal::sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const 
     if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
 }
 
-void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, DataType scalar,
+void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, float scalar,
                                                 MTL::Buffer* bufResult, const MTL::ComputePipelineState* compFuncPSO,
                                                 const MTL::Size & gridSize, const MTL::Size & threadsPerTG)
 {
@@ -563,10 +831,10 @@ void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const M
     if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
 }
 
-void DeviceMetal::executeArrayScalarCmd(const DataType * a,
-                                        DataType scalar,
+void DeviceMetal::executeArrayScalarCmd(const void* a,
+                                        float scalar,
                                         size_t size,
-                                        DataType * result,
+                                        void* result,
                                         const MTL::ComputePipelineState* compFuncPSO,
                                         const std::string & cmdName)
 {
@@ -575,7 +843,7 @@ void DeviceMetal::executeArrayScalarCmd(const DataType * a,
         throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
     // Set constants
-    auto buf1      = a ? getReadOnlyMTLBuffer(a, size, sizeof(DataType)) : nullptr;
+    auto buf1      = a ? getReadOnlyMTLBuffer(a, size, sizeof(float)) : nullptr;
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
@@ -593,10 +861,10 @@ void DeviceMetal::executeArrayScalarCmd(const DataType * a,
     }
 }
 
-void DeviceMetal::executeDoubleArrayCmd(const DataType * a1,
-                                        const DataType * a2,
+void DeviceMetal::executeDoubleArrayCmd(const void* a1,
+                                        const void* a2,
                                         size_t size,
-                                        DataType * result,
+                                        void* result,
                                         const MTL::ComputePipelineState* compFuncPSO,
                                         const std::string & cmdName)
 {
@@ -605,8 +873,8 @@ void DeviceMetal::executeDoubleArrayCmd(const DataType * a1,
         throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto buf1 = getReadOnlyMTLBuffer(a1, size, sizeof(DataType));
-    auto buf2 = getReadOnlyMTLBuffer(a2, size, sizeof(DataType));
+    auto buf1 = getReadOnlyMTLBuffer(a1, size, sizeof(float));
+    auto buf2 = getReadOnlyMTLBuffer(a2, size, sizeof(float));
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
@@ -622,8 +890,8 @@ void DeviceMetal::executeDoubleArrayCmd(const DataType * a1,
     // Note: We never release result buffer since it will be used.
 }
 
-void DeviceMetal::translation(const DataType* src, DataType* dst, size_t size, const Shape& shape, const Shape& newShape,
-                              const MTL::ComputePipelineState* computePSO, const std::string & name)
+void DeviceMetal::translationF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
+                                 const MTL::ComputePipelineState* computePSO, const std::string & name)
 {
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (m_allocMap.find(dst) == m_allocMap.end())
@@ -635,7 +903,7 @@ void DeviceMetal::translation(const DataType* src, DataType* dst, size_t size, c
     assert(srcBufSize > 0);
 
     // Memory could be a GPU allocated memory or system memory.
-    auto bufSrc    = getReadOnlyMTLBuffer(src,             srcBufSize,   sizeof(DataType));
+    auto bufSrc    = getReadOnlyMTLBuffer(src,             srcBufSize,   sizeof(float));
     auto bufShape1 = getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t));
     auto bufShape2 = getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t));
     auto bufDst    = m_allocMap[dst];
@@ -664,22 +932,22 @@ void DeviceMetal::translation(const DataType* src, DataType* dst, size_t size, c
     freeTemporaryBuffer(bufShape2);
 }
 
-void DeviceMetal::transpose2D(const DataType * mat, const Shape& shape, DataType * result)
+void DeviceMetal::transpose2DF32(const void* mat, const Shape& shape, void* result)
 {
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (m_allocMap.find(result) == m_allocMap.end())
-        throw std::invalid_argument("DeviceMetal::transpose2D() result must have GPU memory.");
+        throw std::invalid_argument("DeviceMetal::transpose2DF32() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
-    auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1], sizeof(DataType));
+    auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1], sizeof(float));
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
-    NS::UInteger w = m_compFuncPSOMatTranspose2D->threadExecutionWidth();
-    NS::UInteger h = m_compFuncPSOMatTranspose2D->maxTotalThreadsPerThreadgroup() / w;
+    NS::UInteger w = m_compFuncPSOTranspose2DF32->threadExecutionWidth();
+    NS::UInteger h = m_compFuncPSOTranspose2DF32->maxTotalThreadsPerThreadgroup() / w;
 
     sendComputeCommandSingleBuffer(buf1, {shape[0], shape[1]}, bufResult,
-                                   m_compFuncPSOMatTranspose2D, {shape[0], shape[1], 1}, {w, h, 1});
+                                   m_compFuncPSOTranspose2DF32, {shape[0], shape[1], 1}, {w, h, 1});
 
     freeTemporaryBuffer(buf1);
 }

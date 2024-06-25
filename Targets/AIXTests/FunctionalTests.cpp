@@ -129,10 +129,10 @@ TEST_CASE("Model - Save/Load Test")
     auto predictions1 = model1.forward(inputs);
     auto predictions2 = model2.forward(inputs);
 
-    CHECK(predictions1.value().data()[0] == predictions2.value().data()[0]);
-    CHECK(predictions1.value().data()[1] == predictions2.value().data()[1]);
-    CHECK(predictions1.value().data()[2] == predictions2.value().data()[2]);
-    CHECK(predictions1.value().data()[3] == predictions2.value().data()[3]);
+    CHECK(predictions1.value().data<float>()[0] == predictions2.value().data<float>()[0]);
+    CHECK(predictions1.value().data<float>()[1] == predictions2.value().data<float>()[1]);
+    CHECK(predictions1.value().data<float>()[2] == predictions2.value().data<float>()[2]);
+    CHECK(predictions1.value().data<float>()[3] == predictions2.value().data<float>()[3]);
 
     // The test file will be deleted only if there is no error during CHECKs.
     std::filesystem::remove(testModelFile);

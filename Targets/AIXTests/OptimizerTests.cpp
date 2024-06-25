@@ -40,9 +40,9 @@ TEST_CASE("Simple optimizer test")
     optimizer.step();
 
     // Print the updated values of x, y, t, u to see the effect of the single optimization step.
-    CHECK(x.value().item() == Approx(2.03));
-    CHECK(y.value().item() == Approx(3.11));
-    CHECK(t.value().item() == Approx(4.0125));
-    CHECK(u.value().item() == Approx(4.99541));
+    CHECK(x.value().item<float>() == Approx(2.03));
+    CHECK(y.value().item<float>() == Approx(3.11));
+    CHECK(t.value().item<float>() == Approx(4.0125));
+    CHECK(u.value().item<float>() == Approx(4.99541));
     // Note: Results are consistent with those from PyTorch.
 }

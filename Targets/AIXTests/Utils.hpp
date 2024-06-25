@@ -24,7 +24,7 @@ inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix:
 {
     for (size_t i=0; i<expected.size(); ++i)
     {
-        CHECK(results.data()[i] == Approx(expected.data()[i]));
+        CHECK(results.data<float>()[i] == Approx(expected.data<float>()[i]));
     }
 }
 
