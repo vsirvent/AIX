@@ -25,7 +25,6 @@ Examples demonstrating AIX usage can be found in the `Targets/AIXExamples` folde
 | XORApp           | Create a custom Module.                         |
 | XORLayerApp      | Use a module within another module.             |
 | XORMetalApp      | Use Metal acceleration on Apple Silicon.        |       
-| XORMPSApp        | Create an MPS device example for Apple Silicon. |
 | XORSequentialApp | Use the Sequential module.                      |
 
 ### Quick Start

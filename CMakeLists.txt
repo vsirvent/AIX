@@ -61,7 +61,6 @@ if (AIX_BUILD_EXAMPLES)
     # Build the following targets only on macOS with Apple Silicon.
     if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         add_subdirectory(Targets/AIXExamples/XORMetalApp)
-        add_subdirectory(Targets/AIXExamples/XORMPSApp)
     endif()
 endif ()
 
