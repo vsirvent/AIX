@@ -24,25 +24,58 @@ TEST_CASE("Simple optimizer test")
     auto t = tensor(4, true);
     auto u = tensor(5, true);
 
-    auto z = x * (x + y) / t - y * y;
-    auto m = x * z + sin(u) * u;
+    // Create an instance of the SGD optimizer with a specified learning rate.
+    optim::SGDOptimizer optimizer({x, y, t, u}, 0.001f);
 
-    // Traverse the graph (starting from the end) to calculate all tensor gradients.
-    m.backward();      // ∂m/∂m = 1.
+    for (size_t i=0; i<100; ++i)
+    {
+        auto z = x * (x + y) / t - y * y;
+        auto m = x * z + sin(u) * u;
 
-    // Create a vector list of learnable parameters for optimizations.
-    auto parameters = {x, y, t, u};
+        optimizer.zeroGrad();
+        m.backward();      // ∂m/∂m = 1.
+        optimizer.step();
+    }
 
-    // Create an instance of the optimizer with a specified learning rate.
-    optim::SGDOptimizer optimizer(parameters, 0.01f);
+    CHECK(x.value().item<float>() == Approx(2.59247));
+    CHECK(y.value().item<float>() == Approx(4.53346));
+    CHECK(t.value().item<float>() == Approx(4.18035));
+    CHECK(u.value().item<float>() == Approx(4.96434));
+    CHECK(x.grad().item<float>()  == Approx(-9.98867));
+    CHECK(y.grad().item<float>()  == Approx(-21.7066));
+    CHECK(t.grad().item<float>()  == Approx(-2.71093));
+    CHECK(u.grad().item<float>()  == Approx(0.27058));
+    // Note: Results are consistent with those from PyTorch.
+}
 
-    // Perform an optimization step.
-    optimizer.step();
 
-    // Print the updated values of x, y, t, u to see the effect of the single optimization step.
-    CHECK(x.value().item<float>() == Approx(2.03));
-    CHECK(y.value().item<float>() == Approx(3.11));
-    CHECK(t.value().item<float>() == Approx(4.0125));
-    CHECK(u.value().item<float>() == Approx(4.99541));
+TEST_CASE("Adam optimizer test")
+{
+    auto x = tensor(2, true);
+    auto y = tensor(3, true);
+    auto t = tensor(4, true);
+    auto u = tensor(5, true);
+
+    // Create an instance of the Adam optimizer with a specified learning rate.
+    optim::AdamOptimizer optimizer({x, y, t, u}, 0.01f);
+
+    for (size_t i=0; i<100; ++i)
+    {
+        auto z = x * (x + y) / t - y * y;
+        auto m = x * z + sin(u) * u;
+
+        optimizer.zeroGrad();
+        m.backward();      // ∂m/∂m = 1.
+        optimizer.step();
+    }
+
+    CHECK(x.value().item<float>() == Approx(3.12134));
+    CHECK(y.value().item<float>() == Approx(4.12712));
+    CHECK(t.value().item<float>() == Approx(5.12626));
+    CHECK(u.value().item<float>() == Approx(4.91345));
+    CHECK(x.grad().item<float>()  == Approx(-6.25593));
+    CHECK(y.grad().item<float>()  == Approx(-23.6874));
+    CHECK(t.grad().item<float>()  == Approx(-2.66895));
+    CHECK(u.grad().item<float>()  == Approx(0.00182182));
     // Note: Results are consistent with those from PyTorch.
 }
