@@ -25,7 +25,7 @@ TEST_CASE("Simple optimizer test")
     auto u = tensor(5, true);
 
     // Create an instance of the SGD optimizer with a specified learning rate.
-    optim::SGDOptimizer optimizer({x, y, t, u}, 0.001f);
+    optim::SGD optimizer({x, y, t, u}, 0.001f);
 
     for (size_t i=0; i<100; ++i)
     {
@@ -57,7 +57,7 @@ TEST_CASE("Adam optimizer test")
     auto u = tensor(5, true);
 
     // Create an instance of the Adam optimizer with a specified learning rate.
-    optim::AdamOptimizer optimizer({x, y, t, u}, 0.01f);
+    optim::Adam optimizer({x, y, t, u}, 0.01f);
 
     for (size_t i=0; i<100; ++i)
     {

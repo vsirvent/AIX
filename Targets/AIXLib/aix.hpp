@@ -2142,10 +2142,10 @@ protected:
 };
 
 
-class SGDOptimizer : public Optimizer
+class SGD : public Optimizer
 {
 public:
-    explicit SGDOptimizer(const std::vector<Tensor> & parameters, float lr = 0.01f)
+    explicit SGD(const std::vector<Tensor> & parameters, float lr = 0.01f)
         : Optimizer(parameters), m_lr(lr) { }
 
     void step() final
@@ -2164,12 +2164,12 @@ private:
 };
 
 
-class AdamOptimizer : public Optimizer
+class Adam : public Optimizer
 {
 public:
-    explicit AdamOptimizer(const std::vector<Tensor> & parameters, float lr = 0.001f, float beta1 = 0.9f,
-                           float beta2 = 0.999f, float epsilon = 1e-8f)
-            : Optimizer(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
+    explicit Adam(const std::vector<Tensor> & parameters, float lr = 0.001f, float beta1 = 0.9f,
+                  float beta2 = 0.999f, float epsilon = 1e-8f)
+        : Optimizer(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
     {
         for (const auto & param : m_parameters)
         {

@@ -50,7 +50,7 @@ int main()
                                 0.0}, {kNumSamples, kNumTargets}).to(cpuDevice);
 
      // Define a loss function and an optimizer.
-    aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);
+    aix::optim::Adam optimizer(model.parameters(), kLearningRate);
 
     auto lossFunc = aix::nn::MSELoss();
     auto timeStart = std::chrono::steady_clock::now();
