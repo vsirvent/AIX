@@ -1668,7 +1668,15 @@ public:
     }
 
     // Perform backpropagation to calculate gradients recursively.
-    void backward(const TensorValue & seed)  { m_backwardFunc(this, seed); }
+    void backward(const TensorValue & seed)
+    {
+        if (m_retainGrad)
+        {
+            // TODO: Do not create the gradient vector until it's required to improve performance.
+            m_grad += seed;
+        }
+        m_backwardFunc(this, seed);
+    }
 
     Device * device() const          { return m_value.device(); }
     void device(Device * device)     { m_value.device(device); m_grad.device(device); }
@@ -1676,6 +1684,7 @@ public:
     TensorValue  m_value;
     TensorValue  m_grad;
     bool  m_requireGrad;
+    bool  m_retainGrad{false};
     std::shared_ptr<TensorNode>  m_a{nullptr};
     std::shared_ptr<TensorNode>  m_b{nullptr};
     size_t m_dim0{0};
@@ -1728,9 +1737,18 @@ public:
     inline DataType dataType() const            { return m_data->m_value.dataType(); }
 
     // Gradient-related methods.
-    inline const TensorValue & grad() const     { return m_data->m_grad; }
+    inline const TensorValue & grad() const
+    {
+        if (!m_data->m_requireGrad && !m_data->m_retainGrad)
+        {
+            throw std::runtime_error("Gradients for non-leaf tensors won’t be populated during automatic gradient calculation. Use .retainGrad() on the non-leaf tensor if needed, or access the leaf tensor instead.");
+        }
+        return m_data->m_grad;
+    }
+
     inline void zeroGrad()                      { m_data->m_grad.fill(0); }
     inline bool isRequireGrad() const           { return m_data->m_requireGrad; }
+    inline void retainGrad() const              { m_data->m_retainGrad = true;  }
 
     // Set operation device for the tensor.
     inline Tensor & to(Device & device)         { m_data->device(&device); return *this; }
