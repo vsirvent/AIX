@@ -1681,6 +1681,7 @@ public:
     Device * device() const          { return m_value.device(); }
     void device(Device * device)     { m_value.device(device); m_grad.device(device); }
 
+    std::string  m_name;
     TensorValue  m_value;
     TensorValue  m_grad;
     bool  m_requireGrad;
@@ -1753,6 +1754,9 @@ public:
     // Set operation device for the tensor.
     inline Tensor & to(Device & device)         { m_data->device(&device); return *this; }
     inline Device * device() const              { return m_data->device(); }
+
+    inline void name(const std::string& name) const  { m_data->m_name = name; }
+    inline const std::string& name() const           { return m_data->m_name; }
 
     // Returns a new Tensor with a new shape.
     Tensor reshape(const Shape & newShape) const

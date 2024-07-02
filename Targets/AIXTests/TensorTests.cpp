@@ -20,6 +20,16 @@ using namespace aix;
 
 Device  testDevice;     // Default CPU device.
 
+
+TEST_CASE("Tensor - name")
+{
+    auto tensor = aix::tensor({1.0, 2.0}, {2}, false);
+    CHECK(tensor.name().empty());
+    tensor.name("tensor");
+    CHECK(tensor.name() == "tensor");
+}
+
+
 TEST_CASE("Simple TensorValue 1 dim - Add")
 {
     auto x = TensorValue({1.0, 2.0, 3.0}, {1, 3}, &testDevice);
