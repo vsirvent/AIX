@@ -18,6 +18,7 @@ add_executable(${TARGET_NAME}
         LossTests.cpp
         OptimizerTests.cpp
         TensorTests.cpp
+        TensorValueTests.cpp
 )
 
 target_link_libraries(${TARGET_NAME} PRIVATE
