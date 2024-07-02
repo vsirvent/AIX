@@ -16,6 +16,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <iostream>
 #include <numbers>
 #include <numeric>
@@ -29,7 +30,8 @@ namespace aix
 
 enum class DataType : size_t
 {
-    kFloat32 = 0,
+    kFloat64 = 0,
+    kFloat32 = 1,
 };
 
 enum class DeviceType
@@ -37,6 +39,29 @@ enum class DeviceType
     kCPU,
     kGPU_METAL,
 };
+
+// Primary template (default case)
+template <typename T>
+constexpr DataType getDataType()            { throw std::runtime_error("Unknown format found."); return DataType::kFloat32; }
+template <>
+constexpr DataType getDataType<double>()    { return DataType::kFloat64; }
+template <>
+constexpr DataType getDataType<float>()     { return DataType::kFloat32; }
+
+static DataType promoteDataType(DataType dtype1, DataType dtype2)
+{
+    assert(static_cast<size_t>(dtype1) < 2 && static_cast<size_t>(dtype2) < 2);
+    static_assert(static_cast<size_t>(DataType::kFloat64) == 0);
+    static_assert(static_cast<size_t>(DataType::kFloat32) == 1);
+
+    static const DataType promotionTable[2][2] =
+    {
+        //         0                  1
+        { DataType::kFloat64, DataType::kFloat64 },     // 0
+        { DataType::kFloat64, DataType::kFloat32 },     // 1
+    };
+    return promotionTable[static_cast<size_t>(dtype1)][static_cast<size_t>(dtype2)];
+}
 
 // Forward declarations
 class Tensor;
@@ -58,7 +83,8 @@ public:
     {
         static const size_t dTypeSizeTable[]
         {
-            sizeof(float),  // kFloat32
+            sizeof(double),     // kFloat64
+            sizeof(float),      // kFloat32
         };
         return dTypeSizeTable[static_cast<size_t>(dtype)];
     }
@@ -82,6 +108,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            addGeneric<double>,
             addGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -92,6 +119,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            subGeneric<double>,
             subGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -102,6 +130,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            mulGeneric<double>,
             mulGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -112,6 +141,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            divGeneric<double>,
             divGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -122,6 +152,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            addASGeneric<double>,
             addASGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -132,6 +163,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            subASGeneric<double>,
             subASGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -142,6 +174,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            subSAGeneric<double>,
             subSAGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -152,6 +185,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            mulASGeneric<double>,
             mulASGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -162,6 +196,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            divASGeneric<double>,
             divASGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -172,6 +207,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            divSAGeneric<double>,
             divSAGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -182,6 +218,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            unaryGeneric<double>,
             unaryGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -192,6 +229,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            fillGeneric<double>,
             fillGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -202,6 +240,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            sumGeneric<double>,
             sumGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -212,6 +251,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            meanGeneric<double>,
             meanGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -222,6 +262,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            sqrtGeneric<double>,
             sqrtGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -232,6 +273,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            sinGeneric<double>,
             sinGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -242,6 +284,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            cosGeneric<double>,
             cosGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -252,6 +295,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            tanhGeneric<double>,
             tanhGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -262,6 +306,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            logGeneric<double>,
             logGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -272,6 +317,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            expGeneric<double>,
             expGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -282,6 +328,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            powGeneric<double>,
             powGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -292,6 +339,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            matmulGeneric<double>,
             matmulGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -304,30 +352,39 @@ public:
     {
         static const auto funcTable = std::array
         {
+            transposeGeneric<double>,
             transposeGeneric<float>,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](dim0, dim1, data, shape, strides, newStrides, size, result);
     }
 
-    virtual void copy(const void* src, void* dst, size_t size, DataType dtype)
+    virtual void copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
     {
-        static const auto funcTable = std::array
+        if (srcDType == dstDType)
         {
-            copyGeneric<float>,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size);
+            std::memcpy(dst, src, size * dataTypeSize(srcDType));
+        }
+        else
+        {
+            // Define a function pointer type for the conversion copy functions.
+            using ConversionCopyFunc = void (*)(const void*, void*, size_t);
+
+            // Create a lookup table of the functions.
+            static const ConversionCopyFunc funcTable[2][2] =
+            {
+                { nullptr, conversionCopyGeneric<double, float> },
+                { conversionCopyGeneric<float, double>, nullptr }
+            };
+            // Call the appropriate function from the table.
+            funcTable[static_cast<size_t>(srcDType)][static_cast<size_t>(dstDType)](src, dst, size);
+        }
     }
 
-    virtual void copyImmediate(const void* src, void* dst, size_t size, DataType dtype)
+    virtual void copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
     {
-        static const auto funcTable = std::array
-        {
-            copyImmediateGeneric<float>,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size);
+        copy(src, srcDType, dst, dstDType, size);
+        commitAndWait();    // This call has no effect, but it shows the difference between copy and copyImmediate.
     }
 
     virtual void broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
@@ -335,6 +392,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            broadcastToGeneric<double>,
             broadcastToGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -346,6 +404,7 @@ public:
     {
         static const auto funcTable = std::array
         {
+            reduceToGeneric<double>,
             reduceToGeneric<float>,
         };
         // Call the appropriate function from the table.
@@ -413,7 +472,7 @@ protected:
     static void addASGeneric(const void* a1, const void* scalar, const size_t size, void* result)
     {
         auto t1  = static_cast<const T*>(a1);
-        auto scalarValue = *static_cast<const T*>(scalar);
+        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
         auto res = static_cast<T*>(result);
 
         for (size_t i = 0; i < size; ++i)
@@ -426,7 +485,7 @@ protected:
     static void subASGeneric(const void* a1, const void* scalar, const size_t size, void* result)
     {
         auto t1  = static_cast<const T*>(a1);
-        auto scalarValue = *static_cast<const T*>(scalar);
+        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
         auto res = static_cast<T*>(result);
 
         for (size_t i = 0; i < size; ++i)
@@ -438,7 +497,7 @@ protected:
     template <typename T>
     static void subSAGeneric(const void* scalar, const void* a1, const size_t size, void* result)
     {
-        auto scalarValue = *static_cast<const T*>(scalar);
+        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
         auto t1  = static_cast<const T*>(a1);
         auto res = static_cast<T*>(result);
 
@@ -452,7 +511,7 @@ protected:
     static void mulASGeneric(const void* a1, const void* scalar, const size_t size, void* result)
     {
         auto t1  = static_cast<const T*>(a1);
-        auto scalarValue = *static_cast<const T*>(scalar);
+        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
         auto res = static_cast<T*>(result);
 
         for (size_t i = 0; i < size; ++i)
@@ -465,7 +524,7 @@ protected:
     static void divASGeneric(const void* a1, const void* scalar, const size_t size, void* result)
     {
         auto t1  = static_cast<const T*>(a1);
-        auto scalarValue = *static_cast<const T*>(scalar);
+        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
         auto res = static_cast<T*>(result);
 
         for (size_t i = 0; i < size; ++i)
@@ -477,7 +536,7 @@ protected:
     template <typename T>
     static void divSAGeneric(const void* scalar, const void* a1, const size_t size, void* result)
     {
-        auto scalarValue = *static_cast<const T*>(scalar);
+        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
         auto t1  = static_cast<const T*>(a1);
         auto res = static_cast<T*>(result);
 
@@ -502,7 +561,7 @@ protected:
     template <typename T>
     static void fillGeneric(const void* scalar, const size_t size, void* result)
     {
-        auto scalarValue = *static_cast<const T*>(scalar);
+        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
         auto res = static_cast<T*>(result);
 
         for (size_t i = 0; i < size; ++i)
@@ -668,22 +727,15 @@ protected:
         }
     }
 
-    template <typename T>
-    static void copyGeneric(const void* src, void* dst, size_t size)
+    template <typename SrcType, typename DstType>
+    static void conversionCopyGeneric(const void* src, void* dst, size_t size)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
-
-        std::memcpy(tDst, tSrc, size * sizeof(T));
-    }
-
-    template <typename T>
-    static void copyImmediateGeneric(const void* src, void* dst, size_t size)
-    {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
-
-        std::memcpy(tDst, tSrc, size * sizeof(T));
+        auto tSrc = static_cast<const SrcType*>(src);
+        auto tDst = static_cast<DstType*>(dst);
+        for (size_t i=0; i<size; ++i)
+        {
+            tDst[i] = static_cast<DstType>(tSrc[i]);
+        }
     }
 
     template <typename T>
@@ -774,29 +826,28 @@ class TensorValue
 {
 public:
     // Constructor
-    TensorValue(const void* data, size_t size, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
+    TensorValue(const void* data, size_t size, DataType srcDType, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
         m_data = device->allocate(size, dType);
-        device->copyImmediate(data, m_data, size, dType);
+        device->copyImmediate(data, srcDType, m_data, dType, size);
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
     }
 
-    // TODO: DataType needs to be handled.
     // Constructor
-    TensorValue(const std::vector<float> & data, Shape shape, Device * device, DataType dType = DataType::kFloat32) :
+    template<typename T>
+    TensorValue(const std::initializer_list<T> & data, Shape shape, Device * device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
         m_data = device->allocate(data.size(), dType);
-        device->copyImmediate(data.data(), m_data, data.size(), dType);
+        device->copyImmediate(data.begin(), getDataType<T>(), m_data, dType, data.size());
         m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
         computeStrides();
     }
 
-    // TODO: DataType needs to be handled.
     // Constructor
     TensorValue(float value, Shape shape, Device * device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
@@ -819,7 +870,6 @@ public:
         computeStrides();
     }
 
-    // TODO: DataType needs to be handled.
     // Constructor
     TensorValue(float value, Device * device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape{}, m_device(device)
@@ -848,7 +898,7 @@ public:
         m_strides = other.m_strides;
         m_device  = other.m_device;
         m_data    = m_device->allocate(other.m_size, other.m_dType);
-        m_device->copyImmediate(other.m_data, m_data, other.m_size, other.m_dType);
+        m_device->copyImmediate(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
     }
 
     // Copy assignment operator
@@ -863,7 +913,7 @@ public:
             m_strides = other.m_strides;
             m_device  = other.m_device;
             m_data    = m_device->allocate(other.m_size, other.m_dType);
-            m_device->copyImmediate(other.m_data, m_data, other.m_size, other.m_dType);
+            m_device->copyImmediate(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
         }
 
         return *this;
@@ -944,7 +994,7 @@ public:
         // Create a new array from the new device.
         auto newData = device->allocate(m_size, m_dType);
         // Copy old data to the new array.
-        device->copyImmediate(m_data, newData, m_size, m_dType);
+        device->copyImmediate(m_data, m_dType, newData, m_dType, m_size);
         // Delete old data from old device.
         m_device->deallocate(m_data);
         // Set new data and the new device.
@@ -971,7 +1021,17 @@ public:
             throw std::invalid_argument("Reshape error: element count mismatch (" +
                                         std::to_string(m_size) + " vs " + std::to_string(newSize) + ").");
         }
-        return {m_data, m_size, newShape, m_device, m_dType};
+        return {m_data, m_size, m_dType, newShape, m_device, m_dType};
+    }
+
+    // Equalize tensor data types by promoting data type of tensors.
+    TensorValue to(DataType newDataType) const
+    {
+        if (dataType() != newDataType)
+        {
+            return {data(), size(), dataType(), shape(), device(), newDataType};
+        }
+        return *this;
     }
 
     // Returns true if two TensorValue shapes are compatible for a broadcast operation.
@@ -1059,14 +1119,12 @@ public:
     // Overload the + operator
     TensorValue operator+(const TensorValue & other) const
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            TensorValue result(bcShape, m_device, m_dType);
-            m_device->add(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data(), m_dType);
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            auto result = prepareTensors(lhs, rhs);
+            result.device()->add(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
             return result;
         }
 
@@ -1079,18 +1137,14 @@ public:
     // Overload the - operator
     TensorValue operator-(const TensorValue & other) const
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            TensorValue result(bcShape, m_device, m_dType);
-            m_device->sub(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data(), m_dType);
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            auto result = prepareTensors(lhs, rhs);
+            result.device()->sub(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
             return result;
         }
-
-        // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, m_dType);
         m_device->sub(m_data, other.m_data, m_size, result.m_data, m_dType);
         return result;
@@ -1099,18 +1153,14 @@ public:
     // Overload the * operator
     TensorValue operator*(const TensorValue & other) const
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            TensorValue result(bcShape, m_device, m_dType);
-            m_device->mul(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data(), m_dType);
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            auto result = prepareTensors(lhs, rhs);
+            result.device()->mul(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
             return result;
         }
-
-        // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, m_dType);
         m_device->mul(m_data, other.m_data, m_size, result.m_data, m_dType);
         return result;
@@ -1119,18 +1169,14 @@ public:
     // Overload the / operator
     TensorValue operator/(const TensorValue & other) const
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            TensorValue result(bcShape, m_device, m_dType);
-            m_device->div(bcLHSTensor.data(), bcRHSTensor.data(), result.size(), result.data(), m_dType);
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            auto result = prepareTensors(lhs, rhs);
+            result.device()->div(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
             return result;
         }
-
-        // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, m_dType);
         m_device->div(m_data, other.m_data, m_size, result.m_data, m_dType);
         return result;
@@ -1139,14 +1185,14 @@ public:
     // Overload the += operator - In-place operation.
     TensorValue & operator+=(const TensorValue & other)
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            m_device->add(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data(), m_dType);
-            *this = bcLHSTensor;
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            prepareTensors(lhs, rhs);
+            m_device->add(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
+            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
+            return *this;
         }
         else
         {
@@ -1158,14 +1204,14 @@ public:
     // Overload the -= operator - In-place operation.
     TensorValue & operator-=(const TensorValue & other)
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            m_device->sub(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data(), m_dType);
-            *this = bcLHSTensor;
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            prepareTensors(lhs, rhs);
+            m_device->sub(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
+            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
+            return *this;
         }
         else
         {
@@ -1177,14 +1223,14 @@ public:
     // Overload the *= operator - In-place operation.
     TensorValue & operator*=(const TensorValue & other)
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            m_device->mul(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data(), m_dType);
-            *this = bcLHSTensor;
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            prepareTensors(lhs, rhs);
+            m_device->mul(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
+            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
+            return *this;
         }
         else
         {
@@ -1196,14 +1242,14 @@ public:
     // Overload the /= operator - In-place operation.
     TensorValue & operator/=(const TensorValue & other)
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != other.m_shape)
+        if (shape() != other.shape() || dataType() != other.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, other.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcRHSTensor = other.broadcastTo(bcShape);
-            m_device->div(bcLHSTensor.data(), bcRHSTensor.data(), bcLHSTensor.size(), bcLHSTensor.data(), m_dType);
-            *this = bcLHSTensor;
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            prepareTensors(lhs, rhs);
+            m_device->div(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
+            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
+            return *this;
         }
         else
         {
@@ -1382,14 +1428,12 @@ public:
 
     TensorValue pow(const TensorValue & exp) const
     {
-        // If shapes are different then try broadcasting.
-        if (m_shape != exp.m_shape)
+        if (shape() != exp.shape() || dataType() != exp.dataType())
         {
-            Shape bcShape = broadcastShapes(m_shape, exp.shape());
-            auto bcLHSTensor = broadcastTo(bcShape);
-            auto bcEXPTensor = exp.broadcastTo(bcShape);
-            TensorValue result(bcShape, m_device, m_dType);
-            m_device->pow(bcLHSTensor.data(), bcEXPTensor.data(), result.size(), result.data(), m_dType);
+            TensorValue lhs = *this;
+            TensorValue rhs = exp;
+            auto result = prepareTensors(lhs, rhs);
+            result.device()->pow(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
             return result;
         }
 
@@ -1414,8 +1458,22 @@ public:
             throw std::invalid_argument("The inner dimensions of the tensors do not match.");
         }
 
+        Shape resultShape{m_shape[0], b.shape()[1]};
+
+        // Convert tensors to the promoted data type if necessary
+        if (dataType() != b.dataType())
+        {
+            TensorValue lhs = *this;
+            TensorValue rhs = b;
+            auto promotedDType = promoteDataType(lhs.dataType(), rhs.dataType());
+            lhs = lhs.to(promotedDType);
+            rhs = rhs.to(promotedDType);
+            TensorValue result(resultShape, lhs.device(), promotedDType);
+            result.device()->matmul(lhs.data(), lhs.shape(), rhs.data(), rhs.shape(), result.data(), result.dataType());
+            return result;
+        }
+
         // Resultant tensor shape
-        Shape resultShape = {m_shape[0], b.shape()[1]};
         TensorValue result(resultShape, m_device, m_dType);
         m_device->matmul(m_data, m_shape, b.m_data, b.m_shape, result.m_data, m_dType);
         return result;
@@ -1460,22 +1518,46 @@ private:
         return std::inner_product(indices.begin(), indices.end(), m_strides.begin(), 0);
     }
 
+    // Promotes data types and applies broadcasting if necessary.
+    static TensorValue prepareTensors(TensorValue & lhs, TensorValue & rhs)
+    {
+        // TODO: Minimize copy operations.
+        auto promotedDType = lhs.dataType();
+
+        if (lhs.dataType() != rhs.dataType())
+        {
+            // Convert tensors to the promoted data type if necessary
+            promotedDType = promoteDataType(lhs.dataType(), rhs.dataType());
+            lhs = lhs.to(promotedDType);
+            rhs = rhs.to(promotedDType);
+        }
+
+        // If shapes are different then try broadcasting.
+        if (lhs.shape() != rhs.shape())
+        {
+            Shape bcShape = broadcastShapes(lhs.shape(), rhs.shape());
+            lhs = lhs.broadcastTo(bcShape);
+            rhs = rhs.broadcastTo(bcShape);
+        }
+
+        return {lhs.shape(), lhs.device(), promotedDType};
+    }
+
     // Print Tensor data
+    template<typename T>
     void print(std::ostream & os) const
     {
         // Print scalar value, a tensor with no dimension.
         if (m_shape.empty())
         {
-            // TODO: need .to(double) and .to(int64_t) to print
-            os << item<float>() << "\n\n";
+            os << item<T>() << "\n\n";
         }
         else if (m_shape.size() == 1)
         {
             // Print tensor that has only one dimension.
             for (size_t i = 0; i < m_shape[0]; ++i)
             {
-                // TODO: need .to(double) and .to(int64_t) to print
-                os << "  " << getValueAt<float>({i}) << "\n";
+                os << "  " << getValueAt<T>({i}) << "\n";
             }
             os << "\n";
         }
@@ -1522,8 +1604,7 @@ private:
                             Index subIndices = indices;
                             subIndices.push_back(i);
                             subIndices.push_back(j);
-                            // TODO: need .to(double) and .to(int64_t) to print
-                            os << "  " << getValueAt<float>(subIndices);
+                            os << "  " << getValueAt<T>(subIndices);
                         }
                         os << '\n';
                     }
@@ -1543,7 +1624,13 @@ private:
         }
 
         // Print shape
-        os << "[ Shape{";
+        switch (dataType())
+        {
+            case DataType::kFloat32:  os << "[ Float{";    break;
+            case DataType::kFloat64:  os << "[ Double{";   break;
+            default:                  os << "[ Unknown{";  break;
+        }
+
         for (size_t i = 0; i < m_shape.size(); ++i)
         {
             os << m_shape[i];
@@ -1604,11 +1691,11 @@ public:
     Tensor() = default;
 
     // Constructor.
-    explicit Tensor(const void* data, size_t size, const Shape & shape, bool requireGrad = false,
+    explicit Tensor(const void* data, size_t size, DataType srcDType, const Shape & shape, bool requireGrad = false,
                     DataType dType = DataType::kFloat32, Device * device = &defaultDevice)
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{data, size, shape, device, dType}, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{data, size, srcDType, shape, device, dType}, requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
@@ -1658,16 +1745,38 @@ public:
             throw std::invalid_argument("Reshape error: element count mismatch (" +
                                         std::to_string(value().size()) + " vs " + std::to_string(newSize) + ").");
         }
-        return Tensor{value().data(), value().size(), newShape, isRequireGrad(), dataType(), device()};
+        return Tensor{value().data(), value().size(), dataType(), newShape, isRequireGrad(), dataType(), device()};
     }
 
     Tensor broadcastTo(const Shape & newShape) const
     {
         TensorValue tValue = m_data->m_value.broadcastTo(newShape);
-        Tensor result{tValue.data(), tValue.size(), tValue.shape(), isRequireGrad(), dataType(), device()};
+        Tensor result{tValue.data(), tValue.size(), tValue.dataType(), tValue.shape(), isRequireGrad(), dataType(), device()};
         result.m_data->m_a = m_data;            // Keep the reference to the original tensor node
         result.m_data->m_backwardFunc = broadcastBackwardFunc;
         return result;
+    }
+
+    Tensor to(DataType newDataType) const
+    {
+        if (dataType() != newDataType)
+        {
+            Tensor result{value().data(), value().size(), value().dataType(), value().shape(), isRequireGrad(),
+                          newDataType, device()};
+            result.m_data->m_a = m_data;
+            result.m_data->m_backwardFunc = toBackwardFunc;
+            return result;
+        }
+        return *this;
+    }
+
+    static void defaultBackward(TensorNode * node, const TensorValue & seed)
+    {
+        if (node->m_requireGrad && !node->m_retainGrad)
+        {
+            assert(node->m_grad.dataType() == seed.dataType());
+            node->m_grad += seed;
+        }
     }
 
     static void broadcastBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -1679,12 +1788,11 @@ public:
         node->m_a->backward(seed.reduceTo(node->m_a->m_value.shape()));
     }
 
-    static void defaultBackward(TensorNode * node, const TensorValue & seed)
+    static void toBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
-        if (node->m_requireGrad)
-        {
-            node->m_grad = node->m_grad + seed;
-        }
+        if (!node->m_a) return;
+        // Ensure that the seed gradient is converted back to the data type of the original tensor.
+        node->m_a->backward(seed.to(node->m_a->m_value.dataType()));
     }
 
     static void addBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -1815,61 +1923,65 @@ public:
     }
 
     // Overload the + operator
-    Tensor operator+(const Tensor & rhsTensor) const
+    Tensor operator+(const Tensor & other) const
     {
-        Shape bcShape = broadcastShape(rhsTensor.shape());
-        auto bcLHSTensor = broadcastTo(bcShape);
-        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+        auto promotedDType = promoteDataType(dataType(), other.dataType());
+        Shape bcShape = broadcastShape(other.shape());
+        auto lhs = broadcastTo(bcShape).to(promotedDType);
+        auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), dataType(), device());
-        result.m_data->m_value = bcLHSTensor.m_data->m_value + bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = bcLHSTensor.m_data;
-        result.m_data->m_b = bcRHSTensor.m_data;
+        Tensor result(shape(), isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        result.m_data->m_value = lhs.m_data->m_value + rhs.m_data->m_value;
+        result.m_data->m_a = lhs.m_data;
+        result.m_data->m_b = rhs.m_data;
         result.m_data->m_backwardFunc = addBackwardFunc;
         return result;
     }
 
     // Overload the - operator
-    Tensor operator-(const Tensor & rhsTensor) const
+    Tensor operator-(const Tensor & other) const
     {
-        Shape bcShape = broadcastShape(rhsTensor.shape());
-        auto bcLHSTensor = broadcastTo(bcShape);
-        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+        auto promotedDType = promoteDataType(dataType(), other.dataType());
+        Shape bcShape = broadcastShape(other.shape());
+        auto lhs = broadcastTo(bcShape).to(promotedDType);
+        auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), dataType(), device());
-        result.m_data->m_value = bcLHSTensor.m_data->m_value - bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = bcLHSTensor.m_data;
-        result.m_data->m_b = bcRHSTensor.m_data;
+        Tensor result(shape(), isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        result.m_data->m_value = lhs.m_data->m_value - rhs.m_data->m_value;
+        result.m_data->m_a = lhs.m_data;
+        result.m_data->m_b = rhs.m_data;
         result.m_data->m_backwardFunc = subBackwardFunc;
         return result;
     }
 
     // Overload the * operator
-    Tensor operator*(const Tensor & rhsTensor) const
+    Tensor operator*(const Tensor & other) const
     {
-        Shape bcShape = broadcastShape(rhsTensor.shape());
-        auto bcLHSTensor = broadcastTo(bcShape);
-        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+        auto promotedDType = promoteDataType(dataType(), other.dataType());
+        Shape bcShape = broadcastShape(other.shape());
+        auto lhs = broadcastTo(bcShape).to(promotedDType);
+        auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(shape(), isRequireGrad() || rhsTensor.isRequireGrad(), dataType(), device());
-        result.m_data->m_value = bcLHSTensor.m_data->m_value * bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = bcLHSTensor.m_data;
-        result.m_data->m_b = bcRHSTensor.m_data;
+        Tensor result(shape(), isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        result.m_data->m_value = lhs.m_data->m_value * rhs.m_data->m_value;
+        result.m_data->m_a = lhs.m_data;
+        result.m_data->m_b = rhs.m_data;
         result.m_data->m_backwardFunc = mulBackwardFunc;
         return result;
     }
 
     // Overload the / operator
-    Tensor operator/(const Tensor & rhsTensor) const
+    Tensor operator/(const Tensor & other) const
     {
-        Shape bcShape = broadcastShape(rhsTensor.shape());
-        auto bcLHSTensor = broadcastTo(bcShape);
-        auto bcRHSTensor = rhsTensor.broadcastTo(bcShape);
+        auto promotedDType = promoteDataType(dataType(), other.dataType());
+        Shape bcShape = broadcastShape(other.shape());
+        auto lhs = broadcastTo(bcShape).to(promotedDType);
+        auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(bcShape, isRequireGrad() || rhsTensor.isRequireGrad(), dataType(), device());
-        result.m_data->m_value = bcLHSTensor.m_data->m_value / bcRHSTensor.m_data->m_value;
-        result.m_data->m_a = bcLHSTensor.m_data;
-        result.m_data->m_b = bcRHSTensor.m_data;
+        Tensor result(bcShape, isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        result.m_data->m_value = lhs.m_data->m_value / rhs.m_data->m_value;
+        result.m_data->m_a = lhs.m_data;
+        result.m_data->m_b = rhs.m_data;
         result.m_data->m_backwardFunc = divBackwardFunc;
         return result;
     }
@@ -2003,26 +2115,31 @@ public:
         return result;
     }
 
-    Tensor pow(const Tensor & exp) const
+    Tensor pow(const Tensor & other) const
     {
-        Shape bcShape = broadcastShape(exp.shape());
-        auto bcLHSTensor = broadcastTo(bcShape);
-        auto bcEXPTensor = exp.broadcastTo(bcShape);
+        auto promotedDType = promoteDataType(dataType(), other.dataType());
+        Shape bcShape = broadcastShape(other.shape());
+        auto lhs = broadcastTo(bcShape).to(promotedDType);
+        auto rhs = other.broadcastTo(bcShape).to(promotedDType);        // Exponent tensor.
 
         Tensor result(bcShape, isRequireGrad(), dataType(), device());
-        result.m_data->m_value = bcLHSTensor.m_data->m_value.pow(bcEXPTensor.m_data->m_value);
-        result.m_data->m_a = bcLHSTensor.m_data;
-        result.m_data->m_b = bcEXPTensor.m_data;    // Exponent tensor.
+        result.m_data->m_value = lhs.m_data->m_value.pow(rhs.m_data->m_value);
+        result.m_data->m_a = lhs.m_data;
+        result.m_data->m_b = rhs.m_data;
         result.m_data->m_backwardFunc = powBackwardFunc;
         return result;
     }
 
-    Tensor matmul(const Tensor & mat) const
+    Tensor matmul(const Tensor & other) const
     {
-        Tensor result({shape()[0], mat.shape()[1]}, isRequireGrad() || mat.isRequireGrad(), dataType(), device());
-        result.m_data->m_value = m_data->m_value.matmul(mat.m_data->m_value);
-        result.m_data->m_a = m_data;
-        result.m_data->m_b = mat.m_data;
+        auto promotedDType = promoteDataType(dataType(), other.dataType());
+        auto lhs = to(promotedDType);
+        auto rhs = other.to(promotedDType);
+
+        Tensor result({shape()[0], rhs.shape()[1]}, isRequireGrad() || rhs.isRequireGrad(), dataType(), device());
+        result.m_data->m_value = lhs.m_data->m_value.matmul(rhs.m_data->m_value);
+        result.m_data->m_a = lhs.m_data;
+        result.m_data->m_b = rhs.m_data;
         result.m_data->m_backwardFunc = matmulBackwardFunc;
         return result;
     }
@@ -2057,14 +2174,34 @@ inline Tensor tensor(float value, bool requireGrad = false)
     return Tensor{value, {}, requireGrad};
 }
 
-inline Tensor tensor(const std::vector<float> & data, const Shape & shape, bool requireGrad = false)
+inline Tensor tensor(const std::initializer_list<double> & data, const Shape & shape, bool requireGrad = false, DataType dtype = DataType::kFloat32)
 {
-    return Tensor{data.data(), data.size(), shape, requireGrad};
+    return Tensor{data.begin(), data.size(), getDataType<double>(), shape, requireGrad, dtype};
 }
 
-inline Tensor tensor(const std::vector<float> & data, bool requireGrad = false)
+inline Tensor tensor(const std::initializer_list<float> & data, const Shape & shape, bool requireGrad = false, DataType dtype = DataType::kFloat32)
 {
-    return Tensor{data.data(), data.size(), {data.size()}, requireGrad};
+    return Tensor{data.begin(), data.size(), getDataType<float>(), shape, requireGrad, dtype};
+}
+
+inline Tensor tensor(const std::initializer_list<double> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+{
+    return Tensor{data.begin(), data.size(), getDataType<double>(), {data.size()}, requireGrad, dtype};
+}
+
+inline Tensor tensor(const std::initializer_list<float> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+{
+    return Tensor{data.begin(), data.size(), getDataType<float>(), {data.size()}, requireGrad, dtype};
+}
+
+inline Tensor tensor(const std::vector<double> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+{
+    return Tensor{data.data(), data.size(), getDataType<double>(), {data.size()}, requireGrad, dtype};
+}
+
+inline Tensor tensor(const std::vector<float> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+{
+    return Tensor{data.data(), data.size(), getDataType<float>(), {data.size()}, requireGrad, dtype};
 }
 
 inline Tensor randn(const Shape & shape, bool requireGrad = false)
@@ -2077,7 +2214,7 @@ inline Tensor randn(const Shape & shape, bool requireGrad = false)
     // Fill rndData with random numbers
     std::generate(rndData.begin(), rndData.end(), [&distr]() -> float { return distr(randGen); });
 
-    return Tensor{rndData.data(), rndData.size(), shape, requireGrad};
+    return Tensor{rndData.data(), rndData.size(), getDataType<float>(), shape, requireGrad};
 }
 
 inline Tensor ones(const Shape & shape, bool requireGrad = false)
@@ -2458,7 +2595,20 @@ inline void load(nn::Module & module, const std::string & filename)
 // Overload the << operator to print TensorValue.
 std::ostream & operator<<(std::ostream& os, const TensorValue& tensor)
 {
-    tensor.print(os);
+    switch (tensor.dataType())
+    {
+        case DataType::kFloat32:
+            tensor.print<float>(os);
+            break;
+
+        case DataType::kFloat64:
+            tensor.print<double>(os);
+            break;
+
+        default:
+            throw std::runtime_error("Data type for print is not supported.");
+            break;
+    }
     return os;
 }
 

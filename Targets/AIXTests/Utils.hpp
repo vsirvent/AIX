@@ -22,9 +22,29 @@ inline auto Approx(auto value, double epsilon = 1e-5)
 
 inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix::TensorValue & expected)
 {
-    for (size_t i=0; i<expected.size(); ++i)
+    if (results.dataType() != expected.dataType())
     {
-        CHECK(results.data<float>()[i] == Approx(expected.data<float>()[i]));
+        throw std::invalid_argument("Tensor data types do no match for test result comparison.");
+    }
+
+    if (static_cast<size_t>(results.dataType()) > static_cast<size_t>(aix::DataType::kFloat32))
+    {
+        throw std::invalid_argument("CheckVectorApproxValues does not support the new data type.");
+    }
+
+    if (results.dataType() == aix::DataType::kFloat64)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<double>()[i] == Approx(expected.data<double>()[i]));
+        }
+    }
+    else if (results.dataType() == aix::DataType::kFloat32)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<float>()[i] == Approx(expected.data<float>()[i]));
+        }
     }
 }
 

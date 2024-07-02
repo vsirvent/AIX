@@ -25,11 +25,11 @@ TEST_CASE("Model Forward Test - XOR")
         XORModel(size_t numInputs, size_t numOutputs, size_t numSamples)
         {
             m_w1 = tensor({0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10,
-                                0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20}, {numInputs, 10}, true);
+                           0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20}, {numInputs, 10}, true);
             m_b1 = tensor({0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10,
-                                0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20,
-                                0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10,
-                                0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20}, {numSamples, 10}, true);
+                           0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20,
+                           0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10,
+                           0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20}, {numSamples, 10}, true);
 
             m_w2 = tensor({0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10}, {10, 1}, true);
             m_b2 = tensor({0.01, 0.02, 0.03, 0.04}, {numSamples, numOutputs}, true);
@@ -63,14 +63,14 @@ TEST_CASE("Model Forward Test - XOR")
 
     // Example inputs and targets for demonstration purposes.
     auto inputs  = tensor({0.0, 0.0,
-                                1.0, 0.0,
-                                0.0, 1.0,
-                                1.0, 1.0}, {kNumSamples, kNumInputs});
+                           1.0, 0.0,
+                           0.0, 1.0,
+                           1.0, 1.0}, {kNumSamples, kNumInputs});
 
     auto targets = tensor({0.0,
-                                1.0,
-                                1.0,
-                                0.0}, {kNumSamples, kNumTargets});
+                           1.0,
+                           1.0,
+                           0.0}, {kNumSamples, kNumTargets});
 
     auto predictions = tm.forward(inputs);
 
@@ -129,10 +129,7 @@ TEST_CASE("Model - Save/Load Test")
     auto predictions1 = model1.forward(inputs);
     auto predictions2 = model2.forward(inputs);
 
-    CHECK(predictions1.value().data<float>()[0] == predictions2.value().data<float>()[0]);
-    CHECK(predictions1.value().data<float>()[1] == predictions2.value().data<float>()[1]);
-    CHECK(predictions1.value().data<float>()[2] == predictions2.value().data<float>()[2]);
-    CHECK(predictions1.value().data<float>()[3] == predictions2.value().data<float>()[3]);
+    CheckVectorApproxValues(predictions1, predictions2);
 
     // The test file will be deleted only if there is no error during CHECKs.
     std::filesystem::remove(testModelFile);

@@ -37,6 +37,7 @@ TEST_CASE("Simple optimizer test")
         optimizer.step();
     }
 
+    CHECK(x.dataType() == DataType::kFloat32);
     CHECK(x.value().item<float>() == Approx(2.59247));
     CHECK(y.value().item<float>() == Approx(4.53346));
     CHECK(t.value().item<float>() == Approx(4.18035));
@@ -69,6 +70,7 @@ TEST_CASE("Adam optimizer test")
         optimizer.step();
     }
 
+    CHECK(x.dataType() == DataType::kFloat32);
     CHECK(x.value().item<float>() == Approx(3.12134));
     CHECK(y.value().item<float>() == Approx(4.12712));
     CHECK(t.value().item<float>() == Approx(5.12626));

@@ -12,7 +12,7 @@ Key features include:
 - Dynamic computation graphs
 - Multi-dimension tensor support
 - Auto tensor shape alignment (broadcasting)
-- Comprehensive built-in neural network layers and functions
+- Auto data type conversion and promotion
 - Plug-and-play hardware acceleration
 - Extensible API for custom operations and layers
 

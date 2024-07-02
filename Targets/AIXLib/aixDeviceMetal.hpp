@@ -109,9 +109,9 @@ public:
     void transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
                    const Stride& strides, const Stride& newStrides, size_t size, void* result, DataType dtype) override;
 
-    void copy(const void* src, void* dst, size_t size, DataType dtype) override;
+    void copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size) override;
 
-    void copyImmediate(const void* src, void* dst, size_t size, DataType dtype) override;
+    void copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size) override;
 
     void broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
 
@@ -120,60 +120,90 @@ public:
     void commitAndWait() override;
 
 protected:
+    void addF64(const void* a1, const void* a2, size_t size, void* result);
     void addF32(const void* a1, const void* a2, size_t size, void* result);
 
+    void subF64(const void* a1, const void* a2, size_t size, void* result);
     void subF32(const void* a1, const void* a2, size_t size, void* result);
 
+    void mulF64(const void* a1, const void* a2, size_t size, void* result);
     void mulF32(const void* a1, const void* a2, size_t size, void* result);
 
+    void divF64(const void* a1, const void* a2, size_t size, void* result);
     void divF32(const void* a1, const void* a2, size_t size, void* result);
 
+    void addASF64(const void* a1, const void* scalar, size_t size, void* result);
     void addASF32(const void* a1, const void* scalar, size_t size, void* result);
 
+    void subASF64(const void* a1, const void* scalar, size_t size, void* result);
     void subASF32(const void* a1, const void* scalar, size_t size, void* result);
 
+    void subSAF64(const void* scalar, const void* a, size_t size, void* result);
     void subSAF32(const void* scalar, const void* a, size_t size, void* result);
 
+    void mulASF64(const void* a, const void* scalar, size_t size, void* result);
     void mulASF32(const void* a, const void* scalar, size_t size, void* result);
 
+    void divASF64(const void* a, const void* scalar, size_t size, void* result);
     void divASF32(const void* a, const void* scalar, size_t size, void* result);
 
+    void divSAF64(const void* scalar, const void* a, size_t size, void* result);
     void divSAF32(const void* scalar, const void* a, size_t size, void* result);
 
+    void unaryF64(const void* a, size_t size, void* result);
     void unaryF32(const void* a, size_t size, void* result);
 
+    void fillF64(const void* scalar, size_t size, void* result);
     void fillF32(const void* scalar, size_t size, void* result);
 
+    void sumF64(const void* a, size_t size, void* result);
     void sumF32(const void* a, size_t size, void* result);
 
+    void meanF64(const void* a, size_t size, void* result);
     void meanF32(const void* a, size_t size, void* result);
 
+    void sqrtF64(const void* a, size_t size, void* result);
     void sqrtF32(const void* a, size_t size, void* result);
 
+    void sinF64(const void* a, size_t size, void* result);
     void sinF32(const void* a, size_t size, void* result);
 
+    void cosF64(const void* a, size_t size, void* result);
     void cosF32(const void* a, size_t size, void* result);
 
+    void tanhF64(const void* a, size_t size, void* result);
     void tanhF32(const void* a, size_t size, void* result);
 
+    void logF64(const void* a, size_t size, void* result);
     void logF32(const void* a, size_t size, void* result);
 
+    void expF64(const void* a, size_t size, void* result);
     void expF32(const void* a, size_t size, void* result);
 
+    void powF64(const void* a, const void* exp, size_t size, void* result);
     void powF32(const void* a, const void* exp, size_t size, void* result);
 
+    void matmulF64(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result);
     void matmulF32(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result);
 
+    void transposeF64(size_t dim0, size_t dim1, const void* data, const Shape& shape,
+                      const Stride& strides, const Stride& newStrides, size_t size, void* result);
     void transposeF32(size_t dim0, size_t dim1, const void* data, const Shape& shape,
                       const Stride& strides, const Stride& newStrides, size_t size, void* result);
 
+    void copyF64(const void* src, void* dst, size_t size);
     void copyF32(const void* src, void* dst, size_t size);
 
+    void copyImmediateF64(const void* src, void* dst, size_t size);
     void copyImmediateF32(const void* src, void* dst, size_t size);
 
+    void broadcastToF64(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
     void broadcastToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
 
+    void reduceToF64(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
     void reduceToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
+
+    void notImplementedF64() const;
 
     struct MatrixSize
     {

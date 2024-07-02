@@ -118,6 +118,7 @@ void DeviceMetal::add(const void* a1, const void* a2, size_t size, void* result,
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::addF64,
         &DeviceMetal::addF32,
     };
     // Call the appropriate function from the table.
@@ -128,6 +129,7 @@ void DeviceMetal::sub(const void* a1, const void* a2, size_t size, void* result,
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::subF64,
         &DeviceMetal::subF32,
     };
     // Call the appropriate function from the table.
@@ -138,6 +140,7 @@ void DeviceMetal::mul(const void* a1, const void* a2, size_t size, void* result,
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::mulF64,
         &DeviceMetal::mulF32,
     };
     // Call the appropriate function from the table.
@@ -148,6 +151,7 @@ void DeviceMetal::div(const void* a1, const void* a2, size_t size, void* result,
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::divF64,
         &DeviceMetal::divF32,
     };
     // Call the appropriate function from the table.
@@ -158,6 +162,7 @@ void DeviceMetal::addAS(const void* a1, const void* scalar, size_t size, void* r
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::addASF64,
         &DeviceMetal::addASF32,
     };
     // Call the appropriate function from the table.
@@ -168,6 +173,7 @@ void DeviceMetal::subAS(const void* a1, const void* scalar, size_t size, void* r
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::subASF64,
         &DeviceMetal::subASF32,
     };
     // Call the appropriate function from the table.
@@ -178,6 +184,7 @@ void DeviceMetal::subSA(const void* scalar, const void* a1, size_t size, void* r
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::subSAF64,
         &DeviceMetal::subSAF32,
     };
     // Call the appropriate function from the table.
@@ -188,6 +195,7 @@ void DeviceMetal::mulAS(const void* a, const void* scalar, size_t size, void* re
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::mulASF64,
         &DeviceMetal::mulASF32,
     };
     // Call the appropriate function from the table.
@@ -198,6 +206,7 @@ void DeviceMetal::divAS(const void* a, const void* scalar, size_t size, void* re
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::divASF64,
         &DeviceMetal::divASF32,
     };
     // Call the appropriate function from the table.
@@ -208,6 +217,7 @@ void DeviceMetal::divSA(const void* scalar, const void* a, size_t size, void* re
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::divSAF64,
         &DeviceMetal::divSAF32,
     };
     // Call the appropriate function from the table.
@@ -218,6 +228,7 @@ void DeviceMetal::unary(const void* a, size_t size, void* result, DataType dtype
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::unaryF64,
         &DeviceMetal::unaryF32,
     };
     // Call the appropriate function from the table.
@@ -228,6 +239,7 @@ void DeviceMetal::fill(const void* scalar, size_t size, void* result, DataType d
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::fillF64,
         &DeviceMetal::fillF32,
     };
     // Call the appropriate function from the table.
@@ -238,6 +250,7 @@ void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::sumF64,
         &DeviceMetal::sumF32,
     };
     // Call the appropriate function from the table.
@@ -248,6 +261,7 @@ void DeviceMetal::mean(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::meanF64,
         &DeviceMetal::meanF32,
     };
     // Call the appropriate function from the table.
@@ -258,6 +272,7 @@ void DeviceMetal::sqrt(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::sqrtF64,
         &DeviceMetal::sqrtF32,
     };
     // Call the appropriate function from the table.
@@ -268,6 +283,7 @@ void DeviceMetal::sin(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::sinF64,
         &DeviceMetal::sinF32,
     };
     // Call the appropriate function from the table.
@@ -278,6 +294,7 @@ void DeviceMetal::cos(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::cosF64,
         &DeviceMetal::cosF32,
     };
     // Call the appropriate function from the table.
@@ -288,6 +305,7 @@ void DeviceMetal::tanh(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::tanhF64,
         &DeviceMetal::tanhF32,
     };
     // Call the appropriate function from the table.
@@ -298,6 +316,7 @@ void DeviceMetal::log(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::logF64,
         &DeviceMetal::logF32,
     };
     // Call the appropriate function from the table.
@@ -308,6 +327,7 @@ void DeviceMetal::exp(const void* a, size_t size, void* result, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::expF64,
         &DeviceMetal::expF32,
     };
     // Call the appropriate function from the table.
@@ -318,6 +338,7 @@ void DeviceMetal::pow(const void* a, const void* exp, size_t size, void* result,
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::powF64,
         &DeviceMetal::powF32,
     };
     // Call the appropriate function from the table.
@@ -328,6 +349,7 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::matmulF64,
         &DeviceMetal::matmulF32,
     };
     // Call the appropriate function from the table.
@@ -339,36 +361,52 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::transposeF64,
         &DeviceMetal::transposeF32,
     };
     // Call the appropriate function from the table.
     return (this->*funcTable[static_cast<size_t>(dtype)])(dim0, dim1, data, shape, strides, newStrides, size, result);
 }
 
-void DeviceMetal::copy(const void* src, void* dst, size_t size, DataType dtype)
+void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
 {
+    // TODO: Temporary check.
+    if (srcDType == DataType::kFloat64)
+    {
+        throw std::invalid_argument("DeviceMetal does not support kFloat64 data type.");
+    }
+
     static const auto funcTable = std::array
     {
+        &DeviceMetal::copyF64,
         &DeviceMetal::copyF32,
     };
     // Call the appropriate function from the table.
-    return (this->*funcTable[static_cast<size_t>(dtype)])(src, dst, size);
+    return (this->*funcTable[static_cast<size_t>(dstDType)])(src, dst, size);
 }
 
-void DeviceMetal::copyImmediate(const void* src, void* dst, size_t size, DataType dtype)
+void DeviceMetal::copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
 {
+    // TODO: Temporary check.
+    if (srcDType == DataType::kFloat64)
+    {
+        throw std::invalid_argument("DeviceMetal does not support kFloat64 data type.");
+    }
+
     static const auto funcTable = std::array
     {
+        &DeviceMetal::copyImmediateF64,
         &DeviceMetal::copyImmediateF32,
     };
     // Call the appropriate function from the table.
-    return (this->*funcTable[static_cast<size_t>(dtype)])(src, dst, size);
+    return (this->*funcTable[static_cast<size_t>(dstDType)])(src, dst, size);
 }
 
 void DeviceMetal::broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::broadcastToF64,
         &DeviceMetal::broadcastToF32,
     };
     // Call the appropriate function from the table.
@@ -379,10 +417,21 @@ void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape&
 {
     static const auto funcTable = std::array
     {
+        &DeviceMetal::reduceToF64,
         &DeviceMetal::reduceToF32,
     };
     // Call the appropriate function from the table.
     return (this->*funcTable[static_cast<size_t>(dtype)])(src, dst, size, shape, newShape);
+}
+
+void DeviceMetal::notImplementedF64() const
+{
+    throw std::runtime_error("DeviceMetal does not support kFloat64 tensor format.");
+}
+
+void DeviceMetal::addF64(const void*, const void*, const size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::addF32(const void* a1, const void* a2, const size_t size, void* result)
@@ -390,9 +439,19 @@ void DeviceMetal::addF32(const void* a1, const void* a2, const size_t size, void
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOAddF32, "addFloat");
 }
 
+void DeviceMetal::subF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::subF32(const void* a1, const void* a2, size_t size, void* result)
 {
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOSubF32, "subFloat");
+}
+
+void DeviceMetal::mulF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::mulF32(const void* a1, const void* a2, size_t size, void* result)
@@ -400,9 +459,19 @@ void DeviceMetal::mulF32(const void* a1, const void* a2, size_t size, void* resu
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOMulF32, "mulFloat");
 }
 
+void DeviceMetal::divF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::divF32(const void* a1, const void* a2, size_t size, void* result)
 {
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSODivF32, "divFloat");
+}
+
+void DeviceMetal::addASF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::addASF32(const void* a, const void* scalar, size_t size, void* result)
@@ -410,9 +479,19 @@ void DeviceMetal::addASF32(const void* a, const void* scalar, size_t size, void*
     executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOAddASF32, "addASFloat");
 }
 
+void DeviceMetal::subASF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::subASF32(const void* a1, const void* scalar, size_t size, void* result)
 {
     executeArrayScalarCmd(a1, -(*(float*)scalar), size, result, m_compFuncPSOAddASF32, "subASFloat");
+}
+
+void DeviceMetal::subSAF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::subSAF32(const void* scalar, const void* a, size_t size, void* result)
@@ -420,9 +499,19 @@ void DeviceMetal::subSAF32(const void* scalar, const void* a, size_t size, void*
     executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOSubSAF32, "subSAFloat");
 }
 
+void DeviceMetal::mulASF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::mulASF32(const void* a, const void* scalar, size_t size, void* result)
 {
     executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOMulASF32, "mulASFloat");
+}
+
+void DeviceMetal::divASF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::divASF32(const void* a, const void* scalar, size_t size, void* result)
@@ -430,9 +519,19 @@ void DeviceMetal::divASF32(const void* a, const void* scalar, size_t size, void*
     executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSODivASF32, "divASFloat");
 }
 
+void DeviceMetal::divSAF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::divSAF32(const void* scalar, const void* a, size_t size, void* result)
 {
     executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSODivSAF32, "divSAFloat");
+}
+
+void DeviceMetal::unaryF64(const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::unaryF32(const void* a, size_t size, void* result)
@@ -440,9 +539,19 @@ void DeviceMetal::unaryF32(const void* a, size_t size, void* result)
     executeArrayScalarCmd(a, -1.0f, size, result, m_compFuncPSOMulASF32, "unaryFloat");
 }
 
+void DeviceMetal::fillF64(const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::fillF32(const void* scalar, size_t size, void* result)
 {
     executeArrayScalarCmd(nullptr, *(float*)scalar, size, result, m_compFuncPSOCopySAF32, "copyFloat");
+}
+
+void DeviceMetal::sumF64(const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::sumF32(const void* a, size_t size, void* result)
@@ -475,10 +584,20 @@ void DeviceMetal::sumF32(const void* a, size_t size, void* result)
     bufResult->release();       // Release temporary buffer.
 }
 
+void DeviceMetal::meanF64(const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::meanF32(const void* a, size_t size, void* result)
 {
     sumF32(a, size, result);
     *(float*)result /= size;
+}
+
+void DeviceMetal::sqrtF64(const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::sqrtF32(const void* a, size_t size, void* result)
@@ -486,9 +605,19 @@ void DeviceMetal::sqrtF32(const void* a, size_t size, void* result)
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSqrtF32, "sqrtFloat");
 }
 
+void DeviceMetal::sinF64(const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::sinF32(const void* a, size_t size, void* result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSinF32, "sinFloat");
+}
+
+void DeviceMetal::cosF64(const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::cosF32(const void* a, size_t size, void* result)
@@ -496,9 +625,19 @@ void DeviceMetal::cosF32(const void* a, size_t size, void* result)
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOCosF32, "cosFloat");
 }
 
+void DeviceMetal::tanhF64(const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::tanhF32(const void* a, size_t size, void* result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOTanhF32, "tanhFloat");
+}
+
+void DeviceMetal::logF64(const void*, size_t, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::logF32(const void* a, size_t size, void* result)
@@ -506,14 +645,29 @@ void DeviceMetal::logF32(const void* a, size_t size, void* result)
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOLogF32, "logFloat");
 }
 
+void DeviceMetal::expF64(const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::expF32(const void* a, size_t size, void* result)
 {
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOExpF32, "expFloat");
 }
 
+void DeviceMetal::powF64(const void*, const void*, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::powF32(const void* a, const void* exp, size_t size, void* result)
 {
     executeDoubleArrayCmd(a, exp, size, result, m_compFuncPSOPowF32, "powFloat");
+}
+
+void DeviceMetal::matmulF64(const void*, const Shape &, const void*, const Shape &, void*)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::matmulF32(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result)
@@ -538,8 +692,14 @@ void DeviceMetal::matmulF32(const void* a1, const Shape & s1, const void* a2, co
     freeTemporaryBuffer(buf2);
 }
 
+void DeviceMetal::transposeF64(size_t, size_t, const void*, const Shape&,
+                                 const Stride&, const Stride&, size_t, void*)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::transposeF32(size_t dim0, size_t dim1, const void* data, const Shape& shape,
-                                 const Stride& strides, const Stride& newStrides, size_t size, void* result)
+                               const Stride& strides, const Stride& newStrides, size_t size, void* result)
 {
     // Use fast and simplified version of the general transpose for matrix transpose operations.
     if (shape.size() == 2 && dim0 == 0 && dim1 == 1)
@@ -591,6 +751,11 @@ void DeviceMetal::transposeF32(size_t dim0, size_t dim1, const void* data, const
     freeTemporaryBuffer(bufNewStrides);
 }
 
+void DeviceMetal::copyF64(const void*, void*, size_t)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::copyF32(const void* src, void* dst, size_t size)
 {
     // Result buffer has to be allocated in advance and has to be a GPU memory.
@@ -612,15 +777,30 @@ void DeviceMetal::copyF32(const void* src, void* dst, size_t size)
     freeTemporaryBuffer(buf1);
 }
 
+void DeviceMetal::copyImmediateF64(const void*, void*, size_t)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::copyImmediateF32(const void* src, void* dst, size_t size)
 {
     copyF32(src, dst, size);
     commitAndWait();
 }
 
+void DeviceMetal::broadcastToF64(const void*, void*, size_t, const Shape&, const Shape&)
+{
+    notImplementedF64();
+}
+
 void DeviceMetal::broadcastToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)
 {
     translationF32(src, dst, size, shape, newShape, m_compFuncPSOBroadcastToF32, "broadcastToFloat");
+}
+
+void DeviceMetal::reduceToF64(const void*, void*, size_t, const Shape&, const Shape&)
+{
+    notImplementedF64();
 }
 
 void DeviceMetal::reduceToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)

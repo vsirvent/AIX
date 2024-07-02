@@ -725,8 +725,8 @@ bool testCopy(Device* testDevice, size_t n)
     auto cpuResult    = aix::TensorValue({1, n}, &refDevice);
     auto deviceResult = aix::TensorValue({1, n}, testDevice);
 
-    refDevice.copy(src.value().data(), cpuResult.data(), n, DataType::kFloat32);
-    testDevice->copy(src.value().data(), deviceResult.data(), n, DataType::kFloat32);
+    refDevice.copy(src.value().data(), DataType::kFloat32, cpuResult.data(), DataType::kFloat32, n);
+    testDevice->copy(src.value().data(), DataType::kFloat32, deviceResult.data(), DataType::kFloat32, n);
     testDevice->commitAndWait();
 
     // Compare results with the true/reference results
@@ -1589,8 +1589,8 @@ TEST_CASE("Device Tests - batch compute")
     // commitAndWait method is called.
 
     Shape shape{2,3};
-    std::vector<float> data1{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
-    std::vector<float> data2{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+    std::initializer_list<float> data1{1.0, 2.0, 3.0,  4.0,  5.0,  6.0};
+    std::initializer_list<float> data2{7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
     size_t queueSize = 200;
 
     SUBCASE("Add")
@@ -1613,9 +1613,9 @@ TEST_CASE("Device Tests - batch compute")
             z.backward();
             device->commitAndWait();
 
-            CheckVectorApproxValues(z, aix::tensor({1608,2010,2412,2814,3216,3618},  shape));
-            CheckVectorApproxValues(x.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
+            CheckVectorApproxValues(z, aix::tensor({1608.0,2010.0,2412.0,2814.0,3216.0,3618.0},  shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({201.0,201.0,201.0,201.0,201.0,201.0}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({201.0,201.0,201.0,201.0,201.0,201.0}, shape).value());
         }
     }
 
@@ -1639,9 +1639,9 @@ TEST_CASE("Device Tests - batch compute")
             z.backward();
             device->commitAndWait();
 
-            CheckVectorApproxValues(z, aix::tensor({-1606,-2006,-2406,-2806,-3206,-3606},  shape));
-            CheckVectorApproxValues(x.grad(), aix::tensor({-199,-199,-199,-199,-199,-199}, shape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({-201,-201,-201,-201,-201,-201}, shape).value());
+            CheckVectorApproxValues(z, aix::tensor({-1606.0,-2006.0,-2406.0,-2806.0,-3206.0,-3606.0},  shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({-199.0,-199.0,-199.0,-199.0,-199.0,-199.0}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({-201.0,-201.0,-201.0,-201.0,-201.0,-201.0}, shape).value());
         }
     }
 
@@ -1665,9 +1665,9 @@ TEST_CASE("Device Tests - batch compute")
             z.backward();
             device->commitAndWait();
 
-            CheckVectorApproxValues(z, aix::tensor({1407,3216,5427,8040,11055,14472}, shape));
-            CheckVectorApproxValues(x.grad(), aix::tensor({1407,1608,1809,2010,2211,2412}, shape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({201,402,603,804,1005,1206}, shape).value());
+            CheckVectorApproxValues(z, aix::tensor({1407.0,3216.0,5427.0,8040.0,11055.0,14472.0}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({1407.0,1608.0,1809.0,2010.0,2211.0,2412.0}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({201.0,402.0,603.0,804.0,1005.0,1206.0}, shape).value());
         }
     }
 
@@ -1718,8 +1718,8 @@ TEST_CASE("Device Tests - batch compute")
             device->commitAndWait();
 
             CheckVectorApproxValues(z, aix::tensor(15678));
-            CheckVectorApproxValues(x.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({201,201,201,201,201,201}, shape).value());
+            CheckVectorApproxValues(x.grad(), aix::tensor({201.0,201.0,201.0,201.0,201.0,201.0}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({201.0,201.0,201.0,201.0,201.0,201.0}, shape).value());
         }
     }
 
@@ -1873,9 +1873,9 @@ TEST_CASE("Device Tests - batch compute")
             z.backward();
             device->commitAndWait();
 
-            CheckVectorApproxValues(z, aix::tensor({220970,600657,1.63276e+06,4.43829e+06,1.20645e+07,3.27948e+07}, shape));
+            CheckVectorApproxValues(z, aix::tensor({220970.0,600657.0,1.63276e+06,4.43829e+06,1.20645e+07,3.27948e+07}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({546.375,1485.2,4037.19,10974.3,29831.1,81089.3}, shape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({220424,599173,1.62872e+06,4.42732e+06,1.20347e+07,3.27137e+07}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({220424.0,599173.0,1.62872e+06,4.42732e+06,1.20347e+07,3.27137e+07}, shape).value());
         }
     }
 
@@ -1900,9 +1900,9 @@ TEST_CASE("Device Tests - batch compute")
             z.backward();
             device->commitAndWait();
 
-            CheckVectorApproxValues(z, aix::tensor({10050,13668,18090,23316,29346,36180}, shape));
-            CheckVectorApproxValues(x.grad(), aix::tensor({402,804,1206,1608,2010,2412}, shape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({2814,3216,3618,4020,4422,4824}, shape).value());
+            CheckVectorApproxValues(z, aix::tensor({10050.0,13668.0,18090.0,23316.0,29346.0,36180.0}, shape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({402.0,804.0,1206.0,1608.0,2010.0,2412.0}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({2814.0,3216.0,3618.0,4020.0,4422.0,4824.0}, shape).value());
         }
     }
 
@@ -1928,7 +1928,7 @@ TEST_CASE("Device Tests - batch compute")
 
             CheckVectorApproxValues(z, aix::tensor({354.0808,394.7695,401.0063,401.8651,401.9816,401.9982}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({84.4149,14.2008,1.98307,0.269514,0.0365,0.00493598}, shape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({0.00067091,9.58443e-05,2.39611e-05,0,0,0}, shape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({0.00067091,9.58443e-05,2.39611e-05,0.0,0.0,0.0}, shape).value());
         }
     }
 
@@ -1953,9 +1953,9 @@ TEST_CASE("Device Tests - batch compute")
             z.backward();
             device->commitAndWait();
 
-            CheckVectorApproxValues(z, aix::tensor({8442,11256,14874,19296}, matShape));
-            CheckVectorApproxValues(x.grad(), aix::tensor({4623,5427,5025,5829}, matShape).value());
-            CheckVectorApproxValues(y.grad(), aix::tensor({1407,2211,1809,2613}, matShape).value());
+            CheckVectorApproxValues(z, aix::tensor({8442.0,11256.0,14874.0,19296.0}, matShape));
+            CheckVectorApproxValues(x.grad(), aix::tensor({4623.0,5427.0,5025.0,5829.0}, matShape).value());
+            CheckVectorApproxValues(y.grad(), aix::tensor({1407.0,2211.0,1809.0,2613.0}, matShape).value());
         }
     }
 
@@ -2047,7 +2047,7 @@ TEST_CASE("Tensor - broadcast")
 
     SUBCASE("[2x3] [3x2]")
     {
-        std::vector<float> data{1.0, 2.0, 3.0,4.0, 5.0, 6.0};
+        std::initializer_list<float> data{1.0, 2.0, 3.0,4.0, 5.0, 6.0};
         Shape shape1{2,3};
         Shape shape2{3,2};
         auto tensor1 = tensor(data, shape1);
