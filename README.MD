@@ -45,7 +45,7 @@ int main()
     constexpr float kLossThreshold = 1e-5f;
 
     // Create a device that uses Apple Metal for GPU computations.
-    auto device = std::unique_ptr<aix::Device>(aix::aixDeviceFactory::CreateDevice(aix::DeviceType::kGPU_METAL));
+    auto device = aix::createDevice(aix::DeviceType::kGPU_METAL);
 
     // Create a model.
     aix::nn::Sequential  model;
@@ -69,7 +69,7 @@ int main()
                                 0.0}, {kNumSamples, kNumTargets}).to(*device);
 
     // Create an optimizer.
-    aix::optim::AdamOptimizer optimizer(model.parameters(), kLearningRate);
+    aix::optim::Adam optimizer(model.parameters(), kLearningRate);
 
     // Create a loss function.
     auto lossFunc = aix::nn::MSELoss();

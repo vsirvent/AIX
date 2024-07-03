@@ -21,15 +21,6 @@ namespace aix
 enum class DeviceType;
 class Device;
 
-
-class aixDeviceFactory
-{
-public:
-    static aix::Device* CreateDevice(aix::DeviceType type);
-
-protected:
-    aixDeviceFactory() = default;
-};
-
+std::unique_ptr<aix::Device> createDevice(aix::DeviceType type);
 
 }   // aix namespace

@@ -10,31 +10,30 @@
 // Project includes
 #include "aix.hpp"
 #include "aixDevices.hpp"
-
 #if defined(__APPLE__) && defined(__arm64__)
 #include "aixDeviceMetal.hpp"
 #endif
-
 // External includes
 // System includes
+#include <memory>
 
 
 namespace aix
 {
 
-aix::Device* aixDeviceFactory::CreateDevice(aix::DeviceType type)
+std::unique_ptr<aix::Device> createDevice(aix::DeviceType type)
 {
     switch (type)
     {
         case DeviceType::kGPU_METAL:
         #if defined(__APPLE__) && defined(__arm64__)
-            return new aix::DeviceMetal();
+        return std::make_unique<aix::DeviceMetal>();
         #else
             return nullptr;
         #endif
 
         case DeviceType::kCPU:
-            return new aix::Device();
+            return std::make_unique<aix::Device>();
 
         default:
             break;
@@ -42,6 +41,5 @@ aix::Device* aixDeviceFactory::CreateDevice(aix::DeviceType type)
 
     return nullptr;
 }
-
 
 }

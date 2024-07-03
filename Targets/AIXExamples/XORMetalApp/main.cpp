@@ -27,7 +27,7 @@ int main()
     constexpr float kLossThreshold = 1e-5f;
 
     // Create a device that uses Apple Metal for GPU computations.
-    auto device = std::unique_ptr<aix::Device>(aix::aixDeviceFactory::CreateDevice(aix::DeviceType::kGPU_METAL));
+    auto device = aix::createDevice(aix::DeviceType::kGPU_METAL);
 
     aix::nn::Sequential model;
     model.add(new aix::nn::Linear(kNumInputs, 1000));
