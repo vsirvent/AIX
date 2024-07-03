@@ -1753,7 +1753,9 @@ public:
     {
         if (!m_data->m_requireGrad && !m_data->m_retainGrad)
         {
-            throw std::runtime_error("Gradients for non-leaf tensors won’t be populated during automatic gradient calculation. Use .retainGrad() on the non-leaf tensor if needed, or access the leaf tensor instead.");
+            throw std::runtime_error("Gradients for non-leaf tensors won’t be populated during automatic gradient"  \
+                                     " calculation. Use .retainGrad() on the non-leaf tensor if needed, or access"  \
+                                     " the leaf tensor instead.");
         }
         return m_data->m_grad;
     }
