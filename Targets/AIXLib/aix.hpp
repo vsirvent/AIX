@@ -1645,7 +1645,7 @@ private:
 private:
     DataType  m_dType{DataType::kFloat32};
     void*     m_data{nullptr};  // The flat array of tensor elements.
-    size_t    m_size;           // Number of DataType elements.
+    size_t    m_size{0};        // Number of elements in DataType.
     Shape     m_shape;          // The shape of the tensor.
     Stride    m_strides;        // The strides for indexing the tensor.
     Device *  m_device{nullptr};
