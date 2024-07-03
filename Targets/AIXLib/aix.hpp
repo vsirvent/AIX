@@ -833,7 +833,7 @@ public:
         device->copyImmediate(data, srcDType, m_data, dType, size);
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
-        computeStrides();
+        m_strides = computeStrides();
     }
 
     // Constructor
@@ -845,7 +845,7 @@ public:
         device->copyImmediate(data.begin(), getDataType<T>(), m_data, dType, data.size());
         m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
-        computeStrides();
+        m_strides = computeStrides();
     }
 
     // Constructor
@@ -857,7 +857,7 @@ public:
         m_data = device->allocate(m_size, dType);
         // initialize data.
         device->fill(&value, m_size, m_data, dType);
-        computeStrides();
+        m_strides = computeStrides();
     }
 
     // Constructor
@@ -867,7 +867,15 @@ public:
         m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
         m_data = device->allocate(m_size, dType);
-        computeStrides();
+        m_strides = computeStrides();
+    }
+
+    // Constructor
+    TensorValue(Shape shape, Device * device, size_t size, Stride strides, DataType dType = DataType::kFloat32) :
+        m_dType(dType), m_size(size), m_shape(std::move(shape)), m_strides(std::move(strides)), m_device(device)
+    {
+        // Each tensor array must use device specific memory allocator.
+        m_data = device->allocate(m_size, dType);
     }
 
     // Constructor
@@ -878,7 +886,7 @@ public:
         m_size = 1;
         m_data = device->allocate(m_size, dType);
         device->fill(&value, m_size, m_data, dType);
-        computeStrides();
+        m_strides = computeStrides();
     }
 
     // Destructor
@@ -1500,15 +1508,16 @@ public:
 
 private:
     // Compute the strides based on the shape of the tensor
-    void computeStrides()
+    Stride computeStrides()
     {
-        m_strides.resize(m_shape.size());
+        Stride strides(m_shape.size());
         size_t stride = 1;
-        for (int64_t i = m_shape.size() - 1; i >= 0; --i)
+        for (int64_t i = strides.size() - 1; i >= 0; --i)
         {
-            m_strides[i] = stride;
+            strides[i] = stride;
             stride *= m_shape[i];
         }
+        return strides;
     }
 
     // Get the flat index from a vector of indices
@@ -1657,13 +1666,15 @@ class TensorNode
 public:
     // Constructor
     explicit TensorNode(const TensorValue & value, bool requireGrad = false) :
-        m_value{value}, m_grad{value.shape(), value.device(), value.dataType()}, m_requireGrad{requireGrad}
+        m_value{value}, m_grad{value.shape(), value.device(), value.size(), value.strides(), value.dataType()},
+        m_requireGrad{requireGrad}
     {
     }
 
     // Constructor
     explicit TensorNode(const Shape & shape, Device * device, bool requireGrad = false, DataType dType = DataType::kFloat32) :
-        m_value{shape, device, dType}, m_grad{shape, device, dType}, m_requireGrad{requireGrad}
+        m_value{shape, device, dType}, m_grad{shape, device, m_value.size(), m_value.strides(), dType},
+        m_requireGrad{requireGrad}
     {
     }
 
