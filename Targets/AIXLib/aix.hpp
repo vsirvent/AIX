@@ -1749,7 +1749,7 @@ public:
 
     inline void zeroGrad()                      { m_data->m_grad.fill(0); }
     inline bool isRequireGrad() const           { return m_data->m_requireGrad; }
-    inline void retainGrad() const              { m_data->m_retainGrad = true;  }
+    inline void retainGrad() const              { m_data->m_retainGrad = true; m_data->m_grad.fill(0); }
 
     // Set operation device for the tensor.
     inline Tensor & to(Device & device)         { m_data->device(&device); return *this; }
