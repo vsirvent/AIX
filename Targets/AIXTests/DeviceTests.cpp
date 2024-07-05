@@ -977,20 +977,12 @@ TEST_CASE("Device Tests - Allocate")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testAllocate(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testAllocate(&*device, size));
         }
     }
 }
@@ -1004,20 +996,12 @@ TEST_CASE("Device Tests - Add")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testAdd(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testAdd(&*device, size));
         }
     }
 }
@@ -1031,20 +1015,12 @@ TEST_CASE("Device Tests - Sub")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testSub(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testSub(&*device, size));
         }
     }
 }
@@ -1058,20 +1034,12 @@ TEST_CASE("Device Tests - Unary")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testUnary(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testUnary(&*device, size));
         }
     }
 }
@@ -1085,20 +1053,12 @@ TEST_CASE("Device Tests - Sqrt")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testSqrt(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testSqrt(&*device, size));
         }
     }
 }
@@ -1112,20 +1072,12 @@ TEST_CASE("Device Tests - Sin")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testSin(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testSin(&*device, size));
         }
     }
 }
@@ -1139,20 +1091,12 @@ TEST_CASE("Device Tests - Cos")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testCos(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testCos(&*device, size));
         }
     }
 }
@@ -1166,20 +1110,12 @@ TEST_CASE("Device Tests - Tanh")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testTanh(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testTanh(&*device, size));
         }
     }
 }
@@ -1193,22 +1129,12 @@ TEST_CASE("Device Tests - Log")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testLog(&*device2, size));
-            break;
-        }
-        break;
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testLog(&*device, size));
         }
     }
 }
@@ -1222,20 +1148,12 @@ TEST_CASE("Device Tests - Exp")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testExp(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testExp(&*device, size));
         }
     }
 }
@@ -1249,20 +1167,12 @@ TEST_CASE("Device Tests - Pow")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testPow(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testPow(&*device, size));
         }
     }
 }
@@ -1276,20 +1186,12 @@ TEST_CASE("Device Tests - Mean")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testMean(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testMean(&*device, size));
         }
     }
 }
@@ -1303,20 +1205,12 @@ TEST_CASE("Device Tests - Mul")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testMul(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testMul(&*device, size));
         }
     }
 }
@@ -1330,20 +1224,12 @@ TEST_CASE("Device Tests - Div")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testDiv(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testDiv(&*device, size));
         }
     }
 }
@@ -1364,7 +1250,8 @@ TEST_CASE("Device Tests - MatMul")
             {
                 for (size_t m = 1; m < 8; m+=2)
                 {
-                    CHECK(testMatMul(&*device, n, i, m));
+                    auto device2 = aix::createDevice(deviceType);
+                    CHECK(testMatMul(&*device2, n, i, m));
                 }
             }
         }
@@ -1391,7 +1278,8 @@ TEST_CASE("Device Tests - Transpose2D")
         {
             for (size_t m = 1; m < 8; m+=2)
             {
-                CHECK(testTranspose2D(&*device, n, m));
+                auto device2 = aix::createDevice(deviceType);
+                CHECK(testTranspose2D(&*device2, n, m));
             }
         }
 
@@ -1415,7 +1303,8 @@ TEST_CASE("Device Tests - Transpose")
 
         for (size_t n = 0; n < 100; ++n)
         {
-            CHECK(testTranspose(&*device));
+            auto device2 = aix::createDevice(deviceType);
+            CHECK(testTranspose(&*device2));
         }
     }
 }
@@ -1429,20 +1318,12 @@ TEST_CASE("Device Tests - Copy")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testCopy(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testCopy(&*device, size));
         }
     }
 }
@@ -1456,20 +1337,12 @@ TEST_CASE("Device Tests - Fill")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (auto size: testSizes)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testFill(&*device2, size));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (auto size: testSizes)
-        {
-            CHECK(testFill(&*device, size));
         }
     }
 }
@@ -1483,20 +1356,12 @@ TEST_CASE("Device Tests - broadcastTo")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (size_t i=0; i<100; ++i)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testBroadcastTo(&*device2));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (size_t i=0; i<100; ++i)
-        {
-            CHECK(testBroadcastTo(&*device));
         }
     }
 }
@@ -1510,20 +1375,12 @@ TEST_CASE("Device Tests - reduceTo")
         // Check if the devices is available.
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
-        device.release();
 
         // Create a new device per test
         for (size_t i=0; i<100; ++i)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testReduceTo(&*device2));
-        }
-
-        // Use the same device per test
-        device = aix::createDevice(deviceType);
-        for (size_t i=0; i<100; ++i)
-        {
-            CHECK(testReduceTo(&*device));
         }
     }
 }
