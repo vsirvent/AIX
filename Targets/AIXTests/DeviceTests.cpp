@@ -18,7 +18,6 @@
 using namespace aix;
 
 #define EPSILON             1e-6
-#define EPSILON_PERCENT     1
 //#define DEBUG_LOG
 
 std::uniform_real_distribution<float>  distr(-1, 1);
@@ -513,72 +512,6 @@ bool testPow(Device* testDevice, size_t n)
             std::cout << "Exponents" << std::endl << exp.value() << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
-            #endif
-            return false;
-        }
-    }
-
-    return true;
-}
-
-
-bool testMean(Device* testDevice, size_t n)
-{
-    for (size_t i=0; i<aix::DataTypeCount; ++i)
-    {
-        auto dtype = static_cast<DataType>(i);
-        // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
-
-        aix::Device  refDevice;     // Reference/CPU device.
-
-        auto array1 = aix::randn({1, n}).to(dtype);
-        auto cpuResult    = aix::TensorValue(0, {}, &refDevice).to(dtype);
-        auto deviceResult = aix::TensorValue(0, {}, testDevice).to(dtype);
-
-        refDevice.mean(array1.value().data(), n, cpuResult.data(), dtype);
-        testDevice->mean(array1.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
-
-        // Compare results with the true/reference results
-        double errorPercent = 0.0;
-
-        switch (dtype)
-        {
-            case DataType::kFloat64:
-                errorPercent = std::abs((cpuResult.item<double>() - deviceResult.item<double>()) / cpuResult.item<double>());
-                break;
-            case DataType::kFloat32:
-                errorPercent = std::abs((cpuResult.item<float>() - deviceResult.item<float>()) / cpuResult.item<float>());
-                break;
-            case DataType::kInt64:
-                errorPercent = std::abs(double(cpuResult.item<int64_t>() - deviceResult.item<int64_t>()) / double(cpuResult.item<int64_t>()));
-                break;
-            case DataType::kInt32:
-                errorPercent = std::abs(double(cpuResult.item<int32_t>() - deviceResult.item<int32_t>()) / double(cpuResult.item<int32_t>()));
-                break;
-            case DataType::kInt16:
-                errorPercent = std::abs(double(cpuResult.item<int16_t>() - deviceResult.item<int16_t>()) / double(cpuResult.item<int16_t>()));
-                break;
-            case DataType::kInt8:
-                errorPercent = std::abs(double(cpuResult.item<int8_t>() - deviceResult.item<int8_t>()) / double(cpuResult.item<int8_t>()));
-                break;
-            case DataType::kUInt8:
-                errorPercent = std::abs(double(cpuResult.item<uint8_t>() - deviceResult.item<uint8_t>()) / double(cpuResult.item<uint8_t>()));
-                break;
-            default:
-                throw std::invalid_argument("Unhandled data type in testMean.");
-                break;
-        }
-
-        if ( errorPercent > EPSILON_PERCENT)
-        {
-            #ifdef DEBUG_LOG
-            std::cout << "---------------------- " << std::endl;
-            std::cout << "Error Percent   : " << errorPercent << std::endl;
-            std::cout << "Array Size      : " << n << std::endl;
-            std::cout << "Expected Result : " << cpuResult << std::endl;
-            std::cout << "Device Result   : " << deviceResult << std::endl;
             #endif
             return false;
         }
@@ -1172,25 +1105,6 @@ TEST_CASE("Device Tests - Pow")
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testPow(&*device2, size));
-        }
-    }
-}
-
-
-TEST_CASE("Device Tests - Mean")
-{
-    // For each available devices, tests add operation.
-    for (auto deviceType : testDeviceTypes)
-    {
-        // Check if the devices is available.
-        auto device = aix::createDevice(deviceType);
-        if (!device) continue;      // Skip if the device is not available.
-
-        // Create a new device per test
-        for (auto size: testSizes)
-        {
-            auto device2 = aix::createDevice(deviceType);
-            CHECK(testMean(&*device2, size));
         }
     }
 }

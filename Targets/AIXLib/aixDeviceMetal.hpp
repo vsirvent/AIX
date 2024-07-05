@@ -76,8 +76,6 @@ public:
 
     void sum(const void* a, size_t size, void* result, DataType dtype) override;
 
-    void mean(const void* a, size_t size, void* result, DataType dtype) override;
-
     void sqrt(const void* a, size_t size, void* result, DataType dtype) override;
 
     void sin(const void* a, size_t size, void* result, DataType dtype) override;

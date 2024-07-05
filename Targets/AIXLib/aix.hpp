@@ -243,22 +243,6 @@ public:
         funcTable[static_cast<size_t>(dtype)](a, size, result);
     }
 
-    virtual void mean(const void* a, const size_t size, void* result, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            meanGeneric<double  >,
-            meanGeneric<float   >,
-            meanGeneric<int64_t >,
-            meanGeneric<int32_t >,
-            meanGeneric<int16_t >,
-            meanGeneric<int8_t  >,
-            meanGeneric<uint8_t >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
-    }
-
     virtual void sqrt(const void* a, const size_t size, void* result, DataType dtype)
     {
         static const auto funcTable = std::array
@@ -636,20 +620,6 @@ protected:
             sum += t1[i];
         }
         *res = sum;
-    }
-
-    template <typename T>
-    static void meanGeneric(const void* a, const size_t size, void* result)
-    {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
-
-        T sum = 0;
-        for (size_t i = 0; i < size; ++i)
-        {
-            sum += t1[i];
-        }
-        *res = sum / size;
     }
 
     template <typename T>
@@ -1410,9 +1380,7 @@ public:
 
     TensorValue mean() const
     {
-        TensorValue result({}, device(), m_dType);
-        m_device->mean(m_data, m_size, result.data(), m_dType);
-        return result;
+        return sum() / size();
     }
 
     TensorValue sqrt() const
@@ -1993,13 +1961,6 @@ public:
         node->m_a->backward(seed);
     }
 
-    static void meanBackwardFunc(TensorNode * node, const TensorValue & seed)
-    {
-        if (!node->m_a) return;
-        // The gradient of the mean operation is distributed evenly across all elements. grad = 1/N
-        node->m_a->backward(seed / float(node->m_a->m_value.size()));
-    }
-
     // Overload the + operator
     Tensor operator+(const Tensor & other) const
     {
@@ -2177,7 +2138,7 @@ public:
 
     Tensor sum() const
     {
-        Tensor result({}, isRequireGrad(), dataType(), device());     // Scalar tensor for the mean result.
+        Tensor result({}, isRequireGrad(), dataType(), device());
         result.m_data->m_value = m_data->m_value.sum();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = sumBackwardFunc;
@@ -2186,11 +2147,7 @@ public:
 
     Tensor mean() const
     {
-        Tensor result({}, isRequireGrad(), dataType(), device());     // Scalar tensor for the mean result.
-        result.m_data->m_value = m_data->m_value.mean();
-        result.m_data->m_a = m_data;
-        result.m_data->m_backwardFunc = meanBackwardFunc;
-        return result;
+        return sum() / value().size();
     }
 
     Tensor pow(const Tensor & other) const
@@ -2224,7 +2181,7 @@ public:
 
     Tensor transpose(const size_t dim0, size_t dim1) const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());     // Scalar tensor for the mean result.
+        Tensor result(shape(), isRequireGrad(), dataType(), device());
         result.m_data->m_value = m_data->m_value.transpose(dim0, dim1);
         result.m_data->m_a = m_data;
         result.m_data->m_dim0 = dim0;

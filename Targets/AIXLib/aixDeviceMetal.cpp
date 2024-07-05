@@ -168,21 +168,18 @@ void DeviceMetal::fill(const void* scalar, size_t size, void* result, DataType d
 
 void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
 {
-    // TODO: Needs to be removed when scalar values are turned into Tensors.
-    if (dtype != DataType::kFloat32)
-    {
-        Device::sum(a, size, result, dtype);
-        return;
-    }
-
     auto iDType = static_cast<size_t>(dtype);
     auto compFuncPSO = m_compFuncPSOSum[iDType];
 
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (m_allocMap.find(result) == m_allocMap.end())
+        throw std::invalid_argument("DeviceMetal::sum() result must have GPU memory.");
+
     size_t maxThreadsPerTG = std::min<size_t>(MAX_THREADS_PER_THREADGROUP, compFuncPSO->maxTotalThreadsPerThreadgroup());
 
-    auto buf1      = getReadOnlyMTLBuffer(a, size, dataTypeSize(dtype));
-    auto bufResult = newBuffer((1 + size / maxThreadsPerTG) * dataTypeSize(dtype));
-    auto bufRec = buf1;     // Recursive data buffer pointer.
+    auto buf1    = getReadOnlyMTLBuffer(a, size, dataTypeSize(dtype));
+    auto bufTemp = newBuffer((1 + size / maxThreadsPerTG) * dataTypeSize(dtype));
+    auto bufRec  = buf1;     // Recursive data buffer pointer.
 
     // Apply Parallel Reduction Sum.
     size_t length = size - 1;
@@ -191,31 +188,18 @@ void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
         // Calculate maximum thread group dimensions.
         NS::UInteger w = std::min<size_t>(length+1, maxThreadsPerTG);
         // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-        sendComputeCommandArrayScalar(bufRec, {1, length+1}, 0, bufResult, compFuncPSO, {length + 1, 1, 1}, {w, 1, 1});
+        sendComputeCommandArrayScalar(bufRec, {1, length+1}, 0, bufTemp, compFuncPSO, {length + 1, 1, 1}, {w, 1, 1});
         length = (length - 1) / maxThreadsPerTG;
-        bufRec = bufResult;
+        bufRec = bufTemp;
     }
+
+    commitAndWait();
+    // Copy result from temp buf to result buffer.
+    copy(bufRec->contents(), dtype, result, dtype, 1);
 
     // Buf1 could be temporary buffer. It should be deleted if temporary.
     freeTemporaryBuffer(buf1);
-    commitAndWait();
-
-    // TODO: Handle non-float scalar type value.
-    *(float*)result = static_cast<float*>(bufResult->contents())[0];  // Read the final result.
-    bufResult->release();       // Release temporary buffer.
-}
-
-void DeviceMetal::mean(const void* a, size_t size, void* result, DataType dtype)
-{
-    if (dtype != DataType::kFloat32)
-    {
-        Device::mean(a, size, result, dtype);
-        return;
-    }
-
-    // TODO: Handle non-float scalar type value.
-    sum(a, size, result, dtype);
-    *(float*)result /= size;
+    freeTemporaryBuffer(bufTemp);
 }
 
 void DeviceMetal::sqrt(const void* a, size_t size, void* result, DataType dtype)
