@@ -419,12 +419,11 @@ bool testLog(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL
-           && (dtype == DataType::kFloat64 || dtype == DataType::kInt16 ||  dtype == DataType::kInt8)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto array1 = aix::randn({1, n}).to(dtype);
+        auto array1       = (2 + aix::randn({1, n})).to(dtype);
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
@@ -435,12 +434,12 @@ bool testLog(Device* testDevice, size_t n)
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, EPSILON))
         {
-            #ifdef DEBUG_LOG
+            //#ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
             std::cout << "Array1" << std::endl << array1.value() << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
-            #endif
+            //#endif
             return false;
         }
     }
