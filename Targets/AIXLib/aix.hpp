@@ -195,102 +195,6 @@ public:
         funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
     }
 
-    virtual void addAS(const void* a1, const void* scalar, const size_t size, void* result, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            addASGeneric<double  >,
-            addASGeneric<float   >,
-            addASGeneric<int64_t >,
-            addASGeneric<int32_t >,
-            addASGeneric<int16_t >,
-            addASGeneric<int8_t  >,
-            addASGeneric<uint8_t >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
-    }
-
-    virtual void subAS(const void* a1, const void* scalar, const size_t size, void* result, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            subASGeneric<double  >,
-            subASGeneric<float   >,
-            subASGeneric<int64_t >,
-            subASGeneric<int32_t >,
-            subASGeneric<int16_t >,
-            subASGeneric<int8_t  >,
-            subASGeneric<uint8_t >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
-    }
-
-    virtual void subSA(const void* scalar, const void* a1, const size_t size, void* result, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            subSAGeneric<double  >,
-            subSAGeneric<float   >,
-            subSAGeneric<int64_t >,
-            subSAGeneric<int32_t >,
-            subSAGeneric<int16_t >,
-            subSAGeneric<int8_t  >,
-            subSAGeneric<uint8_t >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](scalar, a1, size, result);
-    }
-
-    virtual void mulAS(const void* a1, const void* scalar, const size_t size, void* result, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            mulASGeneric<double  >,
-            mulASGeneric<float   >,
-            mulASGeneric<int64_t >,
-            mulASGeneric<int32_t >,
-            mulASGeneric<int16_t >,
-            mulASGeneric<int8_t  >,
-            mulASGeneric<uint8_t >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
-    }
-
-    virtual void divAS(const void* a1, const void* scalar, const size_t size, void* result, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            divASGeneric<double  >,
-            divASGeneric<float   >,
-            divASGeneric<int64_t >,
-            divASGeneric<int32_t >,
-            divASGeneric<int16_t >,
-            divASGeneric<int8_t  >,
-            divASGeneric<uint8_t >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
-    }
-
-    virtual void divSA(const void* scalar, const void* a1, const size_t size, void* result, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            divSAGeneric<double  >,
-            divSAGeneric<float   >,
-            divSAGeneric<int64_t >,
-            divSAGeneric<int32_t >,
-            divSAGeneric<int16_t >,
-            divSAGeneric<int8_t  >,
-            divSAGeneric<uint8_t >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](scalar, a1, size, result);
-    }
-
     virtual void unary(const void* a1, const size_t size, void* result, DataType dtype)
     {
         static const auto funcTable = std::array
@@ -1434,94 +1338,62 @@ public:
 
     TensorValue operator+(float scalar) const
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->addAS(m_data, &scalar, m_size, result.m_data, m_dType);
-        return result;
+        return *this + TensorValue{scalar, m_shape, m_device, m_dType};
     }
 
     TensorValue operator-(float scalar) const
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->subAS(m_data, &scalar, m_size, result.m_data, m_dType);
-        return result;
-    }
-
-    TensorValue& operator+=(float scalar)
-    {
-        // Perform element-wise.
-        m_device->addAS(m_data, &scalar, m_size, m_data, m_dType);
-        return *this;
-    }
-
-    TensorValue& operator-=(float scalar)
-    {
-        // Perform element-wise.
-        m_device->subAS(m_data, &scalar, m_size, m_data, m_dType);
-        return *this;
-    }
-
-    TensorValue& operator*=(float scalar)
-    {
-        // Perform element-wise.
-        m_device->mulAS(m_data, &scalar, m_size, m_data, m_dType);
-        return *this;
-    }
-
-    TensorValue& operator/=(float scalar)
-    {
-        // Perform element-wise.
-        m_device->divAS(m_data, &scalar, m_size, m_data, m_dType);
-        return *this;
+        return *this - TensorValue{scalar, m_shape, m_device, m_dType};
     }
 
     TensorValue operator*(float scalar) const
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->mulAS(m_data, &scalar, m_size, result.m_data, m_dType);
-        return result;
+        return *this * TensorValue{scalar, m_shape, m_device, m_dType};
     }
 
     TensorValue operator/(float scalar) const
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->divAS(m_data, &scalar, m_size, result.m_data, m_dType);
-        return result;
+        return *this / TensorValue{scalar, m_shape, m_device, m_dType};
     }
 
-    friend TensorValue operator*(float scalar, const TensorValue & tensor)
+    TensorValue& operator+=(float scalar)
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(tensor.m_shape, tensor.m_device, tensor.m_dType);
-        tensor.m_device->mulAS(tensor.m_data, &scalar, tensor.m_size, result.m_data, result.m_dType);
-        return result;
+        return *this += TensorValue{scalar, m_shape, m_device, m_dType};
     }
 
-    friend TensorValue operator/(float scalar, const TensorValue & tensor)
+    TensorValue& operator-=(float scalar)
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(tensor.m_shape, tensor.m_device, tensor.m_dType);
-        tensor.m_device->divSA(&scalar, tensor.m_data, tensor.m_size, result.m_data, result.m_dType);
-        return result;
+        return *this -= TensorValue{scalar, m_shape, m_device, m_dType};
+    }
+
+    TensorValue& operator*=(float scalar)
+    {
+        return *this *= TensorValue{scalar, m_shape, m_device, m_dType};
+    }
+
+    TensorValue& operator/=(float scalar)
+    {
+        return *this /= TensorValue{scalar, m_shape, m_device, m_dType};
     }
 
     friend TensorValue operator+(float scalar, const TensorValue & tensor)
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(tensor.m_shape, tensor.m_device, tensor.m_dType);
-        tensor.m_device->addAS(tensor.m_data, &scalar, tensor.m_size, result.m_data, result.m_dType);
-        return result;
+        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} + tensor;
     }
 
     friend TensorValue operator-(float scalar, const TensorValue & tensor)
     {
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(tensor.m_shape, tensor.m_device, tensor.m_dType);
-        tensor.m_device->subSA(&scalar, tensor.m_data, tensor.m_size, result.m_data, result.m_dType);
-        return result;
+        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} - tensor;
+    }
+
+    friend TensorValue operator*(float scalar, const TensorValue & tensor)
+    {
+        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} * tensor;
+    }
+
+    friend TensorValue operator/(float scalar, const TensorValue & tensor)
+    {
+        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} / tensor;
     }
 
     void fill(float value) const

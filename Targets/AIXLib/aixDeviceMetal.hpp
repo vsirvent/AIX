@@ -70,18 +70,6 @@ public:
 
     void div(const void* a1, const void* a2, size_t size, void* result, DataType dtype) override;
 
-    void addAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype) override;
-
-    void subAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype) override;
-
-    void subSA(const void* scalar, const void* a, size_t size, void* result, DataType dtype) override;
-
-    void mulAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype) override;
-
-    void divAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype) override;
-
-    void divSA(const void* scalar, const void* a, size_t size, void* result, DataType dtype) override;
-
     void unary(const void* a, size_t size, void* result, DataType dtype) override;
 
     void fill(const void* scalar, size_t size, void* result, DataType dtype) override;
@@ -211,11 +199,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOSub[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOMul[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSODiv[aix::DataTypeCount];
-    MTL::ComputePipelineState*   m_compFuncPSOAddAS[aix::DataTypeCount];
-    MTL::ComputePipelineState*   m_compFuncPSOSubSA[aix::DataTypeCount];
-    MTL::ComputePipelineState*   m_compFuncPSOMulAS[aix::DataTypeCount];
-    MTL::ComputePipelineState*   m_compFuncPSODivAS[aix::DataTypeCount];
-    MTL::ComputePipelineState*   m_compFuncPSODivSA[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOUnary[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOSqrt[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOSin[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOCos[aix::DataTypeCount];

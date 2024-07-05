@@ -48,11 +48,7 @@ DeviceMetal::DeviceMetal()
         m_compFuncPSOSub[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sub_aa_" + dtypeStr);
         m_compFuncPSOMul[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "mul_aa_" + dtypeStr);
         m_compFuncPSODiv[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "div_aa_" + dtypeStr);
-        m_compFuncPSOAddAS[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "add_as_" + dtypeStr);
-        m_compFuncPSOSubSA[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sub_sa_" + dtypeStr);
-        m_compFuncPSOMulAS[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "mul_as_" + dtypeStr);
-        m_compFuncPSODivAS[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "div_as_" + dtypeStr);
-        m_compFuncPSODivSA[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "div_sa_" + dtypeStr);
+        m_compFuncPSOUnary[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "unary_a_" + dtypeStr);
         m_compFuncPSOSqrt[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sqrt_a_" + dtypeStr);
         m_compFuncPSOSin[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sin_a_" + dtypeStr);
         m_compFuncPSOCos[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "cos_a_" + dtypeStr);
@@ -88,11 +84,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOSub[i]->release();
         m_compFuncPSOMul[i]->release();
         m_compFuncPSODiv[i]->release();
-        m_compFuncPSOAddAS[i]->release();
-        m_compFuncPSOSubSA[i]->release();
-        m_compFuncPSOMulAS[i]->release();
-        m_compFuncPSODivAS[i]->release();
-        m_compFuncPSODivSA[i]->release();
+        m_compFuncPSOUnary[i]->release();
         m_compFuncPSOSqrt[i]->release();
         m_compFuncPSOSin[i]->release();
         m_compFuncPSOCos[i]->release();
@@ -162,46 +154,10 @@ void DeviceMetal::div(const void* a1, const void* a2, size_t size, void* result,
     executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSODiv[iDType], dtype, "div_" + toString(dtype));
 }
 
-void DeviceMetal::addAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype)
-{
-    auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOAddAS[iDType], dtype, "addAS_" + toString(dtype));
-}
-
-void DeviceMetal::subAS(const void* a1, const void* scalar, size_t size, void* result, DataType dtype)
-{
-    auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a1, -(*(float*)scalar), size, result, m_compFuncPSOAddAS[iDType], dtype, "subAS_" + toString(dtype));
-}
-
-void DeviceMetal::subSA(const void* scalar, const void* a, size_t size, void* result, DataType dtype)
-{
-    auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOSubSA[iDType], dtype, "subSA_" + toString(dtype));
-}
-
-void DeviceMetal::mulAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype)
-{
-    auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSOMulAS[iDType], dtype, "mulAS_" + toString(dtype));
-}
-
-void DeviceMetal::divAS(const void* a, const void* scalar, size_t size, void* result, DataType dtype)
-{
-    auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSODivAS[iDType], dtype, "divAS_" + toString(dtype));
-}
-
-void DeviceMetal::divSA(const void* scalar, const void* a, size_t size, void* result, DataType dtype)
-{
-    auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, *(float*)scalar, size, result, m_compFuncPSODivSA[iDType], dtype, "divSA_" + toString(dtype));
-}
-
 void DeviceMetal::unary(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, -1.0f, size, result, m_compFuncPSOMulAS[iDType], dtype, "unary_" + toString(dtype));
+    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOUnary[iDType], dtype, "unary_" + toString(dtype));
 }
 
 void DeviceMetal::fill(const void* scalar, size_t size, void* result, DataType dtype)
