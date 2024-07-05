@@ -30,8 +30,13 @@ namespace aix
 
 enum class DataType : size_t
 {
-    kFloat64 = 0,
-    kFloat32 = 1,
+    kFloat64  = 0,
+    kFloat32  = 1,
+    kInt64    = 2,
+    kInt32    = 3,
+    kInt16    = 4,
+    kInt8     = 5,
+    kUInt8    = 6,
 };
 
 enum class DeviceType
@@ -40,27 +45,44 @@ enum class DeviceType
     kGPU_METAL,
 };
 
+constexpr size_t DataTypeCount   = 7;
+constexpr size_t DeviceTypeCount = 2;
+
 // Primary template (default case)
-template <typename T>
-constexpr DataType getDataType()            { throw std::runtime_error("Unknown format found."); return DataType::kFloat32; }
-template <>
-constexpr DataType getDataType<double>()    { return DataType::kFloat64; }
-template <>
-constexpr DataType getDataType<float>()     { return DataType::kFloat32; }
+template <typename T> constexpr DataType getDataType();
+template <> constexpr DataType getDataType<double>()   { return DataType::kFloat64; }
+template <> constexpr DataType getDataType<float>()    { return DataType::kFloat32; }
+template <> constexpr DataType getDataType<int64_t>()  { return DataType::kInt64;   }
+template <> constexpr DataType getDataType<int32_t>()  { return DataType::kInt32;   }
+template <> constexpr DataType getDataType<int16_t>()  { return DataType::kInt16;   }
+template <> constexpr DataType getDataType<int8_t>()   { return DataType::kInt8;    }
+template <> constexpr DataType getDataType<uint8_t>()  { return DataType::kUInt8;   }
+
 
 static DataType promoteDataType(DataType dtype1, DataType dtype2)
 {
-    assert(static_cast<size_t>(dtype1) < 2 && static_cast<size_t>(dtype2) < 2);
+    assert(static_cast<size_t>(dtype1) < DataTypeCount && static_cast<size_t>(dtype2) < DataTypeCount);
     static_assert(static_cast<size_t>(DataType::kFloat64) == 0);
     static_assert(static_cast<size_t>(DataType::kFloat32) == 1);
+    static_assert(static_cast<size_t>(DataType::kInt64)   == 2);
+    static_assert(static_cast<size_t>(DataType::kInt32)   == 3);
+    static_assert(static_cast<size_t>(DataType::kInt16)   == 4);
+    static_assert(static_cast<size_t>(DataType::kInt8)    == 5);
+    static_assert(static_cast<size_t>(DataType::kUInt8)   == 6);
 
-    static const DataType promotionTable[2][2] =
+    static const size_t promotionTable[DataTypeCount][DataTypeCount] =
     {
-        //         0                  1
-        { DataType::kFloat64, DataType::kFloat64 },     // 0
-        { DataType::kFloat64, DataType::kFloat32 },     // 1
+        //                 0  1  2  3  4  5  6
+        /*  kFloat64 */  { 0, 0, 0, 0, 0, 0, 0, },
+        /*  kFloat32 */  { 0, 1, 1, 1, 1, 1, 1, },
+        /*  kInt64   */  { 0, 1, 2, 2, 2, 2, 2, },
+        /*  kInt32   */  { 0, 1, 2, 3, 3, 3, 3, },
+        /*  kInt16   */  { 0, 1, 2, 3, 4, 4, 4, },
+        /*  kInt8    */  { 0, 1, 2, 3, 4, 5, 4, },
+        /*  kUInt8   */  { 0, 1, 2, 3, 4, 4, 6, },
     };
-    return promotionTable[static_cast<size_t>(dtype1)][static_cast<size_t>(dtype2)];
+
+    return static_cast<DataType>(promotionTable[static_cast<size_t>(dtype1)][static_cast<size_t>(dtype2)]);
 }
 
 // Forward declarations
@@ -81,10 +103,15 @@ public:
 
     static size_t dataTypeSize(DataType dtype)
     {
-        static const size_t dTypeSizeTable[]
+        static const size_t dTypeSizeTable[DataTypeCount]
         {
-            sizeof(double),     // kFloat64
-            sizeof(float),      // kFloat32
+            sizeof(double  ),   // kFloat64
+            sizeof(float   ),   // kFloat32
+            sizeof(int64_t ),   // kInt64
+            sizeof(int32_t ),   // kInt32
+            sizeof(int16_t ),   // kInt16
+            sizeof(int8_t  ),   // kInt8
+            sizeof(uint8_t ),   // kUInt8
         };
         return dTypeSizeTable[static_cast<size_t>(dtype)];
     }
@@ -108,8 +135,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            addGeneric<double>,
-            addGeneric<float>,
+            addGeneric<double  >,
+            addGeneric<float   >,
+            addGeneric<int64_t >,
+            addGeneric<int32_t >,
+            addGeneric<int16_t >,
+            addGeneric<int8_t  >,
+            addGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
@@ -119,8 +151,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            subGeneric<double>,
-            subGeneric<float>,
+            subGeneric<double  >,
+            subGeneric<float   >,
+            subGeneric<int64_t >,
+            subGeneric<int32_t >,
+            subGeneric<int16_t >,
+            subGeneric<int8_t  >,
+            subGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
@@ -130,8 +167,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            mulGeneric<double>,
-            mulGeneric<float>,
+            mulGeneric<double  >,
+            mulGeneric<float   >,
+            mulGeneric<int64_t >,
+            mulGeneric<int32_t >,
+            mulGeneric<int16_t >,
+            mulGeneric<int8_t  >,
+            mulGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
@@ -141,8 +183,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            divGeneric<double>,
-            divGeneric<float>,
+            divGeneric<double  >,
+            divGeneric<float   >,
+            divGeneric<int64_t >,
+            divGeneric<int32_t >,
+            divGeneric<int16_t >,
+            divGeneric<int8_t  >,
+            divGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
@@ -152,8 +199,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            addASGeneric<double>,
-            addASGeneric<float>,
+            addASGeneric<double  >,
+            addASGeneric<float   >,
+            addASGeneric<int64_t >,
+            addASGeneric<int32_t >,
+            addASGeneric<int16_t >,
+            addASGeneric<int8_t  >,
+            addASGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
@@ -163,8 +215,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            subASGeneric<double>,
-            subASGeneric<float>,
+            subASGeneric<double  >,
+            subASGeneric<float   >,
+            subASGeneric<int64_t >,
+            subASGeneric<int32_t >,
+            subASGeneric<int16_t >,
+            subASGeneric<int8_t  >,
+            subASGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
@@ -174,8 +231,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            subSAGeneric<double>,
-            subSAGeneric<float>,
+            subSAGeneric<double  >,
+            subSAGeneric<float   >,
+            subSAGeneric<int64_t >,
+            subSAGeneric<int32_t >,
+            subSAGeneric<int16_t >,
+            subSAGeneric<int8_t  >,
+            subSAGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](scalar, a1, size, result);
@@ -185,8 +247,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            mulASGeneric<double>,
-            mulASGeneric<float>,
+            mulASGeneric<double  >,
+            mulASGeneric<float   >,
+            mulASGeneric<int64_t >,
+            mulASGeneric<int32_t >,
+            mulASGeneric<int16_t >,
+            mulASGeneric<int8_t  >,
+            mulASGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
@@ -196,8 +263,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            divASGeneric<double>,
-            divASGeneric<float>,
+            divASGeneric<double  >,
+            divASGeneric<float   >,
+            divASGeneric<int64_t >,
+            divASGeneric<int32_t >,
+            divASGeneric<int16_t >,
+            divASGeneric<int8_t  >,
+            divASGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, scalar, size, result);
@@ -207,8 +279,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            divSAGeneric<double>,
-            divSAGeneric<float>,
+            divSAGeneric<double  >,
+            divSAGeneric<float   >,
+            divSAGeneric<int64_t >,
+            divSAGeneric<int32_t >,
+            divSAGeneric<int16_t >,
+            divSAGeneric<int8_t  >,
+            divSAGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](scalar, a1, size, result);
@@ -218,8 +295,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            unaryGeneric<double>,
-            unaryGeneric<float>,
+            unaryGeneric<double  >,
+            unaryGeneric<float   >,
+            unaryGeneric<int64_t >,
+            unaryGeneric<int32_t >,
+            unaryGeneric<int16_t >,
+            unaryGeneric<int8_t  >,
+            unaryGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, size, result);
@@ -229,8 +311,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            fillGeneric<double>,
-            fillGeneric<float>,
+            fillGeneric<double  >,
+            fillGeneric<float   >,
+            fillGeneric<int64_t >,
+            fillGeneric<int32_t >,
+            fillGeneric<int16_t >,
+            fillGeneric<int8_t  >,
+            fillGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](scalar, size, result);
@@ -240,8 +327,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            sumGeneric<double>,
-            sumGeneric<float>,
+            sumGeneric<double  >,
+            sumGeneric<float   >,
+            sumGeneric<int64_t >,
+            sumGeneric<int32_t >,
+            sumGeneric<int16_t >,
+            sumGeneric<int8_t  >,
+            sumGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -251,8 +343,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            meanGeneric<double>,
-            meanGeneric<float>,
+            meanGeneric<double  >,
+            meanGeneric<float   >,
+            meanGeneric<int64_t >,
+            meanGeneric<int32_t >,
+            meanGeneric<int16_t >,
+            meanGeneric<int8_t  >,
+            meanGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -262,8 +359,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            sqrtGeneric<double>,
-            sqrtGeneric<float>,
+            sqrtGeneric<double  >,
+            sqrtGeneric<float   >,
+            sqrtGeneric<int64_t >,
+            sqrtGeneric<int32_t >,
+            sqrtGeneric<int16_t >,
+            sqrtGeneric<int8_t  >,
+            sqrtGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -273,8 +375,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            sinGeneric<double>,
-            sinGeneric<float>,
+            sinGeneric<double  >,
+            sinGeneric<float   >,
+            sinGeneric<int64_t >,
+            sinGeneric<int32_t >,
+            sinGeneric<int16_t >,
+            sinGeneric<int8_t  >,
+            sinGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -284,8 +391,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            cosGeneric<double>,
-            cosGeneric<float>,
+            cosGeneric<double  >,
+            cosGeneric<float   >,
+            cosGeneric<int64_t >,
+            cosGeneric<int32_t >,
+            cosGeneric<int16_t >,
+            cosGeneric<int8_t  >,
+            cosGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -295,8 +407,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            tanhGeneric<double>,
-            tanhGeneric<float>,
+            tanhGeneric<double  >,
+            tanhGeneric<float   >,
+            tanhGeneric<int64_t >,
+            tanhGeneric<int32_t >,
+            tanhGeneric<int16_t >,
+            tanhGeneric<int8_t  >,
+            tanhGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -306,8 +423,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            logGeneric<double>,
-            logGeneric<float>,
+            logGeneric<double  >,
+            logGeneric<float   >,
+            logGeneric<int64_t >,
+            logGeneric<int32_t >,
+            logGeneric<int16_t >,
+            logGeneric<int8_t  >,
+            logGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -317,8 +439,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            expGeneric<double>,
-            expGeneric<float>,
+            expGeneric<double  >,
+            expGeneric<float   >,
+            expGeneric<int64_t >,
+            expGeneric<int32_t >,
+            expGeneric<int16_t >,
+            expGeneric<int8_t  >,
+            expGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, size, result);
@@ -328,8 +455,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            powGeneric<double>,
-            powGeneric<float>,
+            powGeneric<double  >,
+            powGeneric<float   >,
+            powGeneric<int64_t >,
+            powGeneric<int32_t >,
+            powGeneric<int16_t >,
+            powGeneric<int8_t  >,
+            powGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a, exp, size, result);
@@ -339,8 +471,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            matmulGeneric<double>,
-            matmulGeneric<float>,
+            matmulGeneric<double  >,
+            matmulGeneric<float   >,
+            matmulGeneric<int64_t >,
+            matmulGeneric<int32_t >,
+            matmulGeneric<int16_t >,
+            matmulGeneric<int8_t  >,
+            matmulGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](a1, s1, a2, s2, result);
@@ -352,8 +489,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            transposeGeneric<double>,
-            transposeGeneric<float>,
+            transposeGeneric<double  >,
+            transposeGeneric<float   >,
+            transposeGeneric<int64_t >,
+            transposeGeneric<int32_t >,
+            transposeGeneric<int16_t >,
+            transposeGeneric<int8_t  >,
+            transposeGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](dim0, dim1, data, shape, strides, newStrides, size, result);
@@ -361,24 +503,22 @@ public:
 
     virtual void copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
     {
-        if (srcDType == dstDType)
-        {
-            std::memcpy(dst, src, size * dataTypeSize(srcDType));
-        }
-        else
-        {
-            // Define a function pointer type for the conversion copy functions.
-            using ConversionCopyFunc = void (*)(const void*, void*, size_t);
+        // Define a function pointer type for the conversion copy functions.
+        using copyFunc = void (*)(const void*, void*, size_t);
 
-            // Create a lookup table of the functions.
-            static const ConversionCopyFunc funcTable[2][2] =
-            {
-                { nullptr, conversionCopyGeneric<double, float> },
-                { conversionCopyGeneric<float, double>, nullptr }
-            };
-            // Call the appropriate function from the table.
-            funcTable[static_cast<size_t>(srcDType)][static_cast<size_t>(dstDType)](src, dst, size);
-        }
+        // Create a lookup table of the functions.
+        static const copyFunc funcTable[DataTypeCount][DataTypeCount] =
+        {
+            { copyGeneric<double, double>,   copyGeneric<double, float>,   copyGeneric<double, int64_t>,   copyGeneric<double, int32_t>,   copyGeneric<double, int16_t>,   copyGeneric<double, int8_t>,   copyGeneric<double, uint8_t>   },
+            { copyGeneric<float, double>,    copyGeneric<float, float>,    copyGeneric<float,  int64_t>,   copyGeneric<float,  int32_t>,   copyGeneric<float, int16_t>,    copyGeneric<float, int8_t>,    copyGeneric<float, uint8_t>    },
+            { copyGeneric<int64_t, double>,  copyGeneric<int64_t, float>,  copyGeneric<int64_t, int64_t>,  copyGeneric<int64_t, int32_t>,  copyGeneric<int64_t, int16_t>,  copyGeneric<int64_t, int8_t>,  copyGeneric<int64_t, uint8_t>  },
+            { copyGeneric<int32_t, double>,  copyGeneric<int32_t, float>,  copyGeneric<int32_t, int64_t>,  copyGeneric<int32_t, int32_t>,  copyGeneric<int32_t, int16_t>,  copyGeneric<int32_t, int8_t>,  copyGeneric<int32_t, uint8_t>  },
+            { copyGeneric<int16_t, double>,  copyGeneric<int16_t, float>,  copyGeneric<int16_t, int64_t>,  copyGeneric<int16_t, int32_t>,  copyGeneric<int16_t, int16_t>,  copyGeneric<int16_t, int8_t>,  copyGeneric<int16_t, uint8_t>  },
+            { copyGeneric<int8_t, double>,   copyGeneric<int8_t, float>,   copyGeneric<int8_t, int64_t>,   copyGeneric<int8_t, int32_t>,   copyGeneric<int8_t, int16_t>,   copyGeneric<int8_t, int8_t>,   copyGeneric<int8_t, uint8_t>   },
+            { copyGeneric<uint8_t, double>,  copyGeneric<uint8_t, float>,  copyGeneric<uint8_t, int64_t>,  copyGeneric<uint8_t, int32_t>,  copyGeneric<uint8_t, int16_t>,  copyGeneric<uint8_t, int8_t>,  copyGeneric<uint8_t, uint8_t>  },
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(srcDType)][static_cast<size_t>(dstDType)](src, dst, size);
     }
 
     virtual void copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
@@ -392,8 +532,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            broadcastToGeneric<double>,
-            broadcastToGeneric<float>,
+            broadcastToGeneric<double  >,
+            broadcastToGeneric<float   >,
+            broadcastToGeneric<int64_t >,
+            broadcastToGeneric<int32_t >,
+            broadcastToGeneric<int16_t >,
+            broadcastToGeneric<int8_t  >,
+            broadcastToGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
@@ -404,8 +549,13 @@ public:
     {
         static const auto funcTable = std::array
         {
-            reduceToGeneric<double>,
-            reduceToGeneric<float>,
+            reduceToGeneric<double  >,
+            reduceToGeneric<float   >,
+            reduceToGeneric<int64_t >,
+            reduceToGeneric<int32_t >,
+            reduceToGeneric<int16_t >,
+            reduceToGeneric<int8_t  >,
+            reduceToGeneric<uint8_t >,
         };
         // Call the appropriate function from the table.
         funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
@@ -728,13 +878,20 @@ protected:
     }
 
     template <typename SrcType, typename DstType>
-    static void conversionCopyGeneric(const void* src, void* dst, size_t size)
+    static void copyGeneric(const void* src, void* dst, size_t size)
     {
-        auto tSrc = static_cast<const SrcType*>(src);
-        auto tDst = static_cast<DstType*>(dst);
-        for (size_t i=0; i<size; ++i)
+        if constexpr (std::is_same_v<SrcType, DstType>)
         {
-            tDst[i] = static_cast<DstType>(tSrc[i]);
+            std::memcpy(dst, src, size * sizeof(SrcType));
+        }
+        else
+        {
+            auto tSrc = static_cast<const SrcType*>(src);
+            auto tDst = static_cast<DstType*>(dst);
+            for (size_t i=0; i<size; ++i)
+            {
+                tDst[i] = static_cast<DstType>(tSrc[i]);
+            }
         }
     }
 
@@ -1559,14 +1716,20 @@ private:
         // Print scalar value, a tensor with no dimension.
         if (m_shape.empty())
         {
-            os << item<T>() << "\n\n";
+            if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t>)
+                os << static_cast<int>(item<T>()) << "\n\n";
+            else
+                os << item<T>() << "\n\n";
         }
         else if (m_shape.size() == 1)
         {
             // Print tensor that has only one dimension.
             for (size_t i = 0; i < m_shape[0]; ++i)
             {
-                os << "  " << getValueAt<T>({i}) << "\n";
+                if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t>)
+                    os << "  " << static_cast<int>(getValueAt<T>({i})) << "\n";
+                else
+                    os << "  " << getValueAt<T>({i}) << "\n";
             }
             os << "\n";
         }
@@ -1613,7 +1776,10 @@ private:
                             Index subIndices = indices;
                             subIndices.push_back(i);
                             subIndices.push_back(j);
-                            os << "  " << getValueAt<T>(subIndices);
+                            if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t>)
+                                os << "  " << static_cast<int>(getValueAt<T>(subIndices));
+                            else
+                                os << "  " << getValueAt<T>(subIndices);
                         }
                         os << '\n';
                     }
@@ -1635,8 +1801,13 @@ private:
         // Print shape
         switch (dataType())
         {
-            case DataType::kFloat32:  os << "[ Float{";    break;
-            case DataType::kFloat64:  os << "[ Double{";   break;
+            case DataType::kFloat64:  os << "[ Float64{";  break;
+            case DataType::kFloat32:  os << "[ Float32{";  break;
+            case DataType::kInt64:    os << "[ Int64{";    break;
+            case DataType::kInt32:    os << "[ Int32{";    break;
+            case DataType::kInt16:    os << "[ Int16{";    break;
+            case DataType::kInt8:     os << "[ Int8{";     break;
+            case DataType::kUInt8:    os << "[ UInt8{";    break;
             default:                  os << "[ Unknown{";  break;
         }
 
@@ -2632,14 +2803,13 @@ std::ostream & operator<<(std::ostream& os, const TensorValue& tensor)
 {
     switch (tensor.dataType())
     {
-        case DataType::kFloat32:
-            tensor.print<float>(os);
-            break;
-
-        case DataType::kFloat64:
-            tensor.print<double>(os);
-            break;
-
+        case DataType::kFloat64:  tensor.print<double>(os);    break;
+        case DataType::kFloat32:  tensor.print<float>(os);     break;
+        case DataType::kInt64:    tensor.print<int64_t>(os);   break;
+        case DataType::kInt32:    tensor.print<int32_t>(os);   break;
+        case DataType::kInt16:    tensor.print<int16_t>(os);   break;
+        case DataType::kInt8:     tensor.print<int8_t>(os);    break;
+        case DataType::kUInt8:    tensor.print<uint8_t>(os);   break;
         default:
             throw std::runtime_error("Data type for print is not supported.");
             break;

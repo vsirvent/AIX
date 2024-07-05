@@ -120,90 +120,7 @@ public:
     void commitAndWait() override;
 
 protected:
-    void addF64(const void* a1, const void* a2, size_t size, void* result);
-    void addF32(const void* a1, const void* a2, size_t size, void* result);
-
-    void subF64(const void* a1, const void* a2, size_t size, void* result);
-    void subF32(const void* a1, const void* a2, size_t size, void* result);
-
-    void mulF64(const void* a1, const void* a2, size_t size, void* result);
-    void mulF32(const void* a1, const void* a2, size_t size, void* result);
-
-    void divF64(const void* a1, const void* a2, size_t size, void* result);
-    void divF32(const void* a1, const void* a2, size_t size, void* result);
-
-    void addASF64(const void* a1, const void* scalar, size_t size, void* result);
-    void addASF32(const void* a1, const void* scalar, size_t size, void* result);
-
-    void subASF64(const void* a1, const void* scalar, size_t size, void* result);
-    void subASF32(const void* a1, const void* scalar, size_t size, void* result);
-
-    void subSAF64(const void* scalar, const void* a, size_t size, void* result);
-    void subSAF32(const void* scalar, const void* a, size_t size, void* result);
-
-    void mulASF64(const void* a, const void* scalar, size_t size, void* result);
-    void mulASF32(const void* a, const void* scalar, size_t size, void* result);
-
-    void divASF64(const void* a, const void* scalar, size_t size, void* result);
-    void divASF32(const void* a, const void* scalar, size_t size, void* result);
-
-    void divSAF64(const void* scalar, const void* a, size_t size, void* result);
-    void divSAF32(const void* scalar, const void* a, size_t size, void* result);
-
-    void unaryF64(const void* a, size_t size, void* result);
-    void unaryF32(const void* a, size_t size, void* result);
-
-    void fillF64(const void* scalar, size_t size, void* result);
-    void fillF32(const void* scalar, size_t size, void* result);
-
-    void sumF64(const void* a, size_t size, void* result);
-    void sumF32(const void* a, size_t size, void* result);
-
-    void meanF64(const void* a, size_t size, void* result);
-    void meanF32(const void* a, size_t size, void* result);
-
-    void sqrtF64(const void* a, size_t size, void* result);
-    void sqrtF32(const void* a, size_t size, void* result);
-
-    void sinF64(const void* a, size_t size, void* result);
-    void sinF32(const void* a, size_t size, void* result);
-
-    void cosF64(const void* a, size_t size, void* result);
-    void cosF32(const void* a, size_t size, void* result);
-
-    void tanhF64(const void* a, size_t size, void* result);
-    void tanhF32(const void* a, size_t size, void* result);
-
-    void logF64(const void* a, size_t size, void* result);
-    void logF32(const void* a, size_t size, void* result);
-
-    void expF64(const void* a, size_t size, void* result);
-    void expF32(const void* a, size_t size, void* result);
-
-    void powF64(const void* a, const void* exp, size_t size, void* result);
-    void powF32(const void* a, const void* exp, size_t size, void* result);
-
-    void matmulF64(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result);
-    void matmulF32(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result);
-
-    void transposeF64(size_t dim0, size_t dim1, const void* data, const Shape& shape,
-                      const Stride& strides, const Stride& newStrides, size_t size, void* result);
-    void transposeF32(size_t dim0, size_t dim1, const void* data, const Shape& shape,
-                      const Stride& strides, const Stride& newStrides, size_t size, void* result);
-
-    void copyF64(const void* src, void* dst, size_t size);
-    void copyF32(const void* src, void* dst, size_t size);
-
-    void copyImmediateF64(const void* src, void* dst, size_t size);
-    void copyImmediateF32(const void* src, void* dst, size_t size);
-
-    void broadcastToF64(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
-    void broadcastToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
-
-    void reduceToF64(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
-    void reduceToF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape);
-
-    void notImplementedF64() const;
+    inline static void validateDataType(DataType dtype);
 
     struct MatrixSize
     {
@@ -265,6 +182,7 @@ protected:
                                size_t size,
                                void* result,
                                const MTL::ComputePipelineState* compFuncPSO,
+                               DataType dtype,
                                const std::string & cmdName);
 
     void executeDoubleArrayCmd(const void* a1,
@@ -272,43 +190,47 @@ protected:
                                size_t size,
                                void* result,
                                const MTL::ComputePipelineState* compFuncPSO,
+                               DataType dtype,
                                const std::string & cmdName);
 
     // Common method for broadcastTo and reduceTo methods.
-    void translationF32(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                        const MTL::ComputePipelineState *computePSO, const std::string & name);
+    void translation(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
+                     const MTL::ComputePipelineState *computePSO, DataType dtype, const std::string & name);
 
-    void transpose2DF32(const void* mat, const Shape& shape, void* result);
+    void transpose2D(const void* mat, const Shape& shape, void* result, DataType dtype);
+
+    static const std::string& toString(size_t dtype);
+    inline static const std::string& toString(DataType dtype);
 
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
     MTL::CommandQueue*     m_cmdQueue{nullptr};
     MTL::CommandBuffer*    m_cmdBuffer{nullptr};
     MTL::ComputeCommandEncoder*  m_compEncoder{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOAddF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOSubF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOMulF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSODivF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOAddASF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOSubSAF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOMulASF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSODivASF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSODivSAF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOSqrtF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOSinF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOCosF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOTanhF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOLogF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOExpF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOPowF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOSumF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOMatMulF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOTranspose2DF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOTransposeF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOCopyAAF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOCopySAF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOBroadcastToF32{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOReduceToF32{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOAdd[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOSub[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOMul[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSODiv[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOAddAS[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOSubSA[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOMulAS[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSODivAS[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSODivSA[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOSqrt[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOSin[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOCos[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOTanh[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOLog[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOExp[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOPow[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOSum[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOMatMul[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOTranspose2D[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOTranspose[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOCopyAA[aix::DataTypeCount][aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOFill[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount];
     std::vector<MTL::Buffer*>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     size_t   m_currentBatchSize{0};

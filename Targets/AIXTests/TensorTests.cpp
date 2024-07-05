@@ -171,7 +171,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(1
 
-[ Float{} ]
+[ Float32{} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -184,7 +184,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Float{1} ]
+[ Float32{1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -199,7 +199,7 @@ TEST_CASE("Tensor - print")
   2
   3
 
-[ Float{3} ]
+[ Float32{3} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -212,7 +212,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Float{1,1} ]
+[ Float32{1,1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -229,7 +229,7 @@ TEST_CASE("Tensor - print")
         std::string expected = R"(  1  2
   2  3
 
-[ Float{2,2} ]
+[ Float32{2,2} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -247,7 +247,7 @@ TEST_CASE("Tensor - print")
   1  2
   2  3
 
-[ Float{1,2,2} ]
+[ Float32{1,2,2} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -271,7 +271,90 @@ TEST_CASE("Tensor - print")
   3  4
   4  5
 
-[ Float{2,2,2} ]
+[ Float32{2,2,2} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+    SUBCASE("DataType Float64")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kFloat64);
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ Float64{1} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+
+    SUBCASE("DataType  Int64")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt64);
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ Int64{1} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+
+    SUBCASE("DataType  Int32")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt32);
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ Int32{1} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+
+    SUBCASE("DataType  Int16")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt16);
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ Int16{1} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+
+    SUBCASE("DataType  Int8")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt8);
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ Int8{1} ]
+)";
+        CHECK(ss.str() == expected);
+    }
+
+
+    SUBCASE("DataType  UInt8")
+    {
+        std::stringstream ss;
+        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kUInt8);
+
+        ss << input;
+        std::string expected = R"(  1
+
+[ UInt8{1} ]
 )";
         CHECK(ss.str() == expected);
     }

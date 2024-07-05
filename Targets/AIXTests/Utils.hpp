@@ -27,7 +27,7 @@ inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix:
         throw std::invalid_argument("Tensor data types do no match for test result comparison.");
     }
 
-    if (static_cast<size_t>(results.dataType()) > static_cast<size_t>(aix::DataType::kFloat32))
+    if (static_cast<size_t>(results.dataType()) >= aix::DataTypeCount)
     {
         throw std::invalid_argument("CheckVectorApproxValues does not support the new data type.");
     }
@@ -44,6 +44,41 @@ inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix:
         for (size_t i=0; i<expected.size(); ++i)
         {
             CHECK(results.data<float>()[i] == Approx(expected.data<float>()[i]));
+        }
+    }
+    else if (results.dataType() == aix::DataType::kInt64)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<int64_t>()[i] == Approx(expected.data<int64_t>()[i]));
+        }
+    }
+    else if (results.dataType() == aix::DataType::kInt32)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<int32_t>()[i] == Approx(expected.data<int32_t>()[i]));
+        }
+    }
+    else if (results.dataType() == aix::DataType::kInt16)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<int16_t>()[i] == Approx(expected.data<int16_t>()[i]));
+        }
+    }
+    else if (results.dataType() == aix::DataType::kInt8)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<int8_t>()[i] == Approx(expected.data<int8_t>()[i]));
+        }
+    }
+    else if (results.dataType() == aix::DataType::kUInt8)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<uint8_t>()[i] == Approx(expected.data<uint8_t>()[i]));
         }
     }
 }
