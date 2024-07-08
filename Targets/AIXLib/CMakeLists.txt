@@ -42,5 +42,5 @@ if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     )
 endif()
 
-install(FILES aix.hpp aixDevices.hpp DESTINATION include)
+install(FILES aix.hpp aixDevices.hpp aixFloat16.hpp DESTINATION include)
 install(TARGETS ${TARGET_NAME} ARCHIVE DESTINATION lib)
