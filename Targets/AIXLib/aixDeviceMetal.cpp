@@ -654,6 +654,13 @@ void DeviceMetal::translation(const void* src, void* dst, size_t size, const Sha
     if (m_allocMap.find(dst) == m_allocMap.end())
         throw std::invalid_argument("DeviceMetal::" + name + "() result must have GPU memory.");
 
+    // For a special case, two scalar tensors, use just a copy operation.
+    if (shape.empty() && newShape.empty())
+    {
+        copy(src, dtype, dst, dtype, size);
+        return;
+    }
+
     size_t shapeSize    = shape.size();
     size_t newShapeSize = newShape.size();
     size_t srcBufSize   = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
