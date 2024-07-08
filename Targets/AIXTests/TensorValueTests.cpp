@@ -1505,3 +1505,22 @@ TEST_CASE("TensorValue - Data Type Promotion (In-Place")
         CHECK(tv.data<double>()[2] ==  2.0);
     }
 }
+
+
+TEST_CASE("TensorValue - promoteToMinFloat")
+{
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto dtype = static_cast<DataType>(i);
+        auto promotedDType = promoteDataTypeToFloat(dtype);
+        // TensorValue must promote its data type to Float32 if the type is an integer type, otherwise it returns the
+        // same float data type.
+        CHECK(promotedDType == TensorValue({1.0f, 2.0f}, Shape{2}, &testDevice).to(dtype).sqrt().dataType());
+        CHECK(promotedDType == TensorValue({1.0f, 2.0f}, Shape{2}, &testDevice).to(dtype).sin().dataType());
+        CHECK(promotedDType == TensorValue({1.0f, 2.0f}, Shape{2}, &testDevice).to(dtype).cos().dataType());
+        CHECK(promotedDType == TensorValue({1.0f, 2.0f}, Shape{2}, &testDevice).to(dtype).tanh().dataType());
+        CHECK(promotedDType == TensorValue({1.0f, 2.0f}, Shape{2}, &testDevice).to(dtype).log().dataType());
+        CHECK(promotedDType == TensorValue({1.0f, 2.0f}, Shape{2}, &testDevice).to(dtype).exp().dataType());
+        // Note: Results are consistent with those from PyTorch.
+    }
+}

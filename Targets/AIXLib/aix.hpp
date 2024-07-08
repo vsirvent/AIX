@@ -96,6 +96,20 @@ static DataType promoteDataType(DataType dtype1, DataType dtype2)
     return static_cast<DataType>(promotionTable[static_cast<size_t>(dtype1)][static_cast<size_t>(dtype2)]);
 }
 
+// Promotes a data type to Float32 if the type is an integer type, otherwise it returns the same float data type.
+static DataType promoteDataTypeToFloat(DataType dtype)
+{
+    assert(static_cast<size_t>(dtype) < DataTypeCount);
+    static const size_t formatConversionTable[DataTypeCount] =
+    {
+    //  F  F  F  B  I  I  I  I  U
+    //  6  3  1  1  6  3  1  8  8
+    //  4  2  6  6  4  2  6
+        0, 1, 2, 3, 1, 1, 1, 1, 1,
+    };
+    return static_cast<DataType>(formatConversionTable[static_cast<size_t>(dtype)]);
+}
+
 // Forward declarations
 class Tensor;
 
@@ -1358,50 +1372,32 @@ public:
 
     TensorValue sqrt() const
     {
-        // Perform element-wise sin.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->sqrt(m_data, m_size, result.m_data, m_dType);
-        return result;
+        return tensorMathFunc(&Device::sqrt);
     }
 
     TensorValue sin() const
     {
-        // Perform element-wise sin.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->sin(m_data, m_size, result.m_data, m_dType);
-        return result;
+        return tensorMathFunc(&Device::sin);
     }
 
     TensorValue cos() const
     {
-        // Perform element-wise cos.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->cos(m_data, m_size, result.m_data, m_dType);
-        return result;
+        return tensorMathFunc(&Device::cos);
     }
 
     TensorValue tanh() const
     {
-        // Perform element-wise tanh.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->tanh(m_data, m_size, result.m_data, m_dType);
-        return result;
+        return tensorMathFunc(&Device::tanh);
     }
 
     TensorValue log() const
     {
-        // Perform element-wise tanh.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->log(m_data, m_size, result.m_data, m_dType);
-        return result;
+        return tensorMathFunc(&Device::log);
     }
 
     TensorValue exp() const
     {
-        // Perform element-wise exp.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->exp(m_data, m_size, result.m_data, m_dType);
-        return result;
+        return tensorMathFunc(&Device::exp);
     }
 
     TensorValue pow(const TensorValue & exp) const
@@ -1477,6 +1473,23 @@ public:
     inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
 
 private:
+    template<typename T>
+    inline TensorValue tensorMathFunc(const T & func) const
+    {
+        auto promotedDType = promoteDataTypeToFloat(m_dType);
+        if (dataType() != promotedDType)
+        {
+            // This constructor requires copy operation.
+            TensorValue result(m_data, m_size, m_dType, m_shape, m_device, promotedDType);
+            (m_device->*func)(result.data(), result.size(), result.data(), promotedDType);
+            return result;
+        }
+        // This constructor does not require copy operation.
+        TensorValue result(m_shape, m_device, m_dType);
+        (m_device->*func)(m_data, m_size, result.m_data, m_dType);
+        return result;
+    }
+
     // Compute the strides based on the shape of the tensor
     Stride computeStrides()
     {
