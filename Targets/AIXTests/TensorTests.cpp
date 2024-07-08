@@ -659,6 +659,24 @@ TEST_CASE("Tensor - broadcastTo")
 {
     // NOTE: Since TensorValue tests cover the broadcast tests, Tensor does not need exhaustive broadcastTo tests.
 
+    SUBCASE("Scalar to Scalar")
+    {
+        Shape newShape{};
+        auto bct = tensor(1.0).broadcastTo(newShape);
+        CHECK(bct.value().size() == 1);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, tensor({1.0}, newShape));
+    }
+
+    SUBCASE("Scalar to [2x3]")
+    {
+        Shape newShape{2, 3};
+        auto bct = tensor({1.0}, {}).broadcastTo(newShape);
+        CHECK(bct.value().size() == 6);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, tensor({1.0, 1.0, 1.0, 1.0, 1.0, 1.0}, newShape));
+    }
+
     SUBCASE("[1x3] to [2x3]")
     {
         Shape newShape{2, 3};

@@ -591,6 +591,24 @@ TEST_CASE("TensorValue - Reshape")
 
 TEST_CASE("TensorValue - broadcastTo")
 {
+    SUBCASE("Scalar to Scalar")
+    {
+        Shape newShape{};
+        auto bct = TensorValue(1.0, {}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 1);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0}, newShape, &testDevice));
+    }
+
+    SUBCASE("Scalar to [2x3]")
+    {
+        Shape newShape{2, 3};
+        auto bct = TensorValue(1.0, {}, &testDevice).broadcastTo(newShape);
+        CHECK(bct.size() == 6);
+        CHECK(bct.shape() == newShape);
+        CheckVectorApproxValues(bct, TensorValue({1.0,1.0,1.0,1.0,1.0,1.0}, newShape, &testDevice));
+    }
+
     SUBCASE("[1] to [2x3]")
     {
         Shape newShape{2, 3};

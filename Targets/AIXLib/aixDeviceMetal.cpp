@@ -659,10 +659,10 @@ void DeviceMetal::translation(const void* src, void* dst, size_t size, const Sha
     size_t srcBufSize   = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
     assert(srcBufSize > 0);
 
-    // Memory could be a GPU allocated memory or system memory.
-    auto bufSrc    = getReadOnlyMTLBuffer(src,             srcBufSize,   dataTypeSize(dtype));
-    auto bufShape1 = getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t));
-    auto bufShape2 = getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t));
+    // NOTE: For a scalar tensor shape size could be zero.
+    auto bufSrc    = getReadOnlyMTLBuffer(src, srcBufSize, dataTypeSize(dtype));
+    auto bufShape1 = shapeSize    != 0 ? getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t)) : nullptr;
+    auto bufShape2 = newShapeSize != 0 ? getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t)) : nullptr;
     auto bufDst    = m_allocMap[dst];
 
     if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
