@@ -718,6 +718,8 @@ const std::string& DeviceMetal::toString(size_t dtypeIndex)
     {
         "f64",
         "f32",
+        "f16",
+        "bf16",
         "i64",
         "i32",
         "i16",

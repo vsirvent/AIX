@@ -14,6 +14,7 @@ add_executable(${TARGET_NAME}
         ActivationTests.cpp
         AutoGradTests.cpp
         DeviceTests.cpp
+        Float16Tests.cpp
         FunctionalTests.cpp
         LossTests.cpp
         OptimizerTests.cpp

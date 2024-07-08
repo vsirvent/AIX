@@ -46,6 +46,20 @@ inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix:
             CHECK(results.data<float>()[i] == Approx(expected.data<float>()[i]));
         }
     }
+    else if (results.dataType() == aix::DataType::kFloat16)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<aix::float16_t>()[i] == Approx(expected.data<aix::float16_t>()[i]));
+        }
+    }
+    else if (results.dataType() == aix::DataType::kBFloat16)
+    {
+        for (size_t i=0; i<expected.size(); ++i)
+        {
+            CHECK(results.data<aix::bfloat16_t>()[i] == Approx(expected.data<aix::bfloat16_t>()[i]));
+        }
+    }
     else if (results.dataType() == aix::DataType::kInt64)
     {
         for (size_t i=0; i<expected.size(); ++i)
