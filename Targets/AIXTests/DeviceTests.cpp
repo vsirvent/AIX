@@ -749,13 +749,11 @@ bool testCopy(Device* testDevice, size_t n)
         {
             auto srcDType = static_cast<DataType>(i);
             auto dstDType = static_cast<DataType>(j);
+            auto hasFloat64 = srcDType == DataType::kFloat64 || dstDType == DataType::kFloat64;
+            auto hasFloat16 = srcDType == DataType::kFloat16 || dstDType == DataType::kFloat16;
 
             // Apple Metal Framework does not support kFloat64 data type.
-            if (testDevice->type() == DeviceType::kGPU_METAL &&
-                (srcDType == DataType::kFloat64 || dstDType == DataType::kFloat64))
-            {
-                continue;
-            }
+            if (testDevice->type() == DeviceType::kGPU_METAL && hasFloat64) continue;
 
             aix::Device  refDevice;     // Reference/CPU device.
             auto src = aix::randn({1, n}).to(srcDType);
@@ -767,7 +765,7 @@ bool testCopy(Device* testDevice, size_t n)
             testDevice->commitAndWait();
 
             // Compare results with the true/reference results
-            if (!verifyResults(cpuResult, deviceResult))
+            if (!verifyResults(cpuResult, deviceResult, hasFloat16 ? EPSILON_F16 : EPSILON))
             {
                 #ifdef DEBUG_LOG
                 std::cout << "----------------------" << std::endl;
