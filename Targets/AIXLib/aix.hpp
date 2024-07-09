@@ -1145,143 +1145,49 @@ public:
     // Overload the + operator
     TensorValue operator+(const TensorValue & other) const
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            auto result = prepareTensors(lhs, rhs);
-            result.device()->add(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
-            return result;
-        }
-
-        // Create a new TensorValue to store the result. Perform element-wise.
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->add(m_data, other.m_data, m_size, result.m_data, m_dType);
-        return result;
+        return arithmeticOpFunc(&Device::add, other);
     }
 
     // Overload the - operator
     TensorValue operator-(const TensorValue & other) const
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            auto result = prepareTensors(lhs, rhs);
-            result.device()->sub(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
-            return result;
-        }
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->sub(m_data, other.m_data, m_size, result.m_data, m_dType);
-        return result;
+        return arithmeticOpFunc(&Device::sub, other);
     }
 
     // Overload the * operator
     TensorValue operator*(const TensorValue & other) const
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            auto result = prepareTensors(lhs, rhs);
-            result.device()->mul(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
-            return result;
-        }
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->mul(m_data, other.m_data, m_size, result.m_data, m_dType);
-        return result;
+        return arithmeticOpFunc(&Device::mul, other);
     }
 
     // Overload the / operator
     TensorValue operator/(const TensorValue & other) const
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            auto result = prepareTensors(lhs, rhs);
-            result.device()->div(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
-            return result;
-        }
-        TensorValue result(m_shape, m_device, m_dType);
-        m_device->div(m_data, other.m_data, m_size, result.m_data, m_dType);
-        return result;
+        return arithmeticOpFunc(&Device::div, other);
     }
 
     // Overload the += operator - In-place operation.
     TensorValue & operator+=(const TensorValue & other)
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            prepareTensors(lhs, rhs);
-            m_device->add(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
-            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
-            return *this;
-        }
-        else
-        {
-            m_device->add(m_data, other.m_data, m_size, m_data, m_dType);
-        }
-        return *this;
+        return arithmeticInPlaceOpFunc(&Device::add, other);
     }
 
     // Overload the -= operator - In-place operation.
     TensorValue & operator-=(const TensorValue & other)
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            prepareTensors(lhs, rhs);
-            m_device->sub(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
-            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
-            return *this;
-        }
-        else
-        {
-            m_device->sub(m_data, other.m_data, m_size, m_data, m_dType);
-        }
-        return *this;
+        return arithmeticInPlaceOpFunc(&Device::sub, other);
     }
 
     // Overload the *= operator - In-place operation.
     TensorValue & operator*=(const TensorValue & other)
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            prepareTensors(lhs, rhs);
-            m_device->mul(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
-            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
-            return *this;
-        }
-        else
-        {
-            m_device->mul(m_data, other.m_data, m_size, m_data, m_dType);
-        }
-        return *this;
+        return arithmeticInPlaceOpFunc(&Device::mul, other);
     }
 
     // Overload the /= operator - In-place operation.
     TensorValue & operator/=(const TensorValue & other)
     {
-        if (shape() != other.shape() || dataType() != other.dataType())
-        {
-            TensorValue lhs = *this;
-            TensorValue rhs = other;
-            prepareTensors(lhs, rhs);
-            m_device->div(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
-            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
-            return *this;
-        }
-        else
-        {
-            m_device->div(m_data, other.m_data, m_size, m_data, m_dType);
-        }
-        return *this;
+        return arithmeticInPlaceOpFunc(&Device::div, other);
     }
 
     // Overload the unary - operator
@@ -1473,6 +1379,41 @@ public:
     inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
 
 private:
+    template<typename T>
+    inline TensorValue arithmeticOpFunc(const T & func, const TensorValue & other) const
+    {
+        if (shape() != other.shape() || dataType() != other.dataType())
+        {
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            auto result = prepareTensors(lhs, rhs);
+            (result.device()->*func)(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
+            return result;
+        }
+        TensorValue result(m_shape, m_device, m_dType);
+        (m_device->*func)(m_data, other.m_data, m_size, result.m_data, m_dType);
+        return result;
+    }
+
+    template<typename T>
+    inline TensorValue & arithmeticInPlaceOpFunc(const T & func, const TensorValue & other)
+    {
+        if (shape() != other.shape() || dataType() != other.dataType())
+        {
+            TensorValue lhs = *this;
+            TensorValue rhs = other;
+            prepareTensors(lhs, rhs);
+            (m_device->*func)(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
+            *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
+            return *this;
+        }
+        else
+        {
+            (m_device->*func)(m_data, other.m_data, m_size, m_data, m_dType);
+        }
+        return *this;
+    }
+
     template<typename T>
     inline TensorValue tensorMathFunc(const T & func) const
     {
