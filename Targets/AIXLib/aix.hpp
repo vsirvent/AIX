@@ -1201,27 +1201,27 @@ public:
 
     TensorValue operator+(float scalar) const
     {
-        return *this + TensorValue{scalar, m_shape, m_device, m_dType};
+        return *this + TensorValue{scalar, m_shape, m_device, promoteDataTypeToFloat(m_dType)};
     }
 
     TensorValue operator-(float scalar) const
     {
-        return *this - TensorValue{scalar, m_shape, m_device, m_dType};
+        return *this - TensorValue{scalar, m_shape, m_device, promoteDataTypeToFloat(m_dType)};
     }
 
     TensorValue operator*(float scalar) const
     {
-        return *this * TensorValue{scalar, m_shape, m_device, m_dType};
+        return *this * TensorValue{scalar, m_shape, m_device, promoteDataTypeToFloat(m_dType)};
     }
 
     TensorValue operator/(float scalar) const
     {
-        return *this / TensorValue{scalar, m_shape, m_device, m_dType};
+        return *this / TensorValue{scalar, m_shape, m_device, promoteDataTypeToFloat(m_dType)};
     }
 
     TensorValue& operator+=(float scalar)
     {
-        return *this += TensorValue{scalar, m_shape, m_device, m_dType};
+        return *this += TensorValue{scalar, m_shape, m_device, promoteDataTypeToFloat(m_dType)};
     }
 
     TensorValue& operator-=(float scalar)
@@ -1241,22 +1241,26 @@ public:
 
     friend TensorValue operator+(float scalar, const TensorValue & tensor)
     {
-        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} + tensor;
+        auto promotedDType = promoteDataTypeToFloat(tensor.dataType());
+        return TensorValue{scalar, tensor.shape(), tensor.device(), promotedDType} + tensor;
     }
 
     friend TensorValue operator-(float scalar, const TensorValue & tensor)
     {
-        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} - tensor;
+        auto promotedDType = promoteDataTypeToFloat(tensor.dataType());
+        return TensorValue{scalar, tensor.shape(), tensor.device(), promotedDType} - tensor;
     }
 
     friend TensorValue operator*(float scalar, const TensorValue & tensor)
     {
-        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} * tensor;
+        auto promotedDType = promoteDataTypeToFloat(tensor.dataType());
+        return TensorValue{scalar, tensor.shape(), tensor.device(), promotedDType} * tensor;
     }
 
     friend TensorValue operator/(float scalar, const TensorValue & tensor)
     {
-        return TensorValue{scalar, tensor.shape(), tensor.device(), tensor.dataType()} / tensor;
+        auto promotedDType = promoteDataTypeToFloat(tensor.dataType());
+        return TensorValue{scalar, tensor.shape(), tensor.device(), promotedDType} / tensor;
     }
 
     void fill(float value) const
@@ -1965,49 +1969,57 @@ public:
 
     Tensor operator+(const float & scalar) const
     {
-        Tensor tensor(scalar, shape(), isRequireGrad(), dataType(), device());
+        auto promotedFloatType = promoteDataTypeToFloat(dataType());
+        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
         return *this + tensor;
     }
 
     Tensor operator-(const float & scalar) const
     {
-        Tensor tensor(scalar, shape(), isRequireGrad(), dataType(), device());
+        auto promotedFloatType = promoteDataTypeToFloat(dataType());
+        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
         return *this - tensor;
     }
 
     Tensor operator*(const float & scalar) const
     {
-        Tensor tensor(scalar, shape(), isRequireGrad(), dataType(), device());
+        auto promotedFloatType = promoteDataTypeToFloat(dataType());
+        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
         return *this * tensor;
     }
 
     Tensor operator/(const float & scalar) const
     {
-        Tensor tensor(scalar, shape(), isRequireGrad(), dataType(), device());
+        auto promotedFloatType = promoteDataTypeToFloat(dataType());
+        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
         return *this / tensor;
     }
 
     friend Tensor operator+(float scalar, const Tensor & rhsTensor)
     {
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.dataType(), rhsTensor.device());
+        auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
         return tensor + rhsTensor;
     }
 
     friend Tensor operator-(float scalar, const Tensor & rhsTensor)
     {
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.dataType(), rhsTensor.device());
+        auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
         return tensor - rhsTensor;
     }
 
     friend Tensor operator*(float scalar, const Tensor & rhsTensor)
     {
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.dataType(), rhsTensor.device());
+        auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
         return tensor * rhsTensor;
     }
 
     friend Tensor operator/(float scalar, const Tensor & rhsTensor)
     {
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), rhsTensor.dataType(), rhsTensor.device());
+        auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
+        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
         return tensor / rhsTensor;
     }
 

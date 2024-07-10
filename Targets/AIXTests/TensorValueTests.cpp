@@ -1524,3 +1524,89 @@ TEST_CASE("TensorValue - promoteToMinFloat")
         // Note: Results are consistent with those from PyTorch.
     }
 }
+
+
+TEST_CASE("TensorValue - TensorValue OP Scalar - Data Type")
+{
+    float scalar = 2.0f;
+    Shape shape{4};
+    std::initializer_list<float> testData{1, 2, 3, 4};
+
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto testDType = static_cast<DataType>(i);
+        auto x = TensorValue(testData, shape, &testDevice, testDType);
+        auto expectedType = promoteDataTypeToFloat(testDType);
+
+        SUBCASE("Add")
+        {
+            auto y = x + scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({3.0, 4.0, 5.0, 6.0}, shape, &testDevice, expectedType));
+        }
+
+        SUBCASE("Sub")
+        {
+            auto y = x - scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({-1.0, 0.0, 1.0, 2.0}, shape, &testDevice, expectedType));
+        }
+
+        SUBCASE("Mul")
+        {
+            auto y = x * scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({2.0, 4.0, 6.0, 8.0}, shape, &testDevice, expectedType));
+        }
+
+        SUBCASE("Div")
+        {
+            auto y = x / scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({0.5, 1.0, 1.5, 2.0}, shape, &testDevice, expectedType));
+        }
+    }
+}
+
+
+TEST_CASE("TensorValue - Scalar OP TensorValue - Data Type")
+{
+    float scalar = 2.0f;
+    Shape shape{4};
+    std::initializer_list<float> testData{1, 2, 3, 4};
+
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto testDType = static_cast<DataType>(i);
+        auto x = TensorValue(testData, shape, &testDevice, testDType);
+        auto expectedType = promoteDataTypeToFloat(testDType);
+
+        SUBCASE("Add")
+        {
+            auto y = scalar + x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({3.0, 4.0, 5.0, 6.0}, shape, &testDevice, expectedType));
+        }
+
+        SUBCASE("Sub")
+        {
+            auto y = scalar - x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({1.0, 0.0, -1.0, -2.0}, shape, &testDevice, expectedType));
+        }
+
+        SUBCASE("Mul")
+        {
+            auto y = scalar * x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({2.0, 4.0, 6.0, 8.0}, shape, &testDevice, expectedType));
+        }
+
+        SUBCASE("Div")
+        {
+            auto y = scalar / x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, TensorValue({2.0, 1.0, 0.666667, 0.5}, shape, &testDevice, expectedType));
+        }
+    }
+}

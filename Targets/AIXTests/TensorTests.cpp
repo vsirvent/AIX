@@ -1173,3 +1173,89 @@ TEST_CASE("Tensor - broadcast")
         CHECK_THROWS_AS(tensor2 / tensor1, std::invalid_argument);
     }
 }
+
+
+TEST_CASE("Tensor - Tensor OP Scalar - Data Type")
+{
+    float scalar = 2.0f;
+    Shape shape{4};
+    std::initializer_list<float> testData{1, 2, 3, 4};
+
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto testDType = static_cast<DataType>(i);
+        auto x = aix::tensor(testData).to(testDType);
+        auto expectedType = promoteDataTypeToFloat(testDType);
+
+        SUBCASE("Add")
+        {
+            auto y = x + scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({3.0, 4.0, 5.0, 6.0}).to(expectedType));
+        }
+
+        SUBCASE("Sub")
+        {
+            auto y = x - scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({-1.0, 0.0, 1.0, 2.0}).to(expectedType));
+        }
+
+        SUBCASE("Mul")
+        {
+            auto y = x * scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({2.0, 4.0, 6.0, 8.0}).to(expectedType));
+        }
+
+        SUBCASE("Div")
+        {
+            auto y = x / scalar;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({0.5, 1.0, 1.5, 2.0}).to(expectedType));
+        }
+    }
+}
+
+
+TEST_CASE("Tensor - Scalar OP Tensor - Data Type")
+{
+    float scalar = 2.0f;
+    Shape shape{4};
+    std::initializer_list<float> testData{1, 2, 3, 4};
+
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto testDType = static_cast<DataType>(i);
+        auto x = aix::tensor(testData).to(testDType);
+        auto expectedType = promoteDataTypeToFloat(testDType);
+
+        SUBCASE("Add")
+        {
+            auto y = scalar + x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({3.0, 4.0, 5.0, 6.0}).to(expectedType));
+        }
+
+        SUBCASE("Sub")
+        {
+            auto y = scalar - x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({1.0, 0.0, -1.0, -2.0}).to(expectedType));
+        }
+
+        SUBCASE("Mul")
+        {
+            auto y = scalar * x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({2.0, 4.0, 6.0, 8.0}).to(expectedType));
+        }
+
+        SUBCASE("Div")
+        {
+            auto y = scalar / x;
+            CHECK(y.dataType() == promoteDataTypeToFloat(expectedType));
+            CheckVectorApproxValues(y, aix::tensor({2.0, 1.0, 0.666667, 0.5}).to(expectedType));
+        }
+    }
+}
