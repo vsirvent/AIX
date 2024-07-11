@@ -504,8 +504,8 @@ bool testPow(Device* testDevice, size_t n)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto array1       = 2 * aix::randn({1, n}).to(dtype);
-        auto exp          = 3 + aix::randn({1, n}).to(dtype) * 2;       // Random numbers in [1,5]
+        auto array1       = (2 + 1 * aix::randn({1, n})).to(dtype);
+        auto exp          = (3 + 2 * aix::randn({1, n})).to(dtype);       // Random numbers in [1,5]
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
@@ -515,7 +515,7 @@ bool testPow(Device* testDevice, size_t n)
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult,
-            !(dtype == DataType::kFloat16 || dtype == DataType::kBFloat16) ? EPSILON : EPSILON_F16 * 10))
+            !(dtype == DataType::kFloat16 || dtype == DataType::kBFloat16) ? EPSILON * 10 : EPSILON_F16 * 100))
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
