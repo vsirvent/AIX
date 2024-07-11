@@ -55,18 +55,18 @@ int main()
     model.add(new aix::nn::Tanh());
     model.add(new aix::nn::Linear(4, kNumTargets));
 
-    model.to(*device);      // Move the model to the device.
+    model.to(device);       // Move the model to the device.
 
     // Example inputs and targets for demonstration purposes.
     auto inputs  = aix::tensor({0.0, 0.0,
                                 0.0, 1.0,
                                 1.0, 0.0,
-                                1.0, 1.0}, {kNumSamples, kNumInputs}).to(*device);
+                                1.0, 1.0}, {kNumSamples, kNumInputs}).to(device);
 
     auto targets = aix::tensor({0.0,
                                 1.0,
                                 1.0,
-                                0.0}, {kNumSamples, kNumTargets}).to(*device);
+                                0.0}, {kNumSamples, kNumTargets}).to(device);
 
     // Create an optimizer.
     aix::optim::Adam optimizer(model.parameters(), kLearningRate);
@@ -87,7 +87,7 @@ int main()
         device->commitAndWait();    // Finalize compute batch.
 
         // Stop training process when loss is lower than the threshold.
-        if (loss.value().item() <= kLossThreshold)
+        if (loss.value().item<float>() <= kLossThreshold)
             break;
     }
 
