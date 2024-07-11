@@ -1695,12 +1695,13 @@ public:
     // Gradient-related methods.
     inline const TensorValue & grad() const
     {
-        if (!m_data->m_requireGrad && !m_data->m_retainGrad)
-        {
-            throw std::runtime_error("Gradients for non-leaf tensors won’t be populated during automatic gradient"  \
-                                     " calculation. Use .retainGrad() on the non-leaf tensor if needed, or access"  \
-                                     " the leaf tensor instead.");
-        }
+        validateRetainGradientState();
+        return m_data->m_grad;
+    }
+
+    inline TensorValue & grad()
+    {
+        validateRetainGradientState();
         return m_data->m_grad;
     }
 
@@ -1709,7 +1710,10 @@ public:
     inline void retainGrad() const              { m_data->m_retainGrad = true; m_data->m_grad.fill(0); }
 
     // Set operation device for the tensor.
+    inline Tensor & to(std::unique_ptr<Device> & device)    { return to(*device); }
+    inline Tensor & to(Device * device)         { return to(*device); }
     inline Tensor & to(Device & device)         { m_data->device(&device); return *this; }
+
     inline Device * device() const              { return m_data->device(); }
 
     inline void name(const std::string& name) const  { m_data->m_name = name; }
@@ -2140,6 +2144,16 @@ protected:
         return shape() == otherShape ? shape() : TensorValue::broadcastShapes(shape(), otherShape);
     }
 
+    inline void validateRetainGradientState() const
+    {
+        if (!m_data->m_requireGrad && !m_data->m_retainGrad)
+        {
+            throw std::runtime_error("Gradients for non-leaf tensors won’t be populated during automatic gradient"
+                                     " calculation. Use .retainGrad() on the non-leaf tensor if needed, or access"
+                                     " the leaf tensor instead.");
+        }
+    }
+
     std::shared_ptr<TensorNode>  m_data{nullptr};
 };
 
@@ -2250,8 +2264,19 @@ public:
         }
     }
 
+    inline void setDataType(DataType dtype)
+    {
+        if (dtype != DataType::kFloat64 && dtype != DataType::kFloat32 &&
+            dtype != DataType::kFloat16 && dtype != DataType::kBFloat16)
+        {
+            throw std::invalid_argument("Optimization has to perform in Float data type to be effective.");
+        }
+        m_calculationDType = dtype;
+    }
+
 protected:
     std::vector<Tensor> m_parameters;
+    DataType m_calculationDType{DataType::kFloat32};
 };
 
 
@@ -2286,8 +2311,8 @@ public:
     {
         for (const auto & param : m_parameters)
         {
-            m_m.emplace_back(0, param.shape(), param.value().device());
-            m_v.emplace_back(0, param.shape(), param.value().device());
+            m_m.emplace_back(0, param.shape(), param.value().device(), m_calculationDType);
+            m_v.emplace_back(0, param.shape(), param.value().device(), m_calculationDType);
         }
     }
 
@@ -2298,11 +2323,14 @@ public:
         {
             if (m_parameters[i].isRequireGrad())
             {
+                // Convert the parameter's data type to the optimizer's internal calculation type.
+                auto gradFloat = m_parameters[i].grad().to(m_calculationDType);
+
                 // Update biased first moment estimate.
-                m_m[i] = m_beta1 * m_m[i] + float(1.0 - m_beta1) * m_parameters[i].grad();
+                m_m[i] = m_beta1 * m_m[i] + float(1.0 - m_beta1) * gradFloat;
 
                 // Update biased second raw moment estimate.
-                m_v[i] = m_beta2 * m_v[i] + float(1.0 - m_beta2) * m_parameters[i].grad() * m_parameters[i].grad();
+                m_v[i] = m_beta2 * m_v[i] + float(1.0 - m_beta2) * gradFloat * gradFloat;
 
                 // Compute bias-corrected first moment estimate.
                 TensorValue mHat = m_m[i] / float(1.0 - std::pow(m_beta1, m_timestep));
@@ -2311,7 +2339,7 @@ public:
                 TensorValue vHat = m_v[i] / float(1.0 - std::pow(m_beta2, m_timestep));
 
                 // Update parameter.
-                m_parameters[i].value() -= m_lr * mHat / (vHat.sqrt() + m_epsilon);
+                m_parameters[i].value() -= (m_lr * mHat / (vHat.sqrt() + m_epsilon)).to(m_parameters[i].dataType());
             }
         }
     }
@@ -2374,11 +2402,25 @@ public:
         return totalParams;
     }
 
+    void to(std::unique_ptr<Device> & device)    { to(*device); }
+    void to(Device * device)                     { to(*device); }
     void to(Device & device)
     {
         for (auto & param : parameters())
         {
             param.to(device);
+        }
+    }
+
+    void to(DataType newDtype)
+    {
+        for (auto & param : parameters())
+        {
+            if (param.isRequireGrad())
+            {
+                param.value() = param.value().to(newDtype);
+                param.grad()  = param.grad().to(newDtype);
+            }
         }
     }
 

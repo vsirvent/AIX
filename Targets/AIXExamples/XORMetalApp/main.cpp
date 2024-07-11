@@ -14,17 +14,20 @@
 // System includes
 #include <iostream>
 
-// This application shows how to use sequential module to build a neural network with other modules easily.
+// This application demonstrates how to use the Sequential module to build a neural network with other modules easily
+// by using Metal Device for Apple Silicon.
 
 int main()
 {
+    auto modelDType = aix::DataType::kFloat32;      // A float type. i.e. kFloat32, kFloat16, kBFloat16.
+
     constexpr int kNumSamples  = 4;
     constexpr int kNumInputs   = 2;
     constexpr int kNumTargets  = 1;
     constexpr int kNumEpochs   = 1000;
     constexpr int kLogInterval = 100;
-    constexpr float kLearningRate  = 0.02f;
-    constexpr float kLossThreshold = 1e-5f;
+    constexpr float kLearningRate  = 0.01f;
+    constexpr float kLossThreshold = 1e-3f;
 
     // Create a device that uses Apple Metal for GPU computations.
     auto device = aix::createDevice(aix::DeviceType::kGPU_METAL);
@@ -36,7 +39,8 @@ int main()
     model.add(new aix::nn::Tanh());
     model.add(new aix::nn::Linear(500, kNumTargets));
 
-    model.to(*device);
+    model.to(device);
+    model.to(modelDType);
 
     std::cout << "Total parameters: " << model.learnableParameters() << std::endl;
 
@@ -44,12 +48,12 @@ int main()
     auto inputs = aix::tensor({0.0, 0.0,
                                0.0, 1.0,
                                1.0, 0.0,
-                               1.0, 1.0}, {kNumSamples, kNumInputs}).to(*device);
+                               1.0, 1.0}, {kNumSamples, kNumInputs}).to(device).to(modelDType);
 
     auto targets = aix::tensor({0.0,
                                 1.0,
                                 1.0,
-                                0.0}, {kNumSamples, kNumTargets}).to(*device);
+                                0.0}, {kNumSamples, kNumTargets}).to(device).to(modelDType);
 
     // Define a loss function and an optimizer.
     aix::optim::Adam optimizer(model.parameters(), kLearningRate);
@@ -71,6 +75,8 @@ int main()
 
         optimizer.step();           // Update neural net's learnable parameters.
 
+        loss = loss.to(aix::DataType::kFloat32);
+
         device->commitAndWait();    // Finalize compute batch.
 
         // Log loss value.
@@ -85,7 +91,7 @@ int main()
 
     auto timeEnd = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
-    std::cout << "Training: " << duration << " ms - Avg Iteration: " << duration/double(epoch) << " ms\n";
+    std::cout << "Training: " << duration << " ms - Avg Iteration: " << duration/double(epoch + 1) << " ms\n";
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);
