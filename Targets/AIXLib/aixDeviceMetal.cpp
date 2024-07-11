@@ -127,7 +127,8 @@ void DeviceMetal::deallocate(void * memory)
         throw std::invalid_argument("DeviceMetal::deallocate() - Found different type of memory to free.");
     auto mtlBuf = m_allocMap[memory];
     m_allocMap.erase(memory);
-    mtlBuf->release();
+    // IMPORTANT: Delay all deallocations of device buffers until all commands in the batch queue are executed.
+    m_tempBuffers.emplace_back(mtlBuf);
 }
 
 void DeviceMetal::add(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
