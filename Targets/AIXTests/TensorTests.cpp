@@ -171,7 +171,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(1
 
-[ Float32{} ]
+[ CPU Float32 {} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -184,7 +184,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Float32{1} ]
+[ CPU Float32 {1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -199,7 +199,7 @@ TEST_CASE("Tensor - print")
   2
   3
 
-[ Float32{3} ]
+[ CPU Float32 {3} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -212,7 +212,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Float32{1,1} ]
+[ CPU Float32 {1,1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -229,7 +229,7 @@ TEST_CASE("Tensor - print")
         std::string expected = R"(  1  2
   2  3
 
-[ Float32{2,2} ]
+[ CPU Float32 {2,2} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -247,7 +247,7 @@ TEST_CASE("Tensor - print")
   1  2
   2  3
 
-[ Float32{1,2,2} ]
+[ CPU Float32 {1,2,2} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -271,7 +271,7 @@ TEST_CASE("Tensor - print")
   3  4
   4  5
 
-[ Float32{2,2,2} ]
+[ CPU Float32 {2,2,2} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -284,7 +284,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Float64{1} ]
+[ CPU Float64 {1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -298,7 +298,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Int64{1} ]
+[ CPU Int64 {1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -312,7 +312,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Int32{1} ]
+[ CPU Int32 {1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -326,7 +326,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Int16{1} ]
+[ CPU Int16 {1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -340,7 +340,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ Int8{1} ]
+[ CPU Int8 {1} ]
 )";
         CHECK(ss.str() == expected);
     }
@@ -354,7 +354,7 @@ TEST_CASE("Tensor - print")
         ss << input;
         std::string expected = R"(  1
 
-[ UInt8{1} ]
+[ CPU UInt8 {1} ]
 )";
         CHECK(ss.str() == expected);
     }

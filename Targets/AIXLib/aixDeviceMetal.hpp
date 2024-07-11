@@ -53,6 +53,7 @@ public:
     ~DeviceMetal() override;
 
     DeviceType type() const override { return DeviceType::kGPU_METAL; }
+    std::string name() const override { return "MCS"; }             // MCS = Metal Custom/Compute Shaders
 
     // Allocate GPU memory and return MTL Buffer contents and keeps MTL Buffer pointers in a hashmap.
     void* allocate(size_t size) override;

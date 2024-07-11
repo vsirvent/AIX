@@ -125,6 +125,7 @@ public:
     virtual ~Device() = default;
 
     virtual DeviceType type() const { return DeviceType::kCPU; }
+    virtual std::string name() const { return "CPU"; }
 
     static size_t dataTypeSize(DataType dtype)
     {
@@ -1569,19 +1570,20 @@ private:
             }
         }
 
+        auto deviceName = device()->name();
         // Print shape
         switch (dataType())
         {
-            case DataType::kFloat64:  os << "[ Float64{";  break;
-            case DataType::kFloat32:  os << "[ Float32{";  break;
-            case DataType::kFloat16:  os << "[ Float16{";  break;
-            case DataType::kBFloat16: os << "[ BFloat16{"; break;
-            case DataType::kInt64:    os << "[ Int64{";    break;
-            case DataType::kInt32:    os << "[ Int32{";    break;
-            case DataType::kInt16:    os << "[ Int16{";    break;
-            case DataType::kInt8:     os << "[ Int8{";     break;
-            case DataType::kUInt8:    os << "[ UInt8{";    break;
-            default:                  os << "[ Unknown{";  break;
+            case DataType::kFloat64:  os << "[ " << deviceName << " Float64 {";  break;
+            case DataType::kFloat32:  os << "[ " << deviceName << " Float32 {";  break;
+            case DataType::kFloat16:  os << "[ " << deviceName << " Float16 {";  break;
+            case DataType::kBFloat16: os << "[ " << deviceName << " BFloat16 {"; break;
+            case DataType::kInt64:    os << "[ " << deviceName << " Int64 {";    break;
+            case DataType::kInt32:    os << "[ " << deviceName << " Int32 {";    break;
+            case DataType::kInt16:    os << "[ " << deviceName << " Int16 {";    break;
+            case DataType::kInt8:     os << "[ " << deviceName << " Int8 {";     break;
+            case DataType::kUInt8:    os << "[ " << deviceName << " UInt8 {";    break;
+            default:                  os << "[ " << deviceName << " Unknown {";  break;
         }
 
         for (size_t i = 0; i < m_shape.size(); ++i)
