@@ -47,7 +47,7 @@ class DeviceMetal : public aix::Device
 {
 public:
     // Constructor
-    DeviceMetal();
+    explicit DeviceMetal(size_t deviceIndex = 0);
 
     // Destructor
     ~DeviceMetal() override;
@@ -127,6 +127,8 @@ protected:
     MTL::Buffer* getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType);
 
     void freeTemporaryBuffer(MTL::Buffer * buffer);
+
+    MTL::Device* createMTLDevice(size_t deviceIndex) const;
 
     MTL::Library* createLibrary(const char* shaders);
 

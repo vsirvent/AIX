@@ -22,10 +22,11 @@
 namespace aix
 {
 
-DeviceMetal::DeviceMetal()
+DeviceMetal::DeviceMetal(size_t deviceIndex)
 {
-    m_pool = NS::AutoreleasePool::alloc()->init();      // Create autorelease pool.
-    m_mtlDevice = reinterpret_cast<MTL::Device*>(MTL::CopyAllDevices()->object(0));   // Get first available device.
+    // Create autorelease pool.
+    m_pool = NS::AutoreleasePool::alloc()->init();
+    m_mtlDevice = createMTLDevice(deviceIndex);
     auto defaultLibrary = createLibrary(aix::shaders::aixDeviceMetalShaders);
     auto nullKernelName = "nullKernel";
 
@@ -449,6 +450,22 @@ void DeviceMetal::freeTemporaryBuffer(MTL::Buffer * buffer)
         m_tempBuffers.emplace_back(buffer);
     }
 }
+
+
+MTL::Device* DeviceMetal::createMTLDevice(size_t deviceIndex) const
+{
+    try
+    {
+        return reinterpret_cast<MTL::Device*>(MTL::CopyAllDevices()->object(deviceIndex));
+    }
+    catch (...)
+    {
+        throw std::invalid_argument("Device index is not supported.");
+    }
+
+    return nullptr;
+}
+
 
 MTL::Library* DeviceMetal::createLibrary(const char* shaders)
 {

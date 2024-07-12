@@ -21,6 +21,6 @@ namespace aix
 enum class DeviceType;
 class Device;
 
-std::unique_ptr<aix::Device> createDevice(aix::DeviceType type);
+std::unique_ptr<aix::Device> createDevice(aix::DeviceType type, size_t deviceIndex = 0);
 
 }   // aix namespace

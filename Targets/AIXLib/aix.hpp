@@ -122,6 +122,10 @@ using Stride = std::vector<size_t>;
 class Device
 {
 public:
+    // Constructor.
+    explicit Device([[maybe_unused]] size_t deviceIndex = 0) { }
+
+    // Destructor.
     virtual ~Device() = default;
 
     virtual DeviceType type() const { return DeviceType::kCPU; }

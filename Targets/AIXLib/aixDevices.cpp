@@ -21,19 +21,19 @@
 namespace aix
 {
 
-std::unique_ptr<aix::Device> createDevice(aix::DeviceType type)
+std::unique_ptr<aix::Device> createDevice(aix::DeviceType type, size_t deviceIndex)
 {
     switch (type)
     {
         case DeviceType::kGPU_METAL:
         #if defined(__APPLE__) && defined(__arm64__)
-        return std::make_unique<aix::DeviceMetal>();
+        return std::make_unique<aix::DeviceMetal>(deviceIndex);
         #else
             return nullptr;
         #endif
 
         case DeviceType::kCPU:
-            return std::make_unique<aix::Device>();
+            return std::make_unique<aix::Device>(deviceIndex);
 
         default:
             break;
