@@ -835,8 +835,8 @@ protected:
 };
 
 
-// Default device.
-static Device defaultDevice;      // TODO: default CPU device needs to move to a global context.
+// TODO: Global parameters needs to move to a global context.
+static Device defaultDevice;
 static std::random_device randomDevice;
 static std::mt19937 randGen(randomDevice());
 
@@ -1629,7 +1629,6 @@ public:
     {
         if (m_retainGrad)
         {
-            // TODO: Do not create the gradient vector until it's required to improve performance.
             m_grad += seed;
         }
         m_backwardFunc(this, seed);
@@ -1651,6 +1650,14 @@ public:
 };
 
 
+struct TensorOptions
+{
+    bool requireGrad{false};
+    aix::DataType dtype{aix::DataType::kFloat32};
+    aix::Device* device{&aix::defaultDevice};
+};
+
+
 class Tensor
 {
 public:
@@ -1658,29 +1665,26 @@ public:
     Tensor() = default;
 
     // Constructor.
-    explicit Tensor(const void* data, size_t size, DataType srcDType, const Shape & shape, bool requireGrad = false,
-                    DataType dType = DataType::kFloat32, Device * device = &defaultDevice)
+    explicit Tensor(const void* data, size_t size, DataType srcDType, const Shape & shape, const TensorOptions & opt = {})
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{data, size, srcDType, shape, device, dType}, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{data, size, srcDType, shape, opt.device, opt.dtype}, opt.requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
     // Constructor.
-    explicit Tensor(float value, const Shape & shape, bool requireGrad = false,
-                    DataType dType = DataType::kFloat32, Device * device = &defaultDevice)
+    explicit Tensor(float value, const Shape & shape, const TensorOptions & opt = {})
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(TensorValue{value, shape, device, dType}, requireGrad);
+        m_data = std::make_shared<TensorNode>(TensorValue{value, shape, opt.device, opt.dtype}, opt.requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
 
     // Constructor.
-    explicit Tensor(const Shape & shape, bool requireGrad = false,
-                    DataType dType = DataType::kFloat32, Device * device = &defaultDevice)
+    explicit Tensor(const Shape & shape, const TensorOptions & opt = {})
     {
         // Create a new Tensor Graph Node.
-        m_data = std::make_shared<TensorNode>(shape, device, requireGrad, dType);
+        m_data = std::make_shared<TensorNode>(shape, opt.device, opt.requireGrad, opt.dtype);
         m_data->m_backwardFunc = defaultBackward;
     }
 
@@ -1730,13 +1734,15 @@ public:
             throw std::invalid_argument("Reshape error: element count mismatch (" +
                                         std::to_string(value().size()) + " vs " + std::to_string(newSize) + ").");
         }
-        return Tensor{value().data(), value().size(), dataType(), newShape, isRequireGrad(), dataType(), device()};
+        return Tensor{value().data(), value().size(), dataType(), newShape,
+                      { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device()}};
     }
 
     Tensor broadcastTo(const Shape & newShape) const
     {
         TensorValue tValue = m_data->m_value.broadcastTo(newShape);
-        Tensor result{tValue.data(), tValue.size(), tValue.dataType(), tValue.shape(), isRequireGrad(), dataType(), device()};
+        Tensor result{tValue.data(), tValue.size(), tValue.dataType(), tValue.shape(),
+                      { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device()}};
         result.m_data->m_a = m_data;            // Keep the reference to the original tensor node
         result.m_data->m_backwardFunc = broadcastBackwardFunc;
         return result;
@@ -1746,8 +1752,8 @@ public:
     {
         if (dataType() != newDataType)
         {
-            Tensor result{value().data(), value().size(), value().dataType(), value().shape(), isRequireGrad(),
-                          newDataType, device()};
+            Tensor result{value().data(), value().size(), value().dataType(), value().shape(),
+                          { .requireGrad=isRequireGrad(), .dtype=newDataType, .device=device()}};
             result.m_data->m_a = m_data;
             result.m_data->m_backwardFunc = toBackwardFunc;
             return result;
@@ -1908,7 +1914,7 @@ public:
         auto lhs = broadcastTo(bcShape).to(promotedDType);
         auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(shape(), isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad() || other.isRequireGrad(), .dtype=dataType(), .device=device()});
         result.m_data->m_value = lhs.m_data->m_value + rhs.m_data->m_value;
         result.m_data->m_a = lhs.m_data;
         result.m_data->m_b = rhs.m_data;
@@ -1924,7 +1930,7 @@ public:
         auto lhs = broadcastTo(bcShape).to(promotedDType);
         auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(shape(), isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad() || other.isRequireGrad(), .dtype=dataType(), .device=device()});
         result.m_data->m_value = lhs.m_data->m_value - rhs.m_data->m_value;
         result.m_data->m_a = lhs.m_data;
         result.m_data->m_b = rhs.m_data;
@@ -1940,7 +1946,7 @@ public:
         auto lhs = broadcastTo(bcShape).to(promotedDType);
         auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(shape(), isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad() || other.isRequireGrad(), .dtype=dataType(), .device=device()});
         result.m_data->m_value = lhs.m_data->m_value * rhs.m_data->m_value;
         result.m_data->m_a = lhs.m_data;
         result.m_data->m_b = rhs.m_data;
@@ -1956,7 +1962,7 @@ public:
         auto lhs = broadcastTo(bcShape).to(promotedDType);
         auto rhs = other.broadcastTo(bcShape).to(promotedDType);
 
-        Tensor result(bcShape, isRequireGrad() || other.isRequireGrad(), dataType(), device());
+        Tensor result(bcShape, { .requireGrad=isRequireGrad() || other.isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = lhs.m_data->m_value / rhs.m_data->m_value;
         result.m_data->m_a = lhs.m_data;
         result.m_data->m_b = rhs.m_data;
@@ -1966,7 +1972,7 @@ public:
 
     Tensor operator-() const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = -m_data->m_value;
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = unaryBackwardFunc;
@@ -1976,62 +1982,62 @@ public:
     Tensor operator+(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
+        Tensor tensor(scalar, shape(), { .requireGrad=isRequireGrad(), .dtype=promotedFloatType, .device=device() });
         return *this + tensor;
     }
 
     Tensor operator-(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
+        Tensor tensor(scalar, shape(), { .requireGrad=isRequireGrad(), .dtype=promotedFloatType, .device=device() });
         return *this - tensor;
     }
 
     Tensor operator*(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
+        Tensor tensor(scalar, shape(), { .requireGrad=isRequireGrad(), .dtype=promotedFloatType, .device=device() });
         return *this * tensor;
     }
 
     Tensor operator/(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), isRequireGrad(), promotedFloatType, device());
+        Tensor tensor(scalar, shape(), { .requireGrad=isRequireGrad(), .dtype=promotedFloatType, .device=device() });
         return *this / tensor;
     }
 
     friend Tensor operator+(float scalar, const Tensor & rhsTensor)
     {
         auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
+        Tensor tensor(scalar, rhsTensor.shape(), { .requireGrad=rhsTensor.isRequireGrad(), .dtype=promotedFloatType, .device=rhsTensor.device() });
         return tensor + rhsTensor;
     }
 
     friend Tensor operator-(float scalar, const Tensor & rhsTensor)
     {
         auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
+        Tensor tensor(scalar, rhsTensor.shape(), { .requireGrad=rhsTensor.isRequireGrad(), .dtype=promotedFloatType, .device=rhsTensor.device() });
         return tensor - rhsTensor;
     }
 
     friend Tensor operator*(float scalar, const Tensor & rhsTensor)
     {
         auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
+        Tensor tensor(scalar, rhsTensor.shape(), { .requireGrad=rhsTensor.isRequireGrad(), .dtype=promotedFloatType, .device=rhsTensor.device() });
         return tensor * rhsTensor;
     }
 
     friend Tensor operator/(float scalar, const Tensor & rhsTensor)
     {
         auto promotedFloatType = promoteDataTypeToFloat(rhsTensor.dataType());
-        Tensor tensor(scalar, rhsTensor.shape(), rhsTensor.isRequireGrad(), promotedFloatType, rhsTensor.device());
+        Tensor tensor(scalar, rhsTensor.shape(), { .requireGrad=rhsTensor.isRequireGrad(), .dtype=promotedFloatType, .device=rhsTensor.device() });
         return tensor / rhsTensor;
     }
 
     Tensor sqrt() const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.sqrt();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = sqrtBackwardFunc;
@@ -2040,7 +2046,7 @@ public:
 
     Tensor sin() const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.sin();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = sinBackwardFunc;
@@ -2049,7 +2055,7 @@ public:
 
     Tensor cos() const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.cos();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = cosBackwardFunc;
@@ -2058,7 +2064,7 @@ public:
 
     Tensor tanh() const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.tanh();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = tanhBackwardFunc;
@@ -2067,7 +2073,7 @@ public:
 
     Tensor log() const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.log();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = logBackwardFunc;
@@ -2076,7 +2082,7 @@ public:
 
     Tensor exp() const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.exp();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = expBackwardFunc;
@@ -2085,7 +2091,7 @@ public:
 
     Tensor sum() const
     {
-        Tensor result({}, isRequireGrad(), dataType(), device());
+        Tensor result({}, { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.sum();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = sumBackwardFunc;
@@ -2104,7 +2110,7 @@ public:
         auto lhs = broadcastTo(bcShape).to(promotedDType);
         auto rhs = other.broadcastTo(bcShape).to(promotedDType);        // Exponent tensor.
 
-        Tensor result(bcShape, isRequireGrad(), dataType(), device());
+        Tensor result(bcShape, { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = lhs.m_data->m_value.pow(rhs.m_data->m_value);
         result.m_data->m_a = lhs.m_data;
         result.m_data->m_b = rhs.m_data;
@@ -2118,7 +2124,7 @@ public:
         auto lhs = to(promotedDType);
         auto rhs = other.to(promotedDType);
 
-        Tensor result({shape()[0], rhs.shape()[1]}, isRequireGrad() || rhs.isRequireGrad(), dataType(), device());
+        Tensor result({shape()[0], rhs.shape()[1]}, { .requireGrad=isRequireGrad() || rhs.isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = lhs.m_data->m_value.matmul(rhs.m_data->m_value);
         result.m_data->m_a = lhs.m_data;
         result.m_data->m_b = rhs.m_data;
@@ -2128,7 +2134,7 @@ public:
 
     Tensor transpose(const size_t dim0, size_t dim1) const
     {
-        Tensor result(shape(), isRequireGrad(), dataType(), device());
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.transpose(dim0, dim1);
         result.m_data->m_a = m_data;
         result.m_data->m_dim0 = dim0;
@@ -2161,42 +2167,42 @@ protected:
 
 // Some convenience method definitions.
 
-inline Tensor tensor(float value, bool requireGrad = false)
+inline Tensor tensor(float value, const TensorOptions & opt = {})
 {
-    return Tensor{value, {}, requireGrad};
+    return Tensor{value, Shape{}, opt};
 }
 
-inline Tensor tensor(const std::initializer_list<double> & data, const Shape & shape, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+inline Tensor tensor(const std::initializer_list<double> & data, const Shape & shape, const TensorOptions & opt = {})
 {
-    return Tensor{data.begin(), data.size(), getDataType<double>(), shape, requireGrad, dtype};
+    return Tensor{data.begin(), data.size(), getDataType<double>(), shape, opt};
 }
 
-inline Tensor tensor(const std::initializer_list<float> & data, const Shape & shape, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+inline Tensor tensor(const std::initializer_list<float> & data, const Shape & shape, const TensorOptions & opt = {})
 {
-    return Tensor{data.begin(), data.size(), getDataType<float>(), shape, requireGrad, dtype};
+    return Tensor{data.begin(), data.size(), getDataType<float>(), shape, opt};
 }
 
-inline Tensor tensor(const std::initializer_list<double> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+inline Tensor tensor(const std::initializer_list<double> & data, const TensorOptions & opt = {})
 {
-    return Tensor{data.begin(), data.size(), getDataType<double>(), {data.size()}, requireGrad, dtype};
+    return Tensor{data.begin(), data.size(), getDataType<double>(), Shape{data.size()}, opt};
 }
 
-inline Tensor tensor(const std::initializer_list<float> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+inline Tensor tensor(const std::initializer_list<float> & data, const TensorOptions & opt = {})
 {
-    return Tensor{data.begin(), data.size(), getDataType<float>(), {data.size()}, requireGrad, dtype};
+    return Tensor{data.begin(), data.size(), getDataType<float>(), Shape{data.size()}, opt};
 }
 
-inline Tensor tensor(const std::vector<double> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+inline Tensor tensor(const std::vector<double> & data, const TensorOptions & opt = {})
 {
-    return Tensor{data.data(), data.size(), getDataType<double>(), {data.size()}, requireGrad, dtype};
+    return Tensor{data.data(), data.size(), getDataType<double>(), Shape{data.size()}, opt};
 }
 
-inline Tensor tensor(const std::vector<float> & data, bool requireGrad = false, DataType dtype = DataType::kFloat32)
+inline Tensor tensor(const std::vector<float> & data, const TensorOptions & opt = {})
 {
-    return Tensor{data.data(), data.size(), getDataType<float>(), {data.size()}, requireGrad, dtype};
+    return Tensor{data.data(), data.size(), getDataType<float>(), Shape{data.size()}, opt};
 }
 
-inline Tensor randn(const Shape & shape, bool requireGrad = false)
+inline Tensor randn(const Shape & shape, const TensorOptions & opt = {})
 {
     std::uniform_real_distribution<float> distr(-1, 1);
 
@@ -2206,27 +2212,27 @@ inline Tensor randn(const Shape & shape, bool requireGrad = false)
     // Fill rndData with random numbers
     std::generate(rndData.begin(), rndData.end(), [&distr]() -> float { return distr(randGen); });
 
-    return Tensor{rndData.data(), rndData.size(), getDataType<float>(), shape, requireGrad};
+    return Tensor{rndData.data(), rndData.size(), getDataType<float>(), shape, opt};
 }
 
-inline Tensor ones(const Shape & shape, bool requireGrad = false)
+inline Tensor ones(const Shape & shape, const TensorOptions & opt = {})
 {
-    return Tensor{1, shape, requireGrad};
+    return Tensor{1, shape, opt};
 }
 
-inline Tensor zeros(const Shape & shape, bool requireGrad = false)
+inline Tensor zeros(const Shape & shape, const TensorOptions & opt = {})
 {
-    return Tensor{0, shape, requireGrad};
+    return Tensor{0, shape, opt};
 }
 
 inline Tensor onesLike(const Tensor & tensor, bool requireGrad = false)
 {
-    return Tensor{1, tensor.shape(), requireGrad, tensor.dataType(), tensor.device()};
+    return Tensor{1, tensor.shape(), { .requireGrad=requireGrad, .dtype=tensor.dataType(), .device=tensor.device() }};
 }
 
 inline Tensor zerosLike(const Tensor & tensor, bool requireGrad = false)
 {
-    return Tensor{0, tensor.shape(), requireGrad, tensor.dataType(), tensor.device()};
+    return Tensor{0, tensor.shape(), { .requireGrad=requireGrad, .dtype=tensor.dataType(), .device=tensor.device() }};
 }
 
 inline Tensor sqrt(const Tensor & A)   { return A.sqrt(); }
@@ -2463,8 +2469,8 @@ public:
     // Constructor
     Linear(size_t numInputs, size_t numOutputs)
     {
-        m_w1 = randn({numInputs, numOutputs}, true);        // A tensor filled with random numbers in [-1, 1].
-        m_b1 = randn({1,         numOutputs}, true);
+        m_w1 = randn({numInputs, numOutputs}, { .requireGrad=true });
+        m_b1 = randn({1,         numOutputs}, { .requireGrad=true });
 
         // Register learnable parameters.
         registerParameter(m_w1);

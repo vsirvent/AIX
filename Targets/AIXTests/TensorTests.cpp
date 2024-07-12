@@ -21,7 +21,7 @@ using namespace aix;
 
 TEST_CASE("Tensor - name")
 {
-    auto tensor = aix::tensor({1.0, 2.0}, {2}, false);
+    auto tensor = aix::tensor({1.0, 2.0}, {2}, { .requireGrad=false });
     CHECK(tensor.name().empty());
     tensor.name("tensor");
     CHECK(tensor.name() == "tensor");
@@ -41,7 +41,7 @@ TEST_CASE("Tensor - ones")
 
     SUBCASE("requiring gradient")
     {
-        aix::Tensor t = aix::ones({2, 3}, true);
+        aix::Tensor t = aix::ones({2, 3}, { .requireGrad=true });
         CHECK(t.shape() == aix::Shape{2, 3});
         CHECK(t.value().size() == 6);
         CHECK(t.isRequireGrad() == true);
@@ -63,7 +63,7 @@ TEST_CASE("Tensor - zeros")
 
     SUBCASE("requiring gradient")
     {
-        aix::Tensor t = aix::zeros({2, 3}, true);
+        aix::Tensor t = aix::zeros({2, 3}, { .requireGrad=true });
         CHECK(t.shape() == aix::Shape{2, 3});
         CHECK(t.value().size() == 6);
         CHECK(t.isRequireGrad() == true);
@@ -279,7 +279,7 @@ TEST_CASE("Tensor - print")
     SUBCASE("DataType Float64")
     {
         std::stringstream ss;
-        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kFloat64);
+        auto input = aix::tensor({1.0}, aix::Shape{1}, { .requireGrad=false, .dtype=DataType::kFloat64 });
 
         ss << input;
         std::string expected = R"(  1
@@ -293,7 +293,7 @@ TEST_CASE("Tensor - print")
     SUBCASE("DataType  Int64")
     {
         std::stringstream ss;
-        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt64);
+        auto input = aix::tensor({1.0}, aix::Shape{1}, { .requireGrad=false, .dtype=DataType::kInt64 });
 
         ss << input;
         std::string expected = R"(  1
@@ -307,7 +307,7 @@ TEST_CASE("Tensor - print")
     SUBCASE("DataType  Int32")
     {
         std::stringstream ss;
-        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt32);
+        auto input = aix::tensor({1.0}, aix::Shape{1}, { .requireGrad=false, .dtype=DataType::kInt32 });
 
         ss << input;
         std::string expected = R"(  1
@@ -321,7 +321,7 @@ TEST_CASE("Tensor - print")
     SUBCASE("DataType  Int16")
     {
         std::stringstream ss;
-        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt16);
+        auto input = aix::tensor({1.0}, aix::Shape{1}, { .requireGrad=false, .dtype=DataType::kInt16 });
 
         ss << input;
         std::string expected = R"(  1
@@ -335,7 +335,7 @@ TEST_CASE("Tensor - print")
     SUBCASE("DataType  Int8")
     {
         std::stringstream ss;
-        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kInt8);
+        auto input = aix::tensor({1.0}, aix::Shape{1}, { .requireGrad=false, .dtype=DataType::kInt8 });
 
         ss << input;
         std::string expected = R"(  1
@@ -349,7 +349,7 @@ TEST_CASE("Tensor - print")
     SUBCASE("DataType  UInt8")
     {
         std::stringstream ss;
-        auto input = aix::tensor({1.0}, aix::Shape{1}, false, DataType::kUInt8);
+        auto input = aix::tensor({1.0}, aix::Shape{1}, { .requireGrad=false, .dtype=DataType::kUInt8 });
 
         ss << input;
         std::string expected = R"(  1
@@ -671,7 +671,7 @@ TEST_CASE("Tensor - broadcastTo")
     SUBCASE("Scalar to [2x3]")
     {
         Shape newShape{2, 3};
-        auto bct = tensor({1.0}, {}).broadcastTo(newShape);
+        auto bct = tensor({1.0}, Shape{}).broadcastTo(newShape);
         CHECK(bct.value().size() == 6);
         CHECK(bct.shape() == newShape);
         CheckVectorApproxValues(bct, tensor({1.0, 1.0, 1.0, 1.0, 1.0, 1.0}, newShape));
@@ -702,7 +702,7 @@ TEST_CASE("Tensor - Data Type Conversion")
 
     SUBCASE("Constructors - F64 to F64")
     {
-        auto tv1 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         CHECK(tv1.dataType() == DataType::kFloat64);
         CHECK(tv1.value().size() == f32Data.size());
         CHECK(tv1.value().data<double>()[0] == 1.0);
@@ -712,7 +712,7 @@ TEST_CASE("Tensor - Data Type Conversion")
 
     SUBCASE("Constructors - F64 to F32")
     {
-        auto tv1 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         CHECK(tv1.dataType() == DataType::kFloat32);
         CHECK(tv1.value().size() == f64Data.size());
         CHECK(tv1.value().data<float>()[0] == 1.0f);
@@ -722,7 +722,7 @@ TEST_CASE("Tensor - Data Type Conversion")
 
     SUBCASE("Constructors - F32 to F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         CHECK(tv1.dataType() == DataType::kFloat64);
         CHECK(tv1.value().size() == f32Data.size());
         CHECK(tv1.value().data<double>()[0] == 1.0);
@@ -732,7 +732,7 @@ TEST_CASE("Tensor - Data Type Conversion")
 
     SUBCASE("Constructors - F32 to F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         CHECK(tv1.dataType() == DataType::kFloat32);
         CHECK(tv1.value().size() == f32Data.size());
         CHECK(tv1.value().data<float>()[0] == 1.0f);
@@ -750,7 +750,7 @@ TEST_CASE("Tensor - Data Type Conversion wit .to()")
 
     SUBCASE("Constructors - F64 to F64")
     {
-        auto tv1 = aix::tensor(f64Data, shape, false).to(DataType::kFloat64);
+        auto tv1 = aix::tensor(f64Data, shape, { .requireGrad=false }).to(DataType::kFloat64);
         CHECK(tv1.dataType() == DataType::kFloat64);
         CHECK(tv1.value().size() == f32Data.size());
         CHECK(tv1.value().data<double>()[0] == 1.0);
@@ -770,7 +770,7 @@ TEST_CASE("Tensor - Data Type Conversion wit .to()")
 
     SUBCASE("Constructors - F32 to F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false).to(DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false }).to(DataType::kFloat64);
         CHECK(tv1.dataType() == DataType::kFloat64);
         CHECK(tv1.value().size() == f32Data.size());
         CHECK(tv1.value().data<double>()[0] == 1.0);
@@ -780,7 +780,7 @@ TEST_CASE("Tensor - Data Type Conversion wit .to()")
 
     SUBCASE("Constructors - F32 to F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false).to(DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false }).to(DataType::kFloat32);
         CHECK(tv1.dataType() == DataType::kFloat32);
         CHECK(tv1.value().size() == f32Data.size());
         CHECK(tv1.value().data<float>()[0] == 1.0f);
@@ -800,8 +800,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Add - F64 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 + tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -812,8 +812,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Add - F32 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 + tv2;
         CHECK(tv.dataType() == DataType::kFloat32);
         CHECK(tv.value().size() == f32Data.size());
@@ -824,8 +824,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Add - F32 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 + tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -836,8 +836,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Add - F64 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 + tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -850,8 +850,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Sub - F64 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 - tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -862,8 +862,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Sub - F32 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 - tv2;
         CHECK(tv.dataType() == DataType::kFloat32);
         CHECK(tv.value().size() == f32Data.size());
@@ -874,8 +874,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Sub - F32 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 - tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -886,8 +886,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Sub - F64 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 - tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -900,8 +900,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Mul - F64 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 * tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -912,8 +912,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Mul - F32 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 * tv2;
         CHECK(tv.dataType() == DataType::kFloat32);
         CHECK(tv.value().size() == f32Data.size());
@@ -924,8 +924,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Mul - F32 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 * tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -936,8 +936,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Mul - F64 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 * tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -950,8 +950,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Div - F64 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 / tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -962,8 +962,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Div - F32 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 / tv2;
         CHECK(tv.dataType() == DataType::kFloat32);
         CHECK(tv.value().size() == f32Data.size());
@@ -974,8 +974,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Div - F32 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1 / tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -986,8 +986,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Div - F64 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1 / tv2;
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -1000,8 +1000,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Pow - F64 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1.pow(tv2);
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -1012,8 +1012,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Pow - F32 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1.pow(tv2);
         CHECK(tv.dataType() == DataType::kFloat32);
         CHECK(tv.value().size() == f32Data.size());
@@ -1024,8 +1024,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Pow - F32 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1.pow(tv2);
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -1036,8 +1036,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Pow - F64 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, shape, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, shape, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, shape, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, shape, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1.pow(tv2);
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == f32Data.size());
@@ -1050,8 +1050,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Matmul - F64 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, {1,3}, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, {3,1}, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, {1,3}, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, {3,1}, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1.matmul(tv2);
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == 1);
@@ -1060,8 +1060,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Matmul - F32 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, {1,3}, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, {3,1}, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, {1,3}, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, {3,1}, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1.matmul(tv2);
         CHECK(tv.dataType() == DataType::kFloat32);
         CHECK(tv.value().size() == 1);
@@ -1070,8 +1070,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Matmul - F32 and F64")
     {
-        auto tv1 = aix::tensor(f32Data, {1,3}, false, DataType::kFloat32);
-        auto tv2 = aix::tensor(f64Data, {3,1}, false, DataType::kFloat64);
+        auto tv1 = aix::tensor(f32Data, {1,3}, { .requireGrad=false, .dtype=DataType::kFloat32 });
+        auto tv2 = aix::tensor(f64Data, {3,1}, { .requireGrad=false, .dtype=DataType::kFloat64 });
         auto tv = tv1.matmul(tv2);
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == 1);
@@ -1080,8 +1080,8 @@ TEST_CASE("Tensor - Data Type Promotion")
 
     SUBCASE("Matmul - F64 and F32")
     {
-        auto tv1 = aix::tensor(f32Data, {1,3}, false, DataType::kFloat64);
-        auto tv2 = aix::tensor(f64Data, {3,1}, false, DataType::kFloat32);
+        auto tv1 = aix::tensor(f32Data, {1,3}, { .requireGrad=false, .dtype=DataType::kFloat64 });
+        auto tv2 = aix::tensor(f64Data, {3,1}, { .requireGrad=false, .dtype=DataType::kFloat32 });
         auto tv = tv1.matmul(tv2);
         CHECK(tv.dataType() == DataType::kFloat64);
         CHECK(tv.value().size() == 1);

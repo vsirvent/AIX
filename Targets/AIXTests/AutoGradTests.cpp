@@ -25,10 +25,10 @@ struct TestModel : public aix::nn::Module
               const std::initializer_list<float> & uData,
               const Shape & shape)
     {
-        m_x = tensor(xData, shape, true);
-        m_y = tensor(yData, shape, true);
-        m_t = tensor(tData, shape, true);
-        m_u = tensor(uData, shape, true);
+        m_x = tensor(xData, shape, { .requireGrad=true });
+        m_y = tensor(yData, shape, { .requireGrad=true });
+        m_t = tensor(tData, shape, { .requireGrad=true });
+        m_u = tensor(uData, shape, { .requireGrad=true });
 
         registerParameter(m_x);
         registerParameter(m_y);
@@ -157,10 +157,10 @@ TEST_CASE("Auto Grad with broadcasting")
     auto shape1 = Shape{1, 3};
     auto shape2 = Shape{2, 3};
 
-    auto m_x = tensor({ 1.0,  2.0,  3.0},                   shape1, true);
-    auto m_y = tensor({ 7.0,  8.0,  9.0, 10.0, 11.0, 12.0}, shape2, true);
-    auto m_t = tensor({13.0, 14.0, 15.0},                   shape1, true);
-    auto m_u = tensor({19.0, 20.0, 21.0, 22.0, 23.0, 24.0}, shape2, true);
+    auto m_x = tensor({ 1.0,  2.0,  3.0},                   shape1, { .requireGrad=true });
+    auto m_y = tensor({ 7.0,  8.0,  9.0, 10.0, 11.0, 12.0}, shape2, { .requireGrad=true });
+    auto m_t = tensor({13.0, 14.0, 15.0},                   shape1, { .requireGrad=true });
+    auto m_u = tensor({19.0, 20.0, 21.0, 22.0, 23.0, 24.0}, shape2, { .requireGrad=true });
 
     auto z = m_x * (m_x + m_y) / m_t - tanh(m_y * m_y);
     auto m = m_x * z + sin(m_u) * m_u;
@@ -191,7 +191,7 @@ TEST_CASE("Auto Grad - log Test - 2x2")
 {
     aix::Shape shape{2,2};
 
-    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
+    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, { .requireGrad=true });
     auto z = log(x);
     z.backward();
 
@@ -205,7 +205,7 @@ TEST_CASE("Auto Grad - exp Test - 2x2")
 {
     aix::Shape shape{2,2};
 
-    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
+    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, { .requireGrad=true });
     auto z = exp(x);
     z.backward();
 
@@ -219,7 +219,7 @@ TEST_CASE("Auto Grad - pow Test - 2x2")
 {
     aix::Shape shape{2,2};
 
-    auto x = aix::tensor({1.0, 2.0, 3.0, 4.0}, shape, true);
+    auto x = aix::tensor({1.0, 2.0, 3.0, 4.0}, shape, { .requireGrad=true });
     auto exp = aix::tensor({1.0, 2.0, 3.0, 4.0}, shape);
     auto z = pow(x, exp);
     z.backward();
@@ -234,7 +234,7 @@ TEST_CASE("Auto Grad - sum Test - 2x2")
 {
     aix::Shape shape{2,2};
 
-    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
+    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, { .requireGrad=true });
     auto z = x.sum();
     z.backward();
 
@@ -248,7 +248,7 @@ TEST_CASE("Auto Grad - sigmoid Test - 2x2")
 {
     aix::Shape shape{2,2};
 
-    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, true);
+    auto x = aix::tensor({0.1, 0.2, 0.3, 0.4}, shape, { .requireGrad=true });
     auto z = aix::nn::Sigmoid().forward(x);
     z.backward();
 
@@ -264,7 +264,7 @@ TEST_CASE("Auto Grad - transpose")
     {
         aix::Shape shape{3,2};
 
-        auto x = aix::tensor({1.0,2.0,3.0,4.0,5.0,6.0}, shape, true);
+        auto x = aix::tensor({1.0,2.0,3.0,4.0,5.0,6.0}, shape, { .requireGrad=true });
         auto z = x.transpose(0, 1);
         z.backward(1, {2,3});       // Starting with the transposed shape
 
@@ -276,7 +276,7 @@ TEST_CASE("Auto Grad - transpose")
     SUBCASE("back propagation initial gradient shape must be transposed")
     {
         aix::Shape shape{3,2};
-        auto x = aix::tensor({1.0,2.0,3.0,4.0,5.0,6.0}, shape, true);
+        auto x = aix::tensor({1.0,2.0,3.0,4.0,5.0,6.0}, shape, { .requireGrad=true });
         auto z = x.transpose(0, 1);
         DOCTEST_CHECK_THROWS_AS(z.backward(), std::invalid_argument);
         DOCTEST_CHECK_THROWS_AS(z.backward(1, {3,2}), std::invalid_argument);
@@ -293,8 +293,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Add - x+y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x + y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -305,8 +305,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Add - y+x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y + x;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -317,8 +317,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Sub - x-y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x - y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -329,8 +329,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Sub - y-x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y - x;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -341,8 +341,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Mul - x*y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x * y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -353,8 +353,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Mul - y*x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y * x;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -365,8 +365,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Div - x/y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x / y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -378,8 +378,8 @@ TEST_CASE("Auto Grad - Broadcast from [1x3] to [2x3]")
 
     SUBCASE("Div - y/x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y / x;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -399,8 +399,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Add - x+y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x + y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -411,8 +411,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Add - y+x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y + x;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -423,8 +423,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Sub - x-y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x - y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -435,8 +435,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Sub - y-x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y - x;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -447,8 +447,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Mul - x*y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x * y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -459,8 +459,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Mul - y*x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y * x;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -471,8 +471,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Div - x/y")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = x / y;
         z.backward();
         CHECK(x.grad().shape() == shape1);
@@ -484,8 +484,8 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
 
     SUBCASE("Div - y/x")
     {
-        auto x = aix::tensor(data1, shape1, true);
-        auto y = aix::tensor(data2, shape2, true);
+        auto x = aix::tensor(data1, shape1, { .requireGrad=true });
+        auto y = aix::tensor(data2, shape2, { .requireGrad=true });
         auto z = y / x;
         z.backward();
         CHECK(x.grad().shape() == shape1);

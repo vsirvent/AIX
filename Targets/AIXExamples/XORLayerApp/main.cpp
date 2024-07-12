@@ -24,8 +24,8 @@ public:
     // Constructor
     Linear(size_t numInputs, size_t numOutputs)
     {
-        m_w1 = aix::randn({numInputs, numOutputs}, true);   // A tensor filled with random numbers in [-1, 1].
-        m_b1 = aix::randn({1,         numOutputs}, true);
+        m_w1 = aix::randn({numInputs, numOutputs}, { .requireGrad=true });   // A tensor filled with random numbers in [-1, 1].
+        m_b1 = aix::randn({1,         numOutputs}, { .requireGrad=true });
 
         // Register learnable parameters.
         registerParameter(m_w1);
@@ -35,7 +35,6 @@ public:
     // Forward
     aix::Tensor forward(aix::Tensor x) const override
     {
-        // TODO: m_b1 needs to support broadcasting to remove numSamples params from constructor.
         return aix::matmul(x, m_w1) + m_b1;
     }
 

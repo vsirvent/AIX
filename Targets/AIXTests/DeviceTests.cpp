@@ -1328,8 +1328,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x + y;
             for (size_t i=0; i<queueSize; ++i)
@@ -1354,8 +1354,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x - y;
             for (size_t i=0; i<queueSize; ++i)
@@ -1380,8 +1380,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x * y;
             for (size_t i=0; i<queueSize; ++i)
@@ -1406,8 +1406,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x / y;
             for (size_t i=0; i<queueSize; ++i)
@@ -1432,8 +1432,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.sum() + y.sum();
             for (size_t i=0; i<queueSize; ++i)
@@ -1458,8 +1458,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.mean() + y.mean();
             for (size_t i=0; i<queueSize; ++i)
@@ -1484,8 +1484,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.sqrt() + y.sqrt();
             for (size_t i=0; i<queueSize; ++i)
@@ -1510,8 +1510,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.sin() + y.sin();
             for (size_t i=0; i<queueSize; ++i)
@@ -1536,8 +1536,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.cos() + y.cos();
             for (size_t i=0; i<queueSize; ++i)
@@ -1562,8 +1562,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.log() + y.log();
             for (size_t i=0; i<queueSize; ++i)
@@ -1588,8 +1588,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.exp() + y.exp();
             for (size_t i=0; i<queueSize; ++i)
@@ -1614,8 +1614,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
             auto exp = aix::tensor(2.0);
 
             auto z = x.pow(exp) + y.pow(exp);
@@ -1641,8 +1641,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x.tanh() + y.tanh();
             for (size_t i=0; i<queueSize; ++i)
@@ -1668,8 +1668,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor({1.0, 2.0, 3.0, 4.0}, matShape, true);
-            auto y = aix::tensor({5.0, 6.0, 7.0, 8.0}, matShape, true);
+            auto x = aix::tensor({1.0, 2.0, 3.0, 4.0}, matShape, { .requireGrad=true });
+            auto y = aix::tensor({5.0, 6.0, 7.0, 8.0}, matShape, { .requireGrad=true });
 
             auto z = x.matmul(y) + y.matmul(x);
             for (size_t i=0; i<queueSize; ++i)
@@ -1694,8 +1694,8 @@ TEST_CASE("Device Tests - batch compute")
             auto device = aix::createDevice(deviceType);
             if (!device) continue;      // Skip if the device is not available.
 
-            auto x = aix::tensor(data1, shape, true);
-            auto y = aix::tensor(data2, shape, true);
+            auto x = aix::tensor(data1, shape, { .requireGrad=true });
+            auto y = aix::tensor(data2, shape, { .requireGrad=true });
 
             auto z = x + y - (x * y).log() + y/x.exp() + (x-y) * x * x.sin() / y;
             for (size_t i=0; i<queueSize; ++i)
