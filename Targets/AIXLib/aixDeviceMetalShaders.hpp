@@ -38,8 +38,6 @@ template<typename T>
 kernel void add_aa(device const T* inA,
                    device const T* inB,
                    device T* result,
-                   constant MatrixSize& aSize,
-                   constant MatrixSize& bSize,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
@@ -54,8 +52,6 @@ template<typename T>
 kernel void sub_aa(device const T* inA,
                    device const T* inB,
                    device T* result,
-                   constant MatrixSize& aSize,
-                   constant MatrixSize& bSize,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
@@ -70,8 +66,6 @@ template<typename T>
 kernel void mul_aa(device const T* inA,
                   device const T* inB,
                   device T* result,
-                  constant MatrixSize& aSize,
-                  constant MatrixSize& bSize,
                   uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
@@ -86,8 +80,6 @@ template<typename T>
 kernel void div_aa(device const T* inA,
                    device const T* inB,
                    device T* result,
-                   constant MatrixSize& aSize,
-                   constant MatrixSize& bSize,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
@@ -448,64 +440,48 @@ template [[ host_name("add_aa_f32") ]]
 kernel void add_aa(device const float4*,
                    device const float4*,
                    device float4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("add_aa_f16") ]]
 kernel void add_aa(device const half4*,
                    device const half4*,
                    device half4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("add_aa_bf16") ]]
 kernel void add_aa(device const bfloat4*,
                    device const bfloat4*,
                    device bfloat4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("add_aa_i64") ]]
 kernel void add_aa(device const long4*,
                    device const long4*,
                    device long4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("add_aa_i32") ]]
 kernel void add_aa(device const int4*,
                    device const int4*,
                    device int4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("add_aa_i16") ]]
 kernel void add_aa(device const short4*,
                    device const short4*,
                    device short4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("add_aa_i8") ]]
 kernel void add_aa(device const char4*,
                    device const char4*,
                    device char4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("add_aa_ui8") ]]
 kernel void add_aa(device const uchar4*,
                    device const uchar4*,
                    device uchar4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 
@@ -516,64 +492,48 @@ template [[ host_name("sub_aa_f32") ]]
 kernel void sub_aa(device const float4*,
                    device const float4*,
                    device float4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("sub_aa_f16") ]]
 kernel void sub_aa(device const half4*,
                    device const half4*,
                    device half4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("sub_aa_bf16") ]]
 kernel void sub_aa(device const bfloat4*,
                    device const bfloat4*,
                    device bfloat4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("sub_aa_i64") ]]
 kernel void sub_aa(device const long4*,
                    device const long4*,
                    device long4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("sub_aa_i32") ]]
 kernel void sub_aa(device const int4*,
                    device const int4*,
                    device int4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("sub_aa_i16") ]]
 kernel void sub_aa(device const short4*,
                    device const short4*,
                    device short4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("sub_aa_i8") ]]
 kernel void sub_aa(device const char4*,
                    device const char4*,
                    device char4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("sub_aa_ui8") ]]
 kernel void sub_aa(device const uchar4*,
                    device const uchar4*,
                    device uchar4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 
@@ -584,64 +544,48 @@ template [[ host_name("mul_aa_f32") ]]
 kernel void mul_aa(device const float4*,
                    device const float4*,
                    device float4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("mul_aa_f16") ]]
 kernel void mul_aa(device const half4*,
                    device const half4*,
                    device half4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("mul_aa_bf16") ]]
 kernel void mul_aa(device const bfloat4*,
                    device const bfloat4*,
                    device bfloat4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("mul_aa_i64") ]]
 kernel void mul_aa(device const long4*,
                    device const long4*,
                    device long4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("mul_aa_i32") ]]
 kernel void mul_aa(device const int4*,
                    device const int4*,
                    device int4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("mul_aa_i16") ]]
 kernel void mul_aa(device const short4*,
                    device const short4*,
                    device short4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("mul_aa_i8") ]]
 kernel void mul_aa(device const char4*,
                    device const char4*,
                    device char4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("mul_aa_ui8") ]]
 kernel void mul_aa(device const uchar4*,
                    device const uchar4*,
                    device uchar4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 
@@ -651,64 +595,48 @@ template [[ host_name("div_aa_f32") ]]
 kernel void div_aa(device const float4*,
                    device const float4*,
                    device float4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("div_aa_f16") ]]
 kernel void div_aa(device const half4*,
                    device const half4*,
                    device half4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("div_aa_bf16") ]]
 kernel void div_aa(device const bfloat4*,
                    device const bfloat4*,
                    device bfloat4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("div_aa_i64") ]]
 kernel void div_aa(device const long4*,
                    device const long4*,
                    device long4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("div_aa_i32") ]]
 kernel void div_aa(device const int4*,
                    device const int4*,
                    device int4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("div_aa_i16") ]]
 kernel void div_aa(device const short4*,
                    device const short4*,
                    device short4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("div_aa_i8") ]]
 kernel void div_aa(device const char4*,
                    device const char4*,
                    device char4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 template [[ host_name("div_aa_ui8") ]]
 kernel void div_aa(device const uchar4*,
                    device const uchar4*,
                    device uchar4*,
-                   constant MatrixSize&,
-                   constant MatrixSize&,
                    uint index [[thread_position_in_grid]]);
 
 
