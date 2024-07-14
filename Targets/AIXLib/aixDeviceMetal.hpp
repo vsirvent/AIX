@@ -73,7 +73,7 @@ public:
 
     void unary(const void* a, size_t size, void* result, DataType dtype) override;
 
-    void fill(const void* scalar, size_t size, void* result, DataType dtype) override;
+    void fill(const void* scalar, DataType srcDType, size_t size, void* result, DataType dstDType) override;
 
     void sum(const void* a, size_t size, void* result, DataType dtype) override;
 
@@ -191,6 +191,16 @@ protected:
     static const std::string& toString(size_t dtype);
     inline static const std::string& toString(DataType dtype);
 
+    template<typename T>
+    static void scalarToVector4(const void* scalar, void* dst)
+    {
+        auto val = *static_cast<const T*>(scalar);
+        static_cast<T*>(dst)[0] =
+        static_cast<T*>(dst)[1] =
+        static_cast<T*>(dst)[2] =
+        static_cast<T*>(dst)[3] = val;
+    }
+
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
     MTL::CommandQueue*     m_cmdQueue{nullptr};
@@ -213,7 +223,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOTranspose2D[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOTranspose[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOCopyAA[aix::DataTypeCount][aix::DataTypeCount];
-    MTL::ComputePipelineState*   m_compFuncPSOFill[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOFill[aix::DataTypeCount][aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount];
     std::vector<MTL::Buffer*>    m_tempBuffers;

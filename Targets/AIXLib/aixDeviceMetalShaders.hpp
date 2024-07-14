@@ -319,15 +319,13 @@ kernel void unary_a(device const T* inA,
 // Fill - Naive Implementation
 // -----------------------------------------------------------------
 template<typename T, typename T2>
-kernel void fill_as(device const T* inA,
-                    constant const T2& scalar,
-                    constant MatrixSize& aSize,
-                    device T* result,
+kernel void fill_aa(device const T* scalar,
+                    device T2* result,
                     uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
     for (size_t i=0; i<ITERATION_SIZE; ++i)
-        result[index + i] = static_cast<T>(static_cast<float4>(scalar));
+        result[index + i] = static_cast<T2>(scalar[0]);
 }
 
 
@@ -1888,59 +1886,323 @@ kernel void unary_a(device const uchar4*,
 
 // Fill
 // -----------------------------------------------------------------
-template [[ host_name("fill_as_f32") ]]
-kernel void fill_as(device const float4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_f32") ]]
+kernel void fill_aa(device const float4*,
                     device float4*,
                     uint index [[thread_position_in_grid]]);
 
-template [[ host_name("fill_as_f16") ]]
-kernel void fill_as(device const half4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_f16") ]]
+kernel void fill_aa(device const float4*,
                     device half4*,
                     uint index [[thread_position_in_grid]]);
 
-template [[ host_name("fill_as_bf16") ]]
-kernel void fill_as(device const bfloat4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_bf16") ]]
+kernel void fill_aa(device const float4*,
                     device bfloat4*,
                     uint index [[thread_position_in_grid]]);
 
-template [[ host_name("fill_as_i64") ]]
-kernel void fill_as(device const long4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_i64") ]]
+kernel void fill_aa(device const float4*,
                     device long4*,
                     uint index [[thread_position_in_grid]]);
 
-template [[ host_name("fill_as_i32") ]]
-kernel void fill_as(device const int4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_i32") ]]
+kernel void fill_aa(device const float4*,
                     device int4*,
                     uint index [[thread_position_in_grid]]);
 
-template [[ host_name("fill_as_i16") ]]
-kernel void fill_as(device const short4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_i16") ]]
+kernel void fill_aa(device const float4*,
                     device short4*,
                     uint index [[thread_position_in_grid]]);
 
-template [[ host_name("fill_as_i8") ]]
-kernel void fill_as(device const char4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_i8") ]]
+kernel void fill_aa(device const float4*,
                     device char4*,
                     uint index [[thread_position_in_grid]]);
 
-template [[ host_name("fill_as_ui8") ]]
-kernel void fill_as(device const uchar4*,
-                    constant const float&,
-                    constant MatrixSize&,
+template [[ host_name("fill_aa_f32_ui8") ]]
+kernel void fill_aa(device const float4*,
+                    device uchar4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_f32") ]]
+kernel void fill_aa(device const half4*,
+                    device float4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_f16") ]]
+kernel void fill_aa(device const half4*,
+                    device half4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_bf16") ]]
+kernel void fill_aa(device const half4*,
+                    device bfloat4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_i64") ]]
+kernel void fill_aa(device const half4*,
+                    device long4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_i32") ]]
+kernel void fill_aa(device const half4*,
+                    device int4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_i16") ]]
+kernel void fill_aa(device const half4*,
+                    device short4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_i8") ]]
+kernel void fill_aa(device const half4*,
+                    device char4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_f16_ui8") ]]
+kernel void fill_aa(device const half4*,
+                    device uchar4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_f32") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device float4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_f16") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device half4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_bf16") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device bfloat4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_i64") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device long4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_i32") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device int4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_i16") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device short4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_i8") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device char4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_bf16_ui8") ]]
+kernel void fill_aa(device const bfloat4*,
+                    device uchar4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_f32") ]]
+kernel void fill_aa(device const long4*,
+                    device float4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_f16") ]]
+kernel void fill_aa(device const long4*,
+                    device half4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_bf16") ]]
+kernel void fill_aa(device const long4*,
+                    device bfloat4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_i64") ]]
+kernel void fill_aa(device const long4*,
+                    device long4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_i32") ]]
+kernel void fill_aa(device const long4*,
+                    device int4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_i16") ]]
+kernel void fill_aa(device const long4*,
+                    device short4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_i8") ]]
+kernel void fill_aa(device const long4*,
+                    device char4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i64_ui8") ]]
+kernel void fill_aa(device const long4*,
+                    device uchar4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_f32") ]]
+kernel void fill_aa(device const int4*,
+                    device float4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_f16") ]]
+kernel void fill_aa(device const int4*,
+                    device half4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_bf16") ]]
+kernel void fill_aa(device const int4*,
+                    device bfloat4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_i64") ]]
+kernel void fill_aa(device const int4*,
+                    device long4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_i32") ]]
+kernel void fill_aa(device const int4*,
+                    device int4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_i16") ]]
+kernel void fill_aa(device const int4*,
+                    device short4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_i8") ]]
+kernel void fill_aa(device const int4*,
+                    device char4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i32_ui8") ]]
+kernel void fill_aa(device const int4*,
+                    device uchar4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_f32") ]]
+kernel void fill_aa(device const short4*,
+                    device float4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_f16") ]]
+kernel void fill_aa(device const short4*,
+                    device half4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_bf16") ]]
+kernel void fill_aa(device const short4*,
+                    device bfloat4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_i64") ]]
+kernel void fill_aa(device const short4*,
+                    device long4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_i32") ]]
+kernel void fill_aa(device const short4*,
+                    device int4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_i16") ]]
+kernel void fill_aa(device const short4*,
+                    device short4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_i8") ]]
+kernel void fill_aa(device const short4*,
+                    device char4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i16_ui8") ]]
+kernel void fill_aa(device const short4*,
+                    device uchar4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_f32") ]]
+kernel void fill_aa(device const char4*,
+                    device float4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_f16") ]]
+kernel void fill_aa(device const char4*,
+                    device half4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_bf16") ]]
+kernel void fill_aa(device const char4*,
+                    device bfloat4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_i64") ]]
+kernel void fill_aa(device const char4*,
+                    device long4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_i32") ]]
+kernel void fill_aa(device const char4*,
+                    device int4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_i16") ]]
+kernel void fill_aa(device const char4*,
+                    device short4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_i8") ]]
+kernel void fill_aa(device const char4*,
+                    device char4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_i8_ui8") ]]
+kernel void fill_aa(device const char4*,
+                    device uchar4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_f32") ]]
+kernel void fill_aa(device const uchar4*,
+                    device float4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_f16") ]]
+kernel void fill_aa(device const uchar4*,
+                    device half4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_bf16") ]]
+kernel void fill_aa(device const uchar4*,
+                    device bfloat4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_i64") ]]
+kernel void fill_aa(device const uchar4*,
+                    device long4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_i32") ]]
+kernel void fill_aa(device const uchar4*,
+                    device int4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_i16") ]]
+kernel void fill_aa(device const uchar4*,
+                    device short4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_i8") ]]
+kernel void fill_aa(device const uchar4*,
+                    device char4*,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fill_aa_ui8_ui8") ]]
+kernel void fill_aa(device const uchar4*,
                     device uchar4*,
                     uint index [[thread_position_in_grid]]);
 

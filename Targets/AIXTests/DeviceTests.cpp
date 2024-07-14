@@ -783,31 +783,59 @@ bool testCopy(Device* testDevice, size_t n)
 
 bool testFill(Device* testDevice, size_t n)
 {
+    unsigned char unifiedScalarValue[sizeof(double)];
+
     for (size_t i=0; i<aix::DataTypeCount; ++i)
     {
-        auto dtype = static_cast<DataType>(i);
-        // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
-
-        aix::Device  refDevice;     // Reference/CPU device.
-        auto scalar       = distr(randGen);
-        auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
-        auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
-
-        refDevice.fill(&scalar, n, cpuResult.data(), dtype);
-        testDevice->fill(&scalar, n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
-
-        // Compare results with the true/reference results
-        if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
+        for (size_t j=0; j<aix::DataTypeCount; ++j)
         {
-            #ifdef DEBUG_LOG
-            std::cout << "----------------------" << std::endl;
-            std::cout << "Scalar: " << scalar << std::endl;
-            std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
-            std::cout << "Device Result" << std::endl << deviceResult << std::endl;
-            #endif
-            return false;
+            auto srcDType = static_cast<DataType>(i);
+            auto dstDType = static_cast<DataType>(j);
+            auto hasFloat64 = srcDType == DataType::kFloat64 || dstDType == DataType::kFloat64;
+
+            // Apple Metal Framework does not support kFloat64 data type.
+            if (testDevice->type() == DeviceType::kGPU_METAL && hasFloat64) continue;
+
+            // Convert the scalar value to unifiedScalarValue. We need a float data without a fraction to eliminate
+            // F16 and BF16 conversion issues.
+            auto scalar = static_cast<float>(static_cast<int>(5 + 5 * distr(randGen)));
+            memset(unifiedScalarValue, 0, sizeof(unifiedScalarValue));
+            switch (srcDType)
+            {
+                case DataType::kFloat64:   *reinterpret_cast<double*    >(unifiedScalarValue) = static_cast<double    >(scalar); break;
+                case DataType::kFloat32:   *reinterpret_cast<float*     >(unifiedScalarValue) = static_cast<float     >(scalar); break;
+                case DataType::kFloat16:   *reinterpret_cast<float16_t* >(unifiedScalarValue) = static_cast<float16_t >(scalar); break;
+                case DataType::kBFloat16:  *reinterpret_cast<bfloat16_t*>(unifiedScalarValue) = static_cast<bfloat16_t>(scalar); break;
+                case DataType::kInt64:     *reinterpret_cast<int64_t*   >(unifiedScalarValue) = static_cast<int64_t   >(scalar); break;
+                case DataType::kInt32:     *reinterpret_cast<int32_t*   >(unifiedScalarValue) = static_cast<int32_t   >(scalar); break;
+                case DataType::kInt16:     *reinterpret_cast<int16_t*   >(unifiedScalarValue) = static_cast<int16_t   >(scalar); break;
+                case DataType::kInt8:      *reinterpret_cast<int8_t*    >(unifiedScalarValue) = static_cast<int8_t    >(scalar); break;
+                case DataType::kUInt8:     *reinterpret_cast<uint8_t*   >(unifiedScalarValue) = static_cast<uint8_t   >(scalar); break;
+                default:
+                    throw std::runtime_error("Data type is not supported in the fill test.");
+                    break;
+            }
+
+            aix::Device  refDevice;     // Reference/CPU device.
+            auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dstDType);
+            auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dstDType);
+
+            // We used unifiedScalarValue to pass a pointer to data to the fill method with its data type.
+            refDevice.fill(&unifiedScalarValue, srcDType, n, cpuResult.data(), dstDType);
+            testDevice->fill(&unifiedScalarValue, srcDType, n, deviceResult.data(), dstDType);
+            testDevice->commitAndWait();
+
+            // Compare results with the true/reference results
+            if (!verifyResults(cpuResult, deviceResult))
+            {
+                #ifdef DEBUG_LOG
+                std::cout << "----------------------" << std::endl;
+                std::cout << "Scalar: " << scalar << std::endl;
+                std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+                std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+                #endif
+                return false;
+            }
         }
     }
 

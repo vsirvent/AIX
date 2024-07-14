@@ -253,22 +253,26 @@ public:
         funcTable[static_cast<size_t>(dtype)](a1, size, result);
     }
 
-    virtual void fill(const void* scalar, const size_t size, void* result, DataType dtype)
+    virtual void fill(const void* scalar, DataType srcDType, size_t size, void* result, DataType dstDType)
     {
-        static const auto funcTable = std::array
+        // Define a function pointer type for the conversion copy functions.
+        using fillFunc = void (*)(const void*, void*, size_t);
+
+        // Create a lookup table of the functions.
+        static const fillFunc funcTable[DataTypeCount][DataTypeCount] =
         {
-            fillGeneric<double    >,
-            fillGeneric<float     >,
-            fillGeneric<float16_t >,
-            fillGeneric<bfloat16_t>,
-            fillGeneric<int64_t   >,
-            fillGeneric<int32_t   >,
-            fillGeneric<int16_t   >,
-            fillGeneric<int8_t    >,
-            fillGeneric<uint8_t   >,
+            { fillGeneric<double, double>,     fillGeneric<double, float>,     fillGeneric<double, float16_t>,     fillGeneric<double, bfloat16_t>,     fillGeneric<double, int64_t>,     fillGeneric<double, int32_t>,     fillGeneric<double, int16_t>,     fillGeneric<double, int8_t>,     fillGeneric<double, uint8_t>     },
+            { fillGeneric<float, double>,      fillGeneric<float, float>,      fillGeneric<float, float16_t>,      fillGeneric<float, bfloat16_t>,      fillGeneric<float, int64_t>,      fillGeneric<float, int32_t>,      fillGeneric<float, int16_t>,      fillGeneric<float, int8_t>,      fillGeneric<float, uint8_t>      },
+            { fillGeneric<float16_t, double>,  fillGeneric<float16_t, float>,  fillGeneric<float16_t, float16_t>,  fillGeneric<float16_t, bfloat16_t>,  fillGeneric<float16_t, int64_t>,  fillGeneric<float16_t, int32_t>,  fillGeneric<float16_t, int16_t>,  fillGeneric<float16_t, int8_t>,  fillGeneric<float16_t, uint8_t>  },
+            { fillGeneric<bfloat16_t, double>, fillGeneric<bfloat16_t, float>, fillGeneric<bfloat16_t, float16_t>, fillGeneric<bfloat16_t, bfloat16_t>, fillGeneric<bfloat16_t, int64_t>, fillGeneric<bfloat16_t, int32_t>, fillGeneric<bfloat16_t, int16_t>, fillGeneric<bfloat16_t, int8_t>, fillGeneric<bfloat16_t, uint8_t> },
+            { fillGeneric<int64_t, double>,    fillGeneric<int64_t, float>,    fillGeneric<int64_t, float16_t>,    fillGeneric<int64_t, bfloat16_t>,    fillGeneric<int64_t, int64_t>,    fillGeneric<int64_t, int32_t>,    fillGeneric<int64_t, int16_t>,    fillGeneric<int64_t, int8_t>,    fillGeneric<int64_t, uint8_t>    },
+            { fillGeneric<int32_t, double>,    fillGeneric<int32_t, float>,    fillGeneric<int32_t, float16_t>,    fillGeneric<int32_t, bfloat16_t>,    fillGeneric<int32_t, int64_t>,    fillGeneric<int32_t, int32_t>,    fillGeneric<int32_t, int16_t>,    fillGeneric<int32_t, int8_t>,    fillGeneric<int32_t, uint8_t>    },
+            { fillGeneric<int16_t, double>,    fillGeneric<int16_t, float>,    fillGeneric<int16_t, float16_t>,    fillGeneric<int16_t, bfloat16_t>,    fillGeneric<int16_t, int64_t>,    fillGeneric<int16_t, int32_t>,    fillGeneric<int16_t, int16_t>,    fillGeneric<int16_t, int8_t>,    fillGeneric<int16_t, uint8_t>    },
+            { fillGeneric<int8_t, double>,     fillGeneric<int8_t, float>,     fillGeneric<int8_t,  float16_t>,    fillGeneric<int8_t,  bfloat16_t>,    fillGeneric<int8_t, int64_t>,     fillGeneric<int8_t, int32_t>,     fillGeneric<int8_t, int16_t>,     fillGeneric<int8_t, int8_t>,     fillGeneric<int8_t, uint8_t>     },
+            { fillGeneric<uint8_t, double>,    fillGeneric<uint8_t, float>,    fillGeneric<uint8_t, float16_t>,    fillGeneric<uint8_t, bfloat16_t>,    fillGeneric<uint8_t, int64_t>,    fillGeneric<uint8_t, int32_t>,    fillGeneric<uint8_t, int16_t>,    fillGeneric<uint8_t, int8_t>,    fillGeneric<uint8_t, uint8_t>    },
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](scalar, size, result);
+        funcTable[static_cast<size_t>(srcDType)][static_cast<size_t>(dstDType)](scalar, result, size);
     }
 
     virtual void sum(const void* a, const size_t size, void* result, DataType dtype)
@@ -588,15 +592,14 @@ protected:
         }
     }
 
-    template <typename T>
-    static void fillGeneric(const void* scalar, const size_t size, void* result)
+    template <typename SrcType, typename DstType>
+    static void fillGeneric(const void* src, void* dst, size_t size)
     {
-        auto scalarValue = *static_cast<const float*>(scalar);    // TODO: Handle multiple scalar types
-        auto res = static_cast<T*>(result);
-
-        for (size_t i = 0; i < size; ++i)
+        auto tSrc = static_cast<const SrcType*>(src);
+        auto tDst = static_cast<DstType*>(dst);
+        for (size_t i=0; i<size; ++i)
         {
-            res[i] = scalarValue;
+            tDst[i] = static_cast<DstType>(tSrc[0]);
         }
     }
 
@@ -879,7 +882,7 @@ public:
         // Each tensor array must use device specific memory allocator.
         m_data = device->allocate(m_size, dType);
         // initialize data.
-        device->fill(&value, m_size, m_data, dType);
+        device->fill(&value, DataType::kFloat32, m_size, m_data, dType);
         m_strides = computeStrides();
     }
 
@@ -908,7 +911,7 @@ public:
         // Each tensor array must use device specific memory allocator.
         m_size = 1;
         m_data = device->allocate(m_size, dType);
-        device->fill(&value, m_size, m_data, dType);
+        device->fill(&value, DataType::kFloat32, m_size, m_data, dType);
         m_strides = computeStrides();
     }
 
@@ -1270,7 +1273,7 @@ public:
 
     void fill(float value) const
     {
-        m_device->fill(&value, m_size, m_data, m_dType);
+        m_device->fill(&value, DataType::kFloat32, m_size, m_data, m_dType);
     }
 
     TensorValue sum() const

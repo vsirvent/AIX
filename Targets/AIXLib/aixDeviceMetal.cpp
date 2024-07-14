@@ -17,6 +17,7 @@
 // External includes
 #include <Metal/Metal.hpp>
 // System includes
+#include <array>
 
 
 namespace aix
@@ -40,6 +41,8 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
             bool isNull = iDType == DataType::kFloat64 || jDType == DataType::kFloat64;
             std::string kernelName = "copy_aa_" + toString(i) + "_" + toString(j);
             m_compFuncPSOCopyAA[i][j] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : kernelName);
+            kernelName = "fill_aa_" + toString(i) + "_" + toString(j);
+            m_compFuncPSOFill[i][j]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : kernelName);
         }
 
         // Metal Framework does not support kFloat64 format.
@@ -61,7 +64,6 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOMatMul[i]      = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_aa_" + dtypeStr);
         m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_a_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
-        m_compFuncPSOFill[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "fill_as_" + dtypeStr);
         m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_a_" + dtypeStr);
         m_compFuncPSOReduceTo[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "reduceTo_a_" + dtypeStr);
     }
@@ -80,6 +82,7 @@ DeviceMetal::~DeviceMetal()
         for (size_t j=0; j<aix::DataTypeCount; ++j)
         {
             m_compFuncPSOCopyAA[i][j]->release();
+            m_compFuncPSOFill[i][j]->release();
         }
         m_compFuncPSOAdd[i]->release();
         m_compFuncPSOSub[i]->release();
@@ -97,7 +100,6 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOMatMul[i]->release();
         m_compFuncPSOTranspose2D[i]->release();
         m_compFuncPSOTranspose[i]->release();
-        m_compFuncPSOFill[i]->release();
         m_compFuncPSOBroadcastTo[i]->release();
         m_compFuncPSOReduceTo[i]->release();
     }
@@ -162,10 +164,46 @@ void DeviceMetal::unary(const void* a, size_t size, void* result, DataType dtype
     executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOUnary[iDType], dtype, "unary_" + toString(dtype));
 }
 
-void DeviceMetal::fill(const void* scalar, size_t size, void* result, DataType dtype)
+void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void* result, DataType dstDType)
 {
-    auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(nullptr, *(float*)scalar, size, result, m_compFuncPSOFill[iDType], dtype, "fill_" + toString(dtype));
+    validateDataType(srcDType);
+    validateDataType(dstDType);
+    auto iSrcDType = static_cast<size_t>(srcDType);
+    auto iDstDType = static_cast<size_t>(dstDType);
+
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (m_allocMap.find(result) == m_allocMap.end())
+        throw std::invalid_argument("DeviceMetal::fill() result must have GPU memory.");
+
+    // bufScalar is a temporary size aligned buffer to be used as vector of 4.
+    auto bufScalar = newBuffer(dataTypeSize(srcDType) * 4);
+    auto bufResult = m_allocMap[result];
+
+    // Convert scalar value to a vector of 4 to be use in SIMD operation. i.e. float -> float4
+    static const auto swizzleFuncTable = std::array
+    {
+        scalarToVector4<double>,
+        scalarToVector4<float>,
+        scalarToVector4<float16_t>,
+        scalarToVector4<bfloat16_t>,
+        scalarToVector4<int64_t>,
+        scalarToVector4<int32_t>,
+        scalarToVector4<int16_t>,
+        scalarToVector4<int8_t>,
+        scalarToVector4<uint8_t>,
+    };
+    swizzleFuncTable[static_cast<size_t>(srcDType)](scalar, bufScalar->contents());
+
+    // Calculate maximum thread group dimensions
+    auto asize = align(size, ALIGNMENT_SIZE);
+    auto compFuncPSO = m_compFuncPSOFill[iSrcDType][iDstDType];
+    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup()) / ALIGNMENT_SIZE;
+    asize /= ALIGNMENT_SIZE;
+
+    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+    sendComputeCommandSingleBuffer(bufScalar, {0,0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
+
+    freeTemporaryBuffer(bufScalar);
 }
 
 void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
