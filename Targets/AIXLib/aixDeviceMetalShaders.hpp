@@ -41,6 +41,7 @@ kernel void add_aa(device const T* inA,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = inA[index + i] + inB[index + i];
 }
@@ -55,6 +56,7 @@ kernel void sub_aa(device const T* inA,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = inA[index + i] - inB[index + i];
 }
@@ -69,6 +71,7 @@ kernel void mul_aa(device const T* inA,
                   uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = inA[index + i] * inB[index + i];
 }
@@ -83,6 +86,7 @@ kernel void div_aa(device const T* inA,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = inA[index + i] / inB[index + i];
 }
@@ -98,6 +102,7 @@ kernel void sqrt_a(device const T* inA,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T>(sqrt(static_cast<float4>(inA[index + i])));
 }
@@ -113,6 +118,7 @@ kernel void sin_a(device const T* inA,
                   uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T>(sin(static_cast<float4>(inA[index + i])));
 }
@@ -128,6 +134,7 @@ kernel void cos_a(device const T* inA,
                   uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T>(cos(static_cast<float4>(inA[index + i])));
 }
@@ -143,6 +150,7 @@ kernel void tanh_a(device const T* inA,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T>(tanh(static_cast<float4>(inA[index + i])));
 }
@@ -158,6 +166,7 @@ kernel void log_a(device const T* inA,
                   uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T>(log(static_cast<float4>(inA[index + i])));
 }
@@ -173,6 +182,7 @@ kernel void exp_a(device const T* inA,
                   uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T>(exp(static_cast<float4>(inA[index + i])));
 }
@@ -189,6 +199,7 @@ kernel void pow_aa(device const T* inA,
                    uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T>(pow(static_cast<float4>(inA[index + i]), static_cast<float4>(expA[index + i])));
 }
@@ -288,6 +299,7 @@ kernel void copy_aa(device const ST* src,
                     uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         dst[index + i] = static_cast<DT>(src[index + i]);
 }
@@ -303,6 +315,7 @@ kernel void unary_a(device const T* inA,
                     uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = -inA[index + i];
 }
@@ -316,6 +329,7 @@ kernel void fill_aa(device const T* scalar,
                     uint index [[thread_position_in_grid]])
 {
     index *= ITERATION_SIZE;
+    #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
         result[index + i] = static_cast<T2>(scalar[0]);
 }
