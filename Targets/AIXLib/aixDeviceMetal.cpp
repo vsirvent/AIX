@@ -409,9 +409,10 @@ void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape&
 {
     validateDataType(dtype);
     // NOTE: Metal Framework supports add and sub operations for only atomic_float, atomic_uint and atomic_int.
-    //       Since reduceTo uses atomic<T>, we can only allow certain formats for acceleration.
+    //       Since reduceTo uses atomic<T>, we can only allow certain formats for acceleration for now.
     if (!(dtype == DataType::kFloat32 || dtype == DataType::kInt32))
     {
+        commitAndWait();
         Device::reduceTo(src, dst, size, shape, newShape, dtype);
         return;
     }
