@@ -2110,6 +2110,18 @@ public:
         return sum() / value().size();
     }
 
+    Tensor pow(float exp) const
+    {
+        TensorOptions opt{ .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() };
+        Tensor expTensor(exp, shape(), opt);
+        Tensor result(shape(), opt);
+        result.m_data->m_value = m_data->m_value.pow(expTensor.m_data->m_value);
+        result.m_data->m_a = m_data;
+        result.m_data->m_b = expTensor.m_data;
+        result.m_data->m_backwardFunc = powBackwardFunc;
+        return result;
+    }
+
     Tensor pow(const Tensor & other) const
     {
         auto promotedDType = promoteDataType(dataType(), other.dataType());
@@ -2547,7 +2559,7 @@ public:
     // Forward
     Tensor forward(Tensor x) const override
     {
-        return 0.5 * x * (1.0 + tanh(std::sqrtf(2.0 / std::numbers::pi) * (x + 0.044715 * x * x * x)));
+        return 0.5 * x * (1.0 + tanh(std::sqrtf(2.0 / std::numbers::pi) * (x + 0.044715 * x.pow(3))));
     }
 };
 
