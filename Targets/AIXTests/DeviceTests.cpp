@@ -418,7 +418,7 @@ bool testTanh(Device* testDevice, size_t n)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array1" << std::endl << array1.value() << std::endl;
+            std::cout << "Array" << std::endl << array.value() << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
@@ -450,7 +450,7 @@ bool testLog(Device* testDevice, size_t n)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array1" << std::endl << array1.value() << std::endl;
+            std::cout << "Array" << std::endl << array.value() << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
