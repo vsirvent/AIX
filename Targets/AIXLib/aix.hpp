@@ -1129,6 +1129,7 @@ public:
     // Returns a broadcasted TensorValue with a new shape.
     TensorValue broadcastTo(const Shape& newShape) const
     {
+        if (shape() == newShape) return *this;
         if (!checkBroadcastTo(shape(), newShape))
         {
             throw std::invalid_argument("Target TensorValue shape is not broadcastable.");
@@ -1142,6 +1143,7 @@ public:
     // Reduces the TensorValue back to the original shape.
     TensorValue reduceTo(const Shape & originalShape) const
     {
+        if (shape() == originalShape) return *this;
         // Ensure tensor values are initialized to zero, as the reduction operation performs a summation.
         TensorValue result(0, originalShape, device(), m_dType);
         device()->reduceTo(m_data, result.data(), m_size, m_shape, originalShape, m_dType);
@@ -1747,6 +1749,7 @@ public:
 
     Tensor broadcastTo(const Shape & newShape) const
     {
+        if (shape() == newShape) return *this;
         TensorValue tValue = m_data->m_value.broadcastTo(newShape);
         Tensor result{tValue.data(), tValue.size(), tValue.dataType(), tValue.shape(),
                       { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device()}};
