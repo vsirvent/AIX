@@ -1618,8 +1618,8 @@ class TensorNode
 {
 public:
     // Constructor
-    explicit TensorNode(const TensorValue & value, bool requireGrad = false) :
-        m_value{value}, m_grad{value.shape(), value.device(), value.size(), value.strides(), value.dataType()},
+    explicit TensorNode(TensorValue value, bool requireGrad = false) :
+        m_value{std::move(value)}, m_grad{m_value.shape(), m_value.device(), m_value.size(), m_value.strides(), m_value.dataType()},
         m_requireGrad{requireGrad}
     {
     }
