@@ -95,42 +95,49 @@ TEST_CASE("Model Forward Test - XOR")
 
 TEST_CASE("Model - Save/Load Test")
 {
-    constexpr int kNumSamples  = 4;
-    constexpr int kNumInputs   = 2;
-    constexpr int kNumTargets  = 1;
-    std::string testModelFile = "model_save_load_test.pth";
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto dtype = static_cast<DataType>(i);
 
-    aix::nn::Sequential model1;
-    model1.add(new aix::nn::Linear(kNumInputs, 1000));
-    model1.add(new aix::nn::Tanh());
-    model1.add(new aix::nn::Linear(1000, 500));
-    model1.add(new aix::nn::Tanh());
-    model1.add(new aix::nn::Linear(500, kNumTargets));
+        constexpr int kNumSamples  = 4;
+        constexpr int kNumInputs   = 2;
+        constexpr int kNumTargets  = 1;
+        std::string testModelFile = "model_save_load_test.pth" + std::to_string(i);
 
-    // Example inputs and targets for demonstration purposes.
-    auto inputs = aix::tensor({0.0, 0.0,
-                               0.0, 1.0,
-                               1.0, 0.0,
-                               1.0, 1.0}, {kNumSamples, kNumInputs});
+        aix::nn::Sequential model1;
+        model1.add(new aix::nn::Linear(kNumInputs, 1000));
+        model1.add(new aix::nn::Tanh());
+        model1.add(new aix::nn::Linear(1000, 500));
+        model1.add(new aix::nn::Tanh());
+        model1.add(new aix::nn::Linear(500, kNumTargets));
+        model1.to(dtype);
 
-    // Save test model1 parameters
-    aix::save(model1, testModelFile);
+        // Example inputs and targets for demonstration purposes.
+        auto inputs = aix::tensor({0.0, 0.0,
+                                   0.0, 1.0,
+                                   1.0, 0.0,
+                                   1.0, 1.0}, {kNumSamples, kNumInputs}).to(dtype);
 
-    aix::nn::Sequential model2;
-    model2.add(new aix::nn::Linear(kNumInputs, 1000));
-    model2.add(new aix::nn::Tanh());
-    model2.add(new aix::nn::Linear(1000, 500));
-    model2.add(new aix::nn::Tanh());
-    model2.add(new aix::nn::Linear(500, kNumTargets));
+        // Save test model1 parameters
+        aix::save(model1, testModelFile);
 
-    // Load test model1 parameters into model2
-    aix::load(model2, testModelFile);
+        aix::nn::Sequential model2;
+        model2.add(new aix::nn::Linear(kNumInputs, 1000));
+        model2.add(new aix::nn::Tanh());
+        model2.add(new aix::nn::Linear(1000, 500));
+        model2.add(new aix::nn::Tanh());
+        model2.add(new aix::nn::Linear(500, kNumTargets));
+        model2.to(dtype);
 
-    auto predictions1 = model1.forward(inputs);
-    auto predictions2 = model2.forward(inputs);
+        // Load test model1 parameters into model2
+        aix::load(model2, testModelFile);
 
-    CheckVectorApproxValues(predictions1, predictions2);
+        auto predictions1 = model1.forward(inputs);
+        auto predictions2 = model2.forward(inputs);
 
-    // The test file will be deleted only if there is no error during CHECKs.
-    std::filesystem::remove(testModelFile);
+        CheckVectorApproxValues(predictions1, predictions2);
+
+        // The test file will be deleted only if there is no error during CHECKs.
+        std::filesystem::remove(testModelFile);
+    }
 }
