@@ -856,7 +856,7 @@ public:
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
         m_data = device->allocate(size, dType);
-        device->copyImmediate(data, srcDType, m_data, dType, size);
+        device->copy(data, srcDType, m_data, dType, size);
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
         m_strides = computeStrides();
@@ -868,7 +868,7 @@ public:
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
         m_data = device->allocate(data.size(), dType);
-        device->copyImmediate(data.begin(), getDataType<T>(), m_data, dType, data.size());
+        device->copy(data.begin(), getDataType<T>(), m_data, dType, data.size());
         m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
         m_strides = computeStrides();
@@ -932,7 +932,7 @@ public:
         m_strides = other.m_strides;
         m_device  = other.m_device;
         m_data    = m_device->allocate(other.m_size, other.m_dType);
-        m_device->copyImmediate(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
+        m_device->copy(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
     }
 
     // Copy assignment operator
@@ -947,7 +947,7 @@ public:
             m_strides = other.m_strides;
             m_device  = other.m_device;
             m_data    = m_device->allocate(other.m_size, other.m_dType);
-            m_device->copyImmediate(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
+            m_device->copy(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
         }
 
         return *this;
@@ -1028,7 +1028,7 @@ public:
         // Create a new array from the new device.
         auto newData = device->allocate(m_size, m_dType);
         // Copy old data to the new array.
-        device->copyImmediate(m_data, m_dType, newData, m_dType, m_size);
+        device->copy(m_data, m_dType, newData, m_dType, m_size);
         // Delete old data from old device.
         m_device->deallocate(m_data);
         // Set new data and the new device.

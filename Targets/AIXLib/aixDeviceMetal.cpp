@@ -175,12 +175,15 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
     if (m_allocMap.find(result) == m_allocMap.end())
         throw std::invalid_argument("DeviceMetal::fill() result must have GPU memory.");
 
+    if (m_allocMap.find(scalar) != m_allocMap.end())
+        throw std::invalid_argument("DeviceMetal::fill() scalar address cannot be a device-allocated address.");
+
     // bufScalar is a temporary size aligned buffer to be used as vector of 4.
     auto bufScalar = newBuffer(dataTypeSize(srcDType) * 4);
     auto bufResult = m_allocMap[result];
 
     // Convert scalar value to a vector of 4 to be use in SIMD operation. i.e. float -> float4
-    static const auto swizzleFuncTable = std::array
+    static const auto scalarToVector4FuncTable = std::array
     {
         scalarToVector4<double>,
         scalarToVector4<float>,
@@ -192,7 +195,7 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
         scalarToVector4<int8_t>,
         scalarToVector4<uint8_t>,
     };
-    swizzleFuncTable[static_cast<size_t>(srcDType)](scalar, bufScalar->contents());
+    scalarToVector4FuncTable[static_cast<size_t>(srcDType)](scalar, bufScalar->contents());
 
     // Calculate maximum thread group dimensions
     auto asize = align(size, ALIGNMENT_SIZE);
@@ -471,6 +474,7 @@ MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size
     // Memory could be from other devices. Create a temporary buffer for read only case.
     if (m_allocMap.find(address) == m_allocMap.end())
     {
+        commitAndWait();
         size = align(size, ALIGNMENT_SIZE);
         return newBufferWithAddress(address, size * sizeofType);
     }
