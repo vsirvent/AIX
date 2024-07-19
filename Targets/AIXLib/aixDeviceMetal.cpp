@@ -126,7 +126,7 @@ void* DeviceMetal::allocate(size_t size, DataType dtype)
 // Deallocate GPU memory if it's allocated by current device.
 void DeviceMetal::deallocate(void * memory)
 {
-    if (m_allocMap.find(memory) == m_allocMap.end())
+    if (!isDeviceBuffer(memory))
         throw std::invalid_argument("DeviceMetal::deallocate() - Found different type of memory to free.");
     auto mtlBuf = m_allocMap[memory];
     m_allocMap.erase(memory);
@@ -172,10 +172,10 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
     auto iDstDType = static_cast<size_t>(dstDType);
 
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(result) == m_allocMap.end())
+    if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::fill() result must have GPU memory.");
 
-    if (m_allocMap.find(scalar) != m_allocMap.end())
+    if (isDeviceBuffer(scalar))
         throw std::invalid_argument("DeviceMetal::fill() scalar address cannot be a device-allocated address.");
 
     // bufScalar is a temporary size aligned buffer to be used as vector of 4.
@@ -215,7 +215,7 @@ void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
     auto compFuncPSO = m_compFuncPSOSum[iDType];
 
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(result) == m_allocMap.end())
+    if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::sum() result must have GPU memory.");
 
     size_t maxThreadsPerTG = std::min<size_t>(MAX_THREADS_PER_THREADGROUP, compFuncPSO->maxTotalThreadsPerThreadgroup());
@@ -294,7 +294,7 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     auto compFuncPSO = m_compFuncPSOMatMul[iDType];
 
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(result) == m_allocMap.end())
+    if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::matmul() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
@@ -329,7 +329,7 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_
 
     validateDataType(dtype);
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(result) == m_allocMap.end())
+    if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::transpose() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
@@ -376,7 +376,7 @@ void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType d
     auto iDstDType = static_cast<size_t>(dstDType);
 
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(dst) == m_allocMap.end())
+    if (!isDeviceBuffer(dst))
         throw std::invalid_argument("DeviceMetal::copy() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
@@ -472,7 +472,7 @@ MTL::Buffer* DeviceMetal::newBufferWithAddress(const void* address, size_t size)
 MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType)
 {
     // Memory could be from other devices. Create a temporary buffer for read only case.
-    if (m_allocMap.find(address) == m_allocMap.end())
+    if (!isDeviceBuffer(address))
     {
         commitAndWait();
         size = align(size, ALIGNMENT_SIZE);
@@ -486,7 +486,7 @@ MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size
 void DeviceMetal::freeTemporaryBuffer(MTL::Buffer * buffer)
 {
     // Release only temporary buffer.
-    if (m_allocMap.find(buffer->contents()) == m_allocMap.end())
+    if (!isDeviceBuffer(buffer->contents()))
     {
         // Add the buffer to the list to be released when commitAndWait() is executed.
         // Until then, the buffer could be in use, especially when a batch command is used.
@@ -654,7 +654,7 @@ void DeviceMetal::executeArrayScalarCmd(const void* a,
 {
     validateDataType(dtype);
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(result) == m_allocMap.end())
+    if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
     // Set constants
@@ -686,7 +686,7 @@ void DeviceMetal::executeDoubleArrayCmd(const void* a1,
 {
     validateDataType(dtype);
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(result) == m_allocMap.end())
+    if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.
@@ -712,7 +712,7 @@ void DeviceMetal::translation(const void* src, void* dst, size_t size, const Sha
 {
     validateDataType(dtype);
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(dst) == m_allocMap.end())
+    if (!isDeviceBuffer(dst))
         throw std::invalid_argument("DeviceMetal::" + name + "() result must have GPU memory.");
 
     // For a special case, two scalar tensors, use just a copy operation.
@@ -762,7 +762,7 @@ void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result,
     validateDataType(dtype);
     auto iDType = static_cast<size_t>(dtype);
     // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (m_allocMap.find(result) == m_allocMap.end())
+    if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::transpose2D() result must have GPU memory.");
 
     // Memory could be a GPU allocated memory or system memory.

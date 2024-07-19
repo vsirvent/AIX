@@ -120,6 +120,11 @@ protected:
         return (size + alignment - 1) & ~(alignment - 1);       // Padding for alignment.
     }
 
+    inline bool isDeviceBuffer(const void* bufPtr)
+    {
+        return m_allocMap.find(bufPtr) != m_allocMap.end();
+    }
+
     MTL::Buffer* newBuffer(size_t size);
 
     MTL::Buffer* newBufferWithAddress(const void* address, size_t size);
