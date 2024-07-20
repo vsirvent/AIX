@@ -71,6 +71,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
 
     m_cmdQueue = createCommandQueue();
     m_cmdBuffer = m_cmdQueue->commandBuffer();
+    m_cmdBuffer->addCompletedHandler(CommandBufferCompletionHandler);
 }
 
 // Destructor
@@ -839,6 +840,40 @@ void DeviceMetal::validateDataType(DataType dtype)
     if (dtype == aix::DataType::kFloat64)
     {
         throw std::invalid_argument("Apple Metal Framework does not support Float64 data type.");
+    }
+}
+
+void DeviceMetal::CommandBufferCompletionHandler(const MTL::CommandBuffer* commandBuffer)
+{
+    if (commandBuffer->status() == MTL::CommandBufferStatusError)
+    {
+        auto error = commandBuffer->error();
+        if (error)
+        {
+            std::string errorMsg = "Command buffer execution failed due to ";
+            switch (error->code())
+            {
+                case MTL::CommandBufferError::CommandBufferErrorOutOfMemory:
+                    errorMsg += "insufficient memory.";
+                    break;
+                case MTL::CommandBufferError::CommandBufferErrorTimeout:
+                    errorMsg += "timeout.";
+                    break;
+                case MTL::CommandBufferError::CommandBufferErrorStackOverflow:
+                    errorMsg += "stack overflow.";
+                    break;
+                case MTL::CommandBufferError::CommandBufferErrorInvalidResource:
+                    errorMsg += "invalid resource.";
+                    break;
+                case MTL::CommandBufferError::CommandBufferErrorPageFault:
+                    errorMsg += "page fault.";
+                    break;
+                default:
+                    errorMsg = "Command buffer execution failed with error code: " + std::to_string(error->code());
+                    break;
+            }
+            std::cerr << errorMsg << std::endl;
+        }
     }
 }
 

@@ -206,6 +206,8 @@ protected:
         static_cast<T*>(dst)[3] = val;
     }
 
+    static void CommandBufferCompletionHandler(const MTL::CommandBuffer* commandBuffer);
+
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
     MTL::CommandQueue*     m_cmdQueue{nullptr};
