@@ -235,6 +235,8 @@ protected:
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     size_t   m_currentBatchSize{0};
     size_t   m_maxBatchSize{0};
+    size_t   m_maxWorkingSetSize{0};
+    size_t   m_currentWorkingSetSize{0};
 };
 
 }   // namespace

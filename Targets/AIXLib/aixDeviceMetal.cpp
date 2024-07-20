@@ -28,6 +28,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
     // Create autorelease pool.
     m_pool = NS::AutoreleasePool::alloc()->init();
     m_mtlDevice = createMTLDevice(deviceIndex);
+    m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.8);
     auto defaultLibrary = createLibrary(aix::shaders::aixDeviceMetalShaders);
     auto nullKernelName = "nullKernel";
 
@@ -448,13 +449,29 @@ void DeviceMetal::commitAndWait()
     // Update batch size metrics.
     m_maxBatchSize = std::max(m_currentBatchSize, m_maxBatchSize);
     m_currentBatchSize = 0;
+    m_currentWorkingSetSize = 0;
 }
 
 
 MTL::Buffer* DeviceMetal::newBuffer(size_t size)
 {
     assert(size > 0);
+
+    if (m_currentWorkingSetSize + size >= m_maxWorkingSetSize && m_currentBatchSize > 0)
+    {
+        commitAndWait();
+    }
+
     auto buffer = m_mtlDevice->newBuffer(size, MTL::ResourceStorageModeShared);
+    m_currentWorkingSetSize += size;
+
+    if (!buffer)
+    {
+        commitAndWait();
+        buffer = m_mtlDevice->newBuffer(size, MTL::ResourceStorageModeShared);
+        if (!buffer)
+            throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
+    }
     assert(buffer);
     return buffer;
 }
@@ -463,7 +480,22 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
 MTL::Buffer* DeviceMetal::newBufferWithAddress(const void* address, size_t size)
 {
     assert(size > 0);
+
+    if (m_currentWorkingSetSize + size >= m_maxWorkingSetSize && m_currentBatchSize > 0)
+    {
+        commitAndWait();
+    }
+
     auto buffer = m_mtlDevice->newBuffer(address, size, MTL::ResourceStorageModeShared);
+    m_currentWorkingSetSize += size;
+
+    if (!buffer)
+    {
+        commitAndWait();
+        buffer = m_mtlDevice->newBuffer(address, size, MTL::ResourceStorageModeShared);
+        if (!buffer)
+            throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
+    }
     assert(buffer);
     return buffer;
 }

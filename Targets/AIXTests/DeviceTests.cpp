@@ -1739,3 +1739,28 @@ TEST_CASE("Device Tests - batch compute")
         }
     }
 }
+
+
+TEST_CASE("Device Tests - long command batch queue")
+{
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aix::createDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+
+        size_t size = 1024 * 1024;
+        std::vector<float> data(size, 1);
+        auto x = aix::tensor(data, { .dtype=aix::DataType::kFloat32, .device=device.get() }).reshape({1, size});
+        auto y = aix::tensor(data, { .dtype=aix::DataType::kFloat32, .device=device.get() }).reshape({1, size});
+        auto z = x + y;
+
+        for (size_t i=1; i<1024; ++i)
+        {
+            z = z + x + y;
+        }
+        device->commitAndWait();
+
+        CHECK(z.value().data<float>()[0] == 2048);
+    }
+}
