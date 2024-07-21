@@ -478,30 +478,6 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
 }
 
 
-MTL::Buffer* DeviceMetal::newBufferWithAddress(const void* address, size_t size)
-{
-    assert(size > 0);
-
-    if (m_currentWorkingSetSize + size >= m_maxWorkingSetSize && m_currentBatchSize > 0)
-    {
-        commitAndWait();
-    }
-
-    auto buffer = m_mtlDevice->newBuffer(address, size, MTL::ResourceStorageModeShared);
-    m_currentWorkingSetSize += size;
-
-    if (!buffer)
-    {
-        commitAndWait();
-        buffer = m_mtlDevice->newBuffer(address, size, MTL::ResourceStorageModeShared);
-        if (!buffer)
-            throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
-    }
-    assert(buffer);
-    return buffer;
-}
-
-
 MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType)
 {
     // Memory could be from other devices. Create a temporary buffer for read only case.
