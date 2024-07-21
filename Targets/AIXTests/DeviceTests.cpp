@@ -299,8 +299,7 @@ bool testSqrt(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kInt64)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -370,8 +369,7 @@ bool testCos(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kInt64)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -406,8 +404,7 @@ bool testTanh(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kInt64)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -439,8 +436,7 @@ bool testLog(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kInt64)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -472,8 +468,7 @@ bool testExp(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kInt64)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -505,8 +500,7 @@ bool testPow(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kInt64)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -581,8 +575,7 @@ bool testDiv(Device* testDevice, size_t n)
     {
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kInt64)) continue;
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -620,8 +613,7 @@ bool testMatMul(Device* testDevice, size_t n, size_t inner, size_t m)
         auto dtype = static_cast<DataType>(i);
         // Apple Metal Framework does not support kFloat64 data type.
         if (testDevice->type() == DeviceType::kGPU_METAL &&
-            (dtype == DataType::kFloat64 || dtype == DataType::kFloat16 || dtype == DataType::kBFloat16 ||
-             dtype == DataType::kInt64)) continue;
+            (dtype == DataType::kFloat64 || dtype == DataType::kFloat16 || dtype == DataType::kBFloat16)) continue;
 
         aix::Device  refDevice;     // Reference/CPU device.
 
@@ -802,7 +794,7 @@ bool testFill(Device* testDevice, size_t n)
             auto hasFloat64 = srcDType == DataType::kFloat64 || dstDType == DataType::kFloat64;
 
             // Apple Metal Framework does not support kFloat64 data type.
-            if (testDevice->type() == DeviceType::kGPU_METAL && (hasFloat64 || dstDType == DataType::kInt64)) continue;
+            if (testDevice->type() == DeviceType::kGPU_METAL && hasFloat64) continue;
 
             // Convert the scalar value to unifiedScalarValue. We need a float data without a fraction to eliminate
             // F16 and BF16 conversion issues.

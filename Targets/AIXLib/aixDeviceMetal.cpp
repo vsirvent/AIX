@@ -122,7 +122,7 @@ void* DeviceMetal::allocate(size_t size)
 
 void* DeviceMetal::allocate(size_t size, DataType dtype)
 {
-    return allocate(size * dataTypeSize(dtype));
+    return allocate(align(size, TOTAL_COMPONENT_COUNT) * dataTypeSize(dtype));
 }
 
 // Deallocate GPU memory if it's allocated by current device.
@@ -131,7 +131,6 @@ void DeviceMetal::deallocate(void * memory)
     if (!isDeviceBuffer(memory))
         throw std::invalid_argument("DeviceMetal::deallocate() - Found different type of memory to free.");
     auto mtlBuf = m_allocMap[memory];
-    m_allocMap.erase(memory);
     // IMPORTANT: Delay all deallocations of device buffers until all commands in the batch queue are executed.
     m_tempBuffers.emplace_back(mtlBuf);
 }
@@ -185,10 +184,10 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, ALIGNMENT_SIZE);
+    auto asize = align(size, TOTAL_COMPONENT_COUNT);
     auto compFuncPSO = m_compFuncPSOFill[iSrcDType][iDstDType];
-    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup()) / ALIGNMENT_SIZE;
-    asize /= ALIGNMENT_SIZE;
+    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
+    asize /= TOTAL_COMPONENT_COUNT;
 
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     sendComputeCommandSingleBuffer(bufScalar, {0,0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
@@ -371,10 +370,10 @@ void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType d
     auto bufResult = m_allocMap[dst];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, ALIGNMENT_SIZE);
+    auto asize = align(size, TOTAL_COMPONENT_COUNT);
     auto compFuncPSO = m_compFuncPSOCopyAA[iSrcDType][iDstDType];
-    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup()) / ALIGNMENT_SIZE;
-    asize /= ALIGNMENT_SIZE;
+    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
+    asize /= TOTAL_COMPONENT_COUNT;
 
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     sendComputeCommandSingleBuffer(buf1, {1, size}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
@@ -424,7 +423,10 @@ void DeviceMetal::commitAndWait()
 
     // Release all temporary buffers.
     for (auto buf : m_tempBuffers)
+    {
+        m_allocMap.erase(buf->contents());
         buf->release();
+    }
 
     m_tempBuffers.clear();
     m_tempBuffers.reserve(MAX_CMD_BATCH_SIZE * 2);
@@ -442,19 +444,20 @@ void DeviceMetal::commitAndWait()
 MTL::Buffer* DeviceMetal::newBuffer(size_t size)
 {
     assert(size > 0);
+    size_t asize = align(size, ALLOCATION_BYTE_ALIGNMENT_SIZE);
 
-    if (m_currentWorkingSetSize + size >= m_maxWorkingSetSize && m_currentBatchSize > 0)
+    if (m_currentWorkingSetSize + asize >= m_maxWorkingSetSize && m_currentBatchSize > 0)
     {
         commitAndWait();
     }
 
-    auto buffer = m_mtlDevice->newBuffer(size, MTL::ResourceStorageModeShared);
-    m_currentWorkingSetSize += size;
+    auto buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
+    m_currentWorkingSetSize += asize;
 
     if (!buffer)
     {
         commitAndWait();
-        buffer = m_mtlDevice->newBuffer(size, MTL::ResourceStorageModeShared);
+        buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
         if (!buffer)
             throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
     }
@@ -468,7 +471,7 @@ MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size
     // Memory could be from other devices. Create a temporary buffer for read only case.
     if (!isDeviceBuffer(address))
     {
-        auto asize = align(size, ALIGNMENT_SIZE);
+        auto asize = align(size, TOTAL_COMPONENT_COUNT);
         auto buff = newBuffer(asize * sizeofType);
         std::memcpy(buff->contents(), address, size * sizeofType);
         return buff;
@@ -657,9 +660,9 @@ void DeviceMetal::executeArrayScalarCmd(const void* a,
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, ALIGNMENT_SIZE);
-    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup()) / ALIGNMENT_SIZE;
-    asize /= ALIGNMENT_SIZE;
+    auto asize = align(size, TOTAL_COMPONENT_COUNT);
+    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
+    asize /= TOTAL_COMPONENT_COUNT;
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     sendComputeCommandArrayScalar(buf1, {1, size}, scalar, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 
@@ -690,9 +693,9 @@ void DeviceMetal::executeDoubleArrayCmd(const void* a1,
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, ALIGNMENT_SIZE);
-    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup()) / ALIGNMENT_SIZE;
-    asize /= ALIGNMENT_SIZE;
+    auto asize = align(size, TOTAL_COMPONENT_COUNT);
+    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
+    asize /= TOTAL_COMPONENT_COUNT;
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     sendComputeCommandDoubleBuffer(buf1, {0, 0}, buf2, {0, 0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 

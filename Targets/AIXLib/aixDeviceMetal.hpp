@@ -41,7 +41,10 @@ namespace aix
 
 #define MAX_CMD_BATCH_SIZE                  1000
 #define MAX_THREADS_PER_THREADGROUP         1024
-#define ALIGNMENT_SIZE                      64
+#define ALLOCATION_BYTE_ALIGNMENT_SIZE      32      // Should be power of two and min 32 bytes.
+#define VECTOR_TYPE_COMPONENT_COUNT         4       // i.e. float4 has 4 components.
+#define BATCH_PROCESS_SIZE_PER_THREAD       1       // i.e. each GPU thread will access/process 16 of float4 per dispatch.
+#define TOTAL_COMPONENT_COUNT               BATCH_PROCESS_SIZE_PER_THREAD * VECTOR_TYPE_COMPONENT_COUNT
 
 class DeviceMetal : public aix::Device
 {
