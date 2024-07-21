@@ -194,16 +194,6 @@ protected:
     static const std::string& toString(size_t dtype);
     inline static const std::string& toString(DataType dtype);
 
-    template<typename T>
-    static void scalarToVector4(const void* scalar, void* dst)
-    {
-        auto val = *static_cast<const T*>(scalar);
-        static_cast<T*>(dst)[0] =
-        static_cast<T*>(dst)[1] =
-        static_cast<T*>(dst)[2] =
-        static_cast<T*>(dst)[3] = val;
-    }
-
     static void CommandBufferCompletionHandler(const MTL::CommandBuffer* commandBuffer);
 
     NS::AutoreleasePool*   m_pool{nullptr};

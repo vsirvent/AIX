@@ -181,23 +181,8 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
         throw std::invalid_argument("DeviceMetal::fill() scalar address cannot be a device-allocated address.");
 
     // bufScalar is a temporary size aligned buffer to be used as vector of 4.
-    auto bufScalar = newBuffer(dataTypeSize(srcDType) * 4);
+    auto bufScalar = getReadOnlyMTLBuffer(scalar, 1, dataTypeSize(srcDType));
     auto bufResult = m_allocMap[result];
-
-    // Convert scalar value to a vector of 4 to be use in SIMD operation. i.e. float -> float4
-    static const auto scalarToVector4FuncTable = std::array
-    {
-        scalarToVector4<double>,
-        scalarToVector4<float>,
-        scalarToVector4<float16_t>,
-        scalarToVector4<bfloat16_t>,
-        scalarToVector4<int64_t>,
-        scalarToVector4<int32_t>,
-        scalarToVector4<int16_t>,
-        scalarToVector4<int8_t>,
-        scalarToVector4<uint8_t>,
-    };
-    scalarToVector4FuncTable[static_cast<size_t>(srcDType)](scalar, bufScalar->contents());
 
     // Calculate maximum thread group dimensions
     auto asize = align(size, ALIGNMENT_SIZE);

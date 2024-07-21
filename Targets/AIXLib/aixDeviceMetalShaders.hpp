@@ -328,10 +328,12 @@ kernel void fill_aa(device const T* scalar,
                     device T2* result,
                     uint index [[thread_position_in_grid]])
 {
+    T2 scalarVector = static_cast<T2>(scalar[0].xxxx);
+
     index *= ITERATION_SIZE;
     #pragma clang loop unroll(full)
     for (size_t i=0; i<ITERATION_SIZE; ++i)
-        result[index + i] = static_cast<T2>(scalar[0]);
+        result[index + i] = scalarVector;
 }
 
 
