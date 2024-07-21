@@ -110,6 +110,8 @@ public:
     void commitAndWait() override;
 
 protected:
+    void commitAndWaitBatchQueue();
+
     inline static void validateDataType(DataType dtype);
 
     struct MatrixSize

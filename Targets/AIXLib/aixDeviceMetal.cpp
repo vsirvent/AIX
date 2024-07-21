@@ -189,10 +189,9 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
     NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
     asize /= TOTAL_COMPONENT_COUNT;
 
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    sendComputeCommandSingleBuffer(bufScalar, {0,0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
-
+    // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(bufScalar);
+    sendComputeCommandSingleBuffer(bufScalar, {0,0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 }
 
 void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
@@ -226,7 +225,7 @@ void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
     // Copy result from temp buf to result buffer.
     copy(bufTemp->contents(), dtype, result, dtype, 1);
 
-    // Buf1 could be temporary buffer. It should be deleted if temporary.
+    // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
     deallocate(bufTemp->contents());
 }
@@ -291,12 +290,12 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     // Calculate maximum thread group dimensions
     NS::UInteger w = compFuncPSO->threadExecutionWidth();
     NS::UInteger h = compFuncPSO->maxTotalThreadsPerThreadgroup() / w;
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    sendComputeCommandDoubleBuffer(buf1, {s1[0], s1[1]}, buf2, {s2[0], s2[1]}, bufResult,
-                                   compFuncPSO, {s2[1], s1[0], 1}, {w, h, 1});
 
+    // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
+    sendComputeCommandDoubleBuffer(buf1, {s1[0], s1[1]}, buf2, {s2[0], s2[1]}, bufResult,
+                                   compFuncPSO, {s2[1], s1[0], 1}, {w, h, 1});
 }
 
 void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
@@ -345,13 +344,12 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
 
-    m_currentBatchSize++;
-    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
-
+    // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(bufData);
     freeTemporaryBuffer(bufResult);
     freeTemporaryBuffer(bufStrides);
     freeTemporaryBuffer(bufNewStrides);
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
@@ -375,10 +373,9 @@ void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType d
     NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
     asize /= TOTAL_COMPONENT_COUNT;
 
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    sendComputeCommandSingleBuffer(buf1, {1, size}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
-
+    // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
+    sendComputeCommandSingleBuffer(buf1, {1, size}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 }
 
 void DeviceMetal::copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
@@ -440,6 +437,13 @@ void DeviceMetal::commitAndWait()
     m_currentWorkingSetSize = 0;
 }
 
+void DeviceMetal::commitAndWaitBatchQueue()
+{
+    if (++m_currentBatchSize >= MAX_CMD_BATCH_SIZE)
+    {
+        commitAndWait();
+    }
+}
 
 MTL::Buffer* DeviceMetal::newBuffer(size_t size)
 {
@@ -613,8 +617,7 @@ void DeviceMetal::sendComputeCommandSingleBuffer(const MTL::Buffer* buf1, const 
     // Serialize resource and states to be called by GPU
     encodeComputeCommandSingleBuffer(buf1, buf1Size, bufResult,
                                      m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
-    m_currentBatchSize++;
-    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
@@ -626,8 +629,7 @@ void DeviceMetal::sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const 
     // Serialize resource and states to be called by GPU
     encodeComputeCommandDoubleBuffer(buf1, buf1Size, buf2, buf2Size, bufResult,
                                      m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
-    m_currentBatchSize++;
-    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, float scalar,
@@ -638,8 +640,7 @@ void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const M
     // Serialize resource and states to be called by GPU
     encodeComputeCommandArrayScalar(buf1, buf1Size, scalar, bufResult,
                                     m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
-    m_currentBatchSize++;
-    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::executeArrayScalarCmd(const void* a,
@@ -663,15 +664,13 @@ void DeviceMetal::executeArrayScalarCmd(const void* a,
     auto asize = align(size, TOTAL_COMPONENT_COUNT);
     NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
     asize /= TOTAL_COMPONENT_COUNT;
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    sendComputeCommandArrayScalar(buf1, {1, size}, scalar, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 
     if (a)
     {
-        // Buf1 could be temporary buffer. It should be deleted if temporary.
-        freeTemporaryBuffer(buf1);
-        // Note: We never release result buffer since it will be used.
+        freeTemporaryBuffer(buf1);        // Free operation is delayed until the commit is done.
     }
+
+    sendComputeCommandArrayScalar(buf1, {1, size}, scalar, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 }
 
 void DeviceMetal::executeDoubleArrayCmd(const void* a1,
@@ -696,13 +695,11 @@ void DeviceMetal::executeDoubleArrayCmd(const void* a1,
     auto asize = align(size, TOTAL_COMPONENT_COUNT);
     NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
     asize /= TOTAL_COMPONENT_COUNT;
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    sendComputeCommandDoubleBuffer(buf1, {0, 0}, buf2, {0, 0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 
-    // Buf 1 and 2 could be temporary buffer. It should be deleted if temporary.
+    // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
-    // Note: We never release result buffer since it will be used.
+    sendComputeCommandDoubleBuffer(buf1, {0, 0}, buf2, {0, 0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
 }
 
 void DeviceMetal::translation(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
@@ -747,12 +744,11 @@ void DeviceMetal::translation(const void* src, void* dst, size_t size, const Sha
     // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
     m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
 
-    m_currentBatchSize++;
-    if (m_currentBatchSize >= MAX_CMD_BATCH_SIZE) commitAndWait();
-
+    // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(bufSrc);
     freeTemporaryBuffer(bufShape1);
     freeTemporaryBuffer(bufShape2);
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result, DataType dtype)
@@ -771,10 +767,10 @@ void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result,
     NS::UInteger w = m_compFuncPSOTranspose2D[iDType]->threadExecutionWidth();
     NS::UInteger h = m_compFuncPSOTranspose2D[iDType]->maxTotalThreadsPerThreadgroup() / w;
 
+    // Free operation is delayed until the commit is done.
+    freeTemporaryBuffer(buf1);
     sendComputeCommandSingleBuffer(buf1, {shape[0], shape[1]}, bufResult,
                                    m_compFuncPSOTranspose2D[iDType], {shape[0], shape[1], 1}, {w, h, 1});
-
-    freeTemporaryBuffer(buf1);
 }
 
 const std::string& DeviceMetal::toString(size_t dtypeIndex)
