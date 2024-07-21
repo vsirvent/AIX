@@ -468,7 +468,6 @@ MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size
     // Memory could be from other devices. Create a temporary buffer for read only case.
     if (!isDeviceBuffer(address))
     {
-        commitAndWait();
         auto asize = align(size, ALIGNMENT_SIZE);
         auto buff = newBuffer(asize * sizeofType);
         std::memcpy(buff->contents(), address, size * sizeofType);
