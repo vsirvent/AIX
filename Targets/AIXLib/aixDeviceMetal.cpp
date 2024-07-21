@@ -508,8 +508,10 @@ MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size
     if (!isDeviceBuffer(address))
     {
         commitAndWait();
-        size = align(size, ALIGNMENT_SIZE);
-        return newBufferWithAddress(address, size * sizeofType);
+        auto asize = align(size, ALIGNMENT_SIZE);
+        auto buff = newBuffer(asize * sizeofType);
+        std::memcpy(buff->contents(), address, size * sizeofType);
+        return buff;
     }
 
     return m_allocMap[address];    // Return MTL Buffer if the memory is from the current device.
