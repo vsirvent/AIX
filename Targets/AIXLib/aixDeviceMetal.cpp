@@ -28,7 +28,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
     // Create autorelease pool.
     m_pool = NS::AutoreleasePool::alloc()->init();
     m_mtlDevice = createMTLDevice(deviceIndex);
-    m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.8);
+    m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.5);
     auto defaultLibrary = createLibrary(aix::shaders::aixDeviceMetalShaders);
     auto nullKernelName = "nullKernel";
 
@@ -71,13 +71,14 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
 
     m_cmdQueue = createCommandQueue();
     m_cmdBuffer = m_cmdQueue->commandBuffer();
-    m_cmdBuffer->addCompletedHandler(CommandBufferCompletionHandler);
+    m_compEncoder = m_cmdBuffer->computeCommandEncoder();
 }
 
 // Destructor
 DeviceMetal::~DeviceMetal()
 {
     // Note: No need to release MTL Buffer objects in m_allocMap.
+    m_compEncoder->endEncoding();
 
     for (size_t i=0; i<aix::DataTypeCount; ++i)
     {
@@ -132,7 +133,7 @@ void DeviceMetal::deallocate(void * memory)
         throw std::invalid_argument("DeviceMetal::deallocate() - Found different type of memory to free.");
     auto mtlBuf = m_allocMap[memory];
     // IMPORTANT: Delay all deallocations of device buffers until all commands in the batch queue are executed.
-    m_tempBuffers.emplace_back(mtlBuf);
+    m_tempBuffers.emplace_back(mtlBuf, mtlBuf->contents());
 }
 
 void DeviceMetal::add(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
@@ -325,7 +326,6 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_
     auto bufNewStrides = getReadOnlyMTLBuffer(newStrides.data(), newStrides.size(), sizeof(size_t));
     size_t newStridesSize = newStrides.size();
 
-    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
     // Serialize resources and states to be used by the GPU.
     m_compEncoder->setComputePipelineState(m_compFuncPSOTranspose[iDType]);
     m_compEncoder->setBuffer(bufData,        0,                       0);
@@ -411,25 +411,31 @@ void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape&
 
 void DeviceMetal::commitAndWait()
 {
-    // Execute only if there is at least one command encoded.
-    if (!m_compEncoder) return;
-
     m_compEncoder->endEncoding();
-    m_cmdBuffer->commit();                // Execute the command
-    m_cmdBuffer->waitUntilCompleted();    // Wait until the work is done
-
-    // Release all temporary buffers.
-    for (auto buf : m_tempBuffers)
+    auto tempBuffers = m_tempBuffers;
+    m_cmdBuffer->addCompletedHandler([tempBuffers](MTL::CommandBuffer* commandBuffer)
     {
-        m_allocMap.erase(buf->contents());
-        buf->release();
-    }
+        CheckCommandBufferStatus(commandBuffer);
+        // Release all temporary buffers when the commit is done.
+        for (const auto& [buf, bufPtr] : tempBuffers)
+        {
+            buf->release();
+        }
+    });
+    m_cmdBuffer->commit();                // Execute the command
 
+    // Remove buffers from allocation map.
+    for (const auto& [buf, bufPtr] : m_tempBuffers)
+    {
+        m_allocMap.erase(bufPtr);
+    }
     m_tempBuffers.clear();
-    m_tempBuffers.reserve(MAX_CMD_BATCH_SIZE * 2);
+    m_tempBuffers.reserve(MAX_CMD_BATCH_SIZE);
+    // Wait until the current command buffer is done.
+    m_cmdBuffer->waitUntilCompleted();
 
     m_cmdBuffer = m_cmdQueue->commandBuffer();
-    m_compEncoder = nullptr;
+    m_compEncoder = m_cmdBuffer->computeCommandEncoder();
 
     // Update batch size metrics.
     m_maxBatchSize = std::max(m_currentBatchSize, m_maxBatchSize);
@@ -488,11 +494,11 @@ MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size
 void DeviceMetal::freeTemporaryBuffer(MTL::Buffer * buffer)
 {
     // Release only temporary buffer.
-    if (!isDeviceBuffer(buffer->contents()))
+    if (buffer && !isDeviceBuffer(buffer->contents()))
     {
         // Add the buffer to the list to be released when commitAndWait() is executed.
         // Until then, the buffer could be in use, especially when a batch command is used.
-        m_tempBuffers.emplace_back(buffer);
+        m_tempBuffers.emplace_back(buffer, buffer->contents());
     }
 }
 
@@ -613,7 +619,6 @@ void DeviceMetal::sendComputeCommandSingleBuffer(const MTL::Buffer* buf1, const 
                                                  const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                                  const MTL::Size & threadsPerTG)
 {
-    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
     // Serialize resource and states to be called by GPU
     encodeComputeCommandSingleBuffer(buf1, buf1Size, bufResult,
                                      m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
@@ -625,7 +630,6 @@ void DeviceMetal::sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const 
                                                  const MTL::ComputePipelineState* compFuncPSO, const MTL::Size & gridSize,
                                                  const MTL::Size & threadsPerTG)
 {
-    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
     // Serialize resource and states to be called by GPU
     encodeComputeCommandDoubleBuffer(buf1, buf1Size, buf2, buf2Size, bufResult,
                                      m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
@@ -636,7 +640,6 @@ void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const M
                                                 MTL::Buffer* bufResult, const MTL::ComputePipelineState* compFuncPSO,
                                                 const MTL::Size & gridSize, const MTL::Size & threadsPerTG)
 {
-    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
     // Serialize resource and states to be called by GPU
     encodeComputeCommandArrayScalar(buf1, buf1Size, scalar, bufResult,
                                     m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
@@ -728,7 +731,6 @@ void DeviceMetal::translation(const void* src, void* dst, size_t size, const Sha
     auto bufShape2 = newShapeSize != 0 ? getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t)) : nullptr;
     auto bufDst    = m_allocMap[dst];
 
-    if (!m_compEncoder) m_compEncoder = m_cmdBuffer->computeCommandEncoder();
     // Serialize resources and states to be used by the GPU.
     m_compEncoder->setComputePipelineState(computePSO);
     m_compEncoder->setBuffer(bufSrc,    0, 0);
@@ -804,7 +806,7 @@ void DeviceMetal::validateDataType(DataType dtype)
     }
 }
 
-void DeviceMetal::CommandBufferCompletionHandler(const MTL::CommandBuffer* commandBuffer)
+void DeviceMetal::CheckCommandBufferStatus(const MTL::CommandBuffer *commandBuffer)
 {
     if (commandBuffer->status() == MTL::CommandBufferStatusError)
     {

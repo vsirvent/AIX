@@ -199,7 +199,7 @@ protected:
     static const std::string& toString(size_t dtype);
     inline static const std::string& toString(DataType dtype);
 
-    static void CommandBufferCompletionHandler(const MTL::CommandBuffer* commandBuffer);
+    static void CheckCommandBufferStatus(const MTL::CommandBuffer* commandBuffer);
 
     NS::AutoreleasePool*   m_pool{nullptr};
     MTL::Device*           m_mtlDevice{nullptr};
@@ -226,7 +226,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOFill[aix::DataTypeCount][aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount];
-    std::vector<MTL::Buffer*>    m_tempBuffers;
+    std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     size_t   m_currentBatchSize{0};
     size_t   m_maxBatchSize{0};
