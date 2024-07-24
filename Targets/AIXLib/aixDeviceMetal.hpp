@@ -44,7 +44,7 @@ namespace aix
 #define ALLOCATION_BYTE_ALIGNMENT_SIZE      32      // Should be power of two and min 32 bytes.
 #define VECTOR_TYPE_COMPONENT_COUNT         4       // i.e. float4 has 4 components.
 #define BATCH_PROCESS_SIZE_PER_THREAD       1       // i.e. each GPU thread will access/process 16 of float4 per dispatch.
-#define TOTAL_COMPONENT_COUNT               BATCH_PROCESS_SIZE_PER_THREAD * VECTOR_TYPE_COMPONENT_COUNT
+#define TOTAL_COMPONENT_COUNT               (BATCH_PROCESS_SIZE_PER_THREAD * VECTOR_TYPE_COMPONENT_COUNT)
 
 class DeviceMetal : public aix::Device
 {
@@ -144,51 +144,21 @@ protected:
 
     MTL::ComputePipelineState* createComputeFuncPSO(MTL::Library* library, const std::string & kernelName);
 
-    void encodeComputeCommandSingleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size, MTL::Buffer* bufResult,
-                                          MTL::ComputeCommandEncoder* computeEncoder,
+    void encodeComputeCommandDoubleBuffer(const MTL::Buffer* buf, MTL::Buffer* bufResult,
                                           const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                           const MTL::Size& threadsPerTG) const;
 
-    void encodeComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                          const MTL::Buffer* buf2, const MatrixSize& buf2Size, MTL::Buffer* bufResult,
-                                          MTL::ComputeCommandEncoder * computeEncoder,
+    void encodeComputeCommandTripleBuffer(const MTL::Buffer* buf1, const MTL::Buffer* buf2, MTL::Buffer* bufResult,
                                           const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                           const MTL::Size& threadsPerTG) const;
 
-    void encodeComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                         float scalar, MTL::Buffer* bufResult,
-                                         MTL::ComputeCommandEncoder* computeEncoder,
-                                         const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
-                                         const MTL::Size & threadsPerTG) const;
-
-    void sendComputeCommandSingleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size, MTL::Buffer* bufResult,
-                                        const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
-                                        const MTL::Size & threadsPerTG);
-
-    void sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                        const MTL::Buffer* buf2, const MatrixSize& buf2Size, MTL::Buffer* bufResult,
-                                        const MTL::ComputePipelineState* compFuncPSO, const MTL::Size & gridSize,
-                                        const MTL::Size & threadsPerTG);
-
-    void sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, float scalar,
-                                       MTL::Buffer* bufResult, const MTL::ComputePipelineState* compFuncPSO,
-                                       const MTL::Size & gridSize, const MTL::Size & threadsPerTG);
-
-    void executeArrayScalarCmd(const void* a,
-                               float scalar,
-                               size_t size,
-                               void* result,
+    void executeDoubleArrayCmd(const void* a1, size_t size, void* result,
                                const MTL::ComputePipelineState* compFuncPSO,
-                               DataType dtype,
-                               const std::string & cmdName);
+                               DataType dtype, const std::string & cmdName);
 
-    void executeDoubleArrayCmd(const void* a1,
-                               const void* a2,
-                               size_t size,
-                               void* result,
+    void executeTripleArrayCmd(const void* a1, const void* a2, size_t size, void* result,
                                const MTL::ComputePipelineState* compFuncPSO,
-                               DataType dtype,
-                               const std::string & cmdName);
+                               DataType dtype, const std::string & cmdName);
 
     // Common method for broadcastTo and reduceTo methods.
     void translation(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,

@@ -139,31 +139,31 @@ void DeviceMetal::deallocate(void * memory)
 void DeviceMetal::add(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOAdd[iDType], dtype, "add_" + toString(dtype));
+    executeTripleArrayCmd(a1, a2, size, result, m_compFuncPSOAdd[iDType], dtype, "add_" + toString(dtype));
 }
 
 void DeviceMetal::sub(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOSub[iDType], dtype, "sub_" + toString(dtype));
+    executeTripleArrayCmd(a1, a2, size, result, m_compFuncPSOSub[iDType], dtype, "sub_" + toString(dtype));
 }
 
 void DeviceMetal::mul(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSOMul[iDType], dtype, "mul_" + toString(dtype));
+    executeTripleArrayCmd(a1, a2, size, result, m_compFuncPSOMul[iDType], dtype, "mul_" + toString(dtype));
 }
 
 void DeviceMetal::div(const void* a1, const void* a2, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeDoubleArrayCmd(a1, a2, size, result, m_compFuncPSODiv[iDType], dtype, "div_" + toString(dtype));
+    executeTripleArrayCmd(a1, a2, size, result, m_compFuncPSODiv[iDType], dtype, "div_" + toString(dtype));
 }
 
 void DeviceMetal::unary(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOUnary[iDType], dtype, "unary_" + toString(dtype));
+    executeDoubleArrayCmd(a, size, result, m_compFuncPSOUnary[iDType], dtype, "unary_" + toString(dtype));
 }
 
 void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void* result, DataType dstDType)
@@ -183,16 +183,17 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
     // bufScalar is a temporary size aligned buffer to be used as vector of 4.
     auto bufScalar = getReadOnlyMTLBuffer(scalar, 1, dataTypeSize(srcDType));
     auto bufResult = m_allocMap[result];
+    auto compFuncPSO = m_compFuncPSOFill[iSrcDType][iDstDType];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, TOTAL_COMPONENT_COUNT);
-    auto compFuncPSO = m_compFuncPSOFill[iSrcDType][iDstDType];
-    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
-    asize /= TOTAL_COMPONENT_COUNT;
+    auto asize = align(size, TOTAL_COMPONENT_COUNT) / TOTAL_COMPONENT_COUNT;
+    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup());
 
+    // Serialize resource and states to be called by GPU.
+    encodeComputeCommandDoubleBuffer(bufScalar, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(bufScalar);
-    sendComputeCommandSingleBuffer(bufScalar, {0,0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
@@ -218,8 +219,9 @@ void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
     {
         // Calculate maximum thread group dimensions.
         NS::UInteger w = std::min<size_t>(length+1, maxThreadsPerTG);
-        // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-        sendComputeCommandArrayScalar(bufTemp, {1, length+1}, 0, bufTemp, compFuncPSO, {length + 1, 1, 1}, {w, 1, 1});
+        // Serialize resource and states to be called by GPU.
+        encodeComputeCommandDoubleBuffer(bufTemp, bufTemp, compFuncPSO, {length + 1, 1, 1}, {w, 1, 1});
+        commitAndWaitBatchQueue();
         length = (length - 1) / maxThreadsPerTG;
     }
 
@@ -234,43 +236,43 @@ void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
 void DeviceMetal::sqrt(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSqrt[iDType], dtype, "sqrt_" + toString(dtype));
+    executeDoubleArrayCmd(a, size, result, m_compFuncPSOSqrt[iDType], dtype, "sqrt_" + toString(dtype));
 }
 
 void DeviceMetal::sin(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOSin[iDType], dtype, "sin_" + toString(dtype));
+    executeDoubleArrayCmd(a, size, result, m_compFuncPSOSin[iDType], dtype, "sin_" + toString(dtype));
 }
 
 void DeviceMetal::cos(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOCos[iDType], dtype, "cos_" + toString(dtype));
+    executeDoubleArrayCmd(a, size, result, m_compFuncPSOCos[iDType], dtype, "cos_" + toString(dtype));
 }
 
 void DeviceMetal::tanh(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOTanh[iDType], dtype, "tanh_" + toString(dtype));
+    executeDoubleArrayCmd(a, size, result, m_compFuncPSOTanh[iDType], dtype, "tanh_" + toString(dtype));
 }
 
 void DeviceMetal::log(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOLog[iDType], dtype, "log_" + toString(dtype));
+    executeDoubleArrayCmd(a, size, result, m_compFuncPSOLog[iDType], dtype, "log_" + toString(dtype));
 }
 
 void DeviceMetal::exp(const void* a, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeArrayScalarCmd(a, 0, size, result, m_compFuncPSOExp[iDType], dtype, "exp_" + toString(dtype));
+    executeDoubleArrayCmd(a, size, result, m_compFuncPSOExp[iDType], dtype, "exp_" + toString(dtype));
 }
 
 void DeviceMetal::pow(const void* a, const void* exp, size_t size, void* result, DataType dtype)
 {
     auto iDType = static_cast<size_t>(dtype);
-    executeDoubleArrayCmd(a, exp, size, result, m_compFuncPSOPow[iDType], dtype, "pow_" + toString(dtype));
+    executeTripleArrayCmd(a, exp, size, result, m_compFuncPSOPow[iDType], dtype, "pow_" + toString(dtype));
 }
 
 void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype)
@@ -287,16 +289,26 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     auto buf1 = getReadOnlyMTLBuffer(a1, s1[0] * s1[1], dataTypeSize(dtype));
     auto buf2 = getReadOnlyMTLBuffer(a2, s2[0] * s2[1], dataTypeSize(dtype));
     auto bufResult = m_allocMap[result];
+    auto buf1Size = MatrixSize{s1[0], s1[1]};
+    auto buf2Size = MatrixSize{s2[0], s2[1]};
 
     // Calculate maximum thread group dimensions
     NS::UInteger w = compFuncPSO->threadExecutionWidth();
     NS::UInteger h = compFuncPSO->maxTotalThreadsPerThreadgroup() / w;
 
+    // Encode the pipeline state object and its parameters.
+    m_compEncoder->setComputePipelineState(compFuncPSO);
+    m_compEncoder->setBuffer(buf1, 0, 0);
+    m_compEncoder->setBuffer(buf2, 0, 1);
+    m_compEncoder->setBuffer(bufResult, 0, 2);
+    m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 3);
+    m_compEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
+    m_compEncoder->dispatchThreads({s2[1], s1[0], 1}, {w, h, 1});
+
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
-    sendComputeCommandDoubleBuffer(buf1, {s1[0], s1[1]}, buf2, {s2[0], s2[1]}, bufResult,
-                                   compFuncPSO, {s2[1], s1[0], 1}, {w, h, 1});
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
@@ -366,16 +378,16 @@ void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType d
     // Memory could be a GPU allocated memory or system memory.
     auto buf1 = getReadOnlyMTLBuffer(src, size, dataTypeSize(srcDType));
     auto bufResult = m_allocMap[dst];
+    auto compFuncPSO = m_compFuncPSOCopyAA[iSrcDType][iDstDType];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, TOTAL_COMPONENT_COUNT);
-    auto compFuncPSO = m_compFuncPSOCopyAA[iSrcDType][iDstDType];
-    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
-    asize /= TOTAL_COMPONENT_COUNT;
+    auto asize = align(size, TOTAL_COMPONENT_COUNT) / TOTAL_COMPONENT_COUNT;
+    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup());
 
+    encodeComputeCommandDoubleBuffer(buf1, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
-    sendComputeCommandSingleBuffer(buf1, {1, size}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
@@ -571,118 +583,56 @@ MTL::ComputePipelineState* DeviceMetal::createComputeFuncPSO(MTL::Library* libra
     return compFuncPSO;
 }
 
-void DeviceMetal::encodeComputeCommandSingleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size, MTL::Buffer* bufResult,
-                                                   MTL::ComputeCommandEncoder* computeEncoder,
+void DeviceMetal::encodeComputeCommandDoubleBuffer(const MTL::Buffer* buf, MTL::Buffer* bufResult,
                                                    const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                                    const MTL::Size& threadsPerTG) const
 {
     // Encode the pipeline state object and its parameters.
-    computeEncoder->setComputePipelineState(compFuncPSO);
-    computeEncoder->setBuffer(buf1, 0, 0);
-    computeEncoder->setBuffer(bufResult, 0, 1);
-    computeEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
-    computeEncoder->dispatchThreads(gridSize, threadsPerTG);
+    m_compEncoder->setComputePipelineState(compFuncPSO);
+    m_compEncoder->setBuffer(buf, 0, 0);
+    m_compEncoder->setBuffer(bufResult, 0, 1);
+    m_compEncoder->dispatchThreads(gridSize, threadsPerTG);
 }
 
-void DeviceMetal::encodeComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                                   const MTL::Buffer* buf2, const MatrixSize& buf2Size, MTL::Buffer* bufResult,
-                                                   MTL::ComputeCommandEncoder * computeEncoder,
+void DeviceMetal::encodeComputeCommandTripleBuffer(const MTL::Buffer* buf1, const MTL::Buffer* buf2, MTL::Buffer* bufResult,
                                                    const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                                    const MTL::Size& threadsPerTG) const
 {
     // Encode the pipeline state object and its parameters.
-    computeEncoder->setComputePipelineState(compFuncPSO);
-    computeEncoder->setBuffer(buf1, 0, 0);
-    computeEncoder->setBuffer(buf2, 0, 1);
-    computeEncoder->setBuffer(bufResult, 0, 2);
-    computeEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 3);
-    computeEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
-    computeEncoder->dispatchThreads(gridSize, threadsPerTG);
+    m_compEncoder->setComputePipelineState(compFuncPSO);
+    m_compEncoder->setBuffer(buf1, 0, 0);
+    m_compEncoder->setBuffer(buf2, 0, 1);
+    m_compEncoder->setBuffer(bufResult, 0, 2);
+    m_compEncoder->dispatchThreads(gridSize, threadsPerTG);
 }
 
-void DeviceMetal::encodeComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                                  float scalar, MTL::Buffer* bufResult,
-                                                  MTL::ComputeCommandEncoder* computeEncoder,
-                                                  const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
-                                                  const MTL::Size & threadsPerTG) const
-{
-    // Encode the pipeline state object and its parameters.
-    computeEncoder->setComputePipelineState(compFuncPSO);
-    computeEncoder->setBuffer(buf1, 0, 0);
-    computeEncoder->setBytes(&scalar, sizeof(float), 1);
-    computeEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
-    computeEncoder->setBuffer(bufResult, 0, 3);
-    computeEncoder->dispatchThreads(gridSize, threadsPerTG);
-}
-
-void DeviceMetal::sendComputeCommandSingleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size, MTL::Buffer* bufResult,
-                                                 const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
-                                                 const MTL::Size & threadsPerTG)
-{
-    // Serialize resource and states to be called by GPU
-    encodeComputeCommandSingleBuffer(buf1, buf1Size, bufResult,
-                                     m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
-    commitAndWaitBatchQueue();
-}
-
-void DeviceMetal::sendComputeCommandDoubleBuffer(const MTL::Buffer* buf1, const MatrixSize& buf1Size,
-                                                 const MTL::Buffer* buf2, const MatrixSize& buf2Size, MTL::Buffer* bufResult,
-                                                 const MTL::ComputePipelineState* compFuncPSO, const MTL::Size & gridSize,
-                                                 const MTL::Size & threadsPerTG)
-{
-    // Serialize resource and states to be called by GPU
-    encodeComputeCommandDoubleBuffer(buf1, buf1Size, buf2, buf2Size, bufResult,
-                                     m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
-    commitAndWaitBatchQueue();
-}
-
-void DeviceMetal::sendComputeCommandArrayScalar(const MTL::Buffer* buf1, const MatrixSize& buf1Size, float scalar,
-                                                MTL::Buffer* bufResult, const MTL::ComputePipelineState* compFuncPSO,
-                                                const MTL::Size & gridSize, const MTL::Size & threadsPerTG)
-{
-    // Serialize resource and states to be called by GPU
-    encodeComputeCommandArrayScalar(buf1, buf1Size, scalar, bufResult,
-                                    m_compEncoder, compFuncPSO, gridSize, threadsPerTG);
-    commitAndWaitBatchQueue();
-}
-
-void DeviceMetal::executeArrayScalarCmd(const void* a,
-                                        float scalar,
-                                        size_t size,
-                                        void* result,
+void DeviceMetal::executeDoubleArrayCmd(const void* a1, size_t size, void* result,
                                         const MTL::ComputePipelineState* compFuncPSO,
-                                        DataType dtype,
-                                        const std::string & cmdName)
+                                        DataType dtype, const std::string & cmdName)
 {
     validateDataType(dtype);
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (!isDeviceBuffer(result))
         throw std::invalid_argument("DeviceMetal::" + cmdName + "() result must have GPU memory.");
 
-    // Set constants
-    auto buf1      = a ? getReadOnlyMTLBuffer(a, size, dataTypeSize(dtype)) : nullptr;
+    // Memory could be a GPU allocated memory or system memory.
+    auto buf = getReadOnlyMTLBuffer(a1, size, dataTypeSize(dtype));
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, TOTAL_COMPONENT_COUNT);
-    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
-    asize /= TOTAL_COMPONENT_COUNT;
+    auto asize = align(size, TOTAL_COMPONENT_COUNT) / TOTAL_COMPONENT_COUNT;
+    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup());
 
-    if (a)
-    {
-        freeTemporaryBuffer(buf1);        // Free operation is delayed until the commit is done.
-    }
-
-    sendComputeCommandArrayScalar(buf1, {1, size}, scalar, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
+    // Serialize resource and states to be called by GPU.
+    encodeComputeCommandDoubleBuffer(buf, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
+    // Free operation is delayed until the commit is done.
+    freeTemporaryBuffer(buf);
+    commitAndWaitBatchQueue();
 }
 
-void DeviceMetal::executeDoubleArrayCmd(const void* a1,
-                                        const void* a2,
-                                        size_t size,
-                                        void* result,
+void DeviceMetal::executeTripleArrayCmd(const void* a1, const void* a2, size_t size, void* result,
                                         const MTL::ComputePipelineState* compFuncPSO,
-                                        DataType dtype,
-                                        const std::string & cmdName)
+                                        DataType dtype, const std::string & cmdName)
 {
     validateDataType(dtype);
     // Result buffer has to be allocated in advance and has to be a GPU memory.
@@ -695,14 +645,15 @@ void DeviceMetal::executeDoubleArrayCmd(const void* a1,
     auto bufResult = m_allocMap[result];
 
     // Calculate maximum thread group dimensions
-    auto asize = align(size, TOTAL_COMPONENT_COUNT);
-    NS::UInteger w = std::min(asize / TOTAL_COMPONENT_COUNT, compFuncPSO->maxTotalThreadsPerThreadgroup());
-    asize /= TOTAL_COMPONENT_COUNT;
+    auto asize = align(size, TOTAL_COMPONENT_COUNT) / TOTAL_COMPONENT_COUNT;
+    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup());
 
+    // Serialize resource and states to be called by GPU.
+    encodeComputeCommandTripleBuffer(buf1, buf2, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
-    sendComputeCommandDoubleBuffer(buf1, {0, 0}, buf2, {0, 0}, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
+    commitAndWaitBatchQueue();
 }
 
 void DeviceMetal::translation(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
@@ -764,15 +715,22 @@ void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result,
     // Memory could be a GPU allocated memory or system memory.
     auto buf1 = getReadOnlyMTLBuffer(mat, shape[0] * shape[1], dataTypeSize(dtype));
     auto bufResult = m_allocMap[result];
+    auto buf1Size = MatrixSize{shape[0], shape[1]};
+    auto compFuncPSO = m_compFuncPSOTranspose2D[iDType];
 
     // Calculate maximum thread group dimensions
-    NS::UInteger w = m_compFuncPSOTranspose2D[iDType]->threadExecutionWidth();
-    NS::UInteger h = m_compFuncPSOTranspose2D[iDType]->maxTotalThreadsPerThreadgroup() / w;
+    NS::UInteger w = compFuncPSO->threadExecutionWidth();
+    NS::UInteger h = compFuncPSO->maxTotalThreadsPerThreadgroup() / w;
+
+    m_compEncoder->setComputePipelineState(compFuncPSO);
+    m_compEncoder->setBuffer(buf1, 0, 0);
+    m_compEncoder->setBuffer(bufResult, 0, 1);
+    m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
+    m_compEncoder->dispatchThreads({shape[0], shape[1], 1}, {w, h, 1});
 
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
-    sendComputeCommandSingleBuffer(buf1, {shape[0], shape[1]}, bufResult,
-                                   m_compFuncPSOTranspose2D[iDType], {shape[0], shape[1], 1}, {w, h, 1});
+    commitAndWaitBatchQueue();
 }
 
 const std::string& DeviceMetal::toString(size_t dtypeIndex)
