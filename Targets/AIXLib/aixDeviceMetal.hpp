@@ -132,7 +132,8 @@ protected:
 
     MTL::Buffer* newBuffer(size_t size);
 
-    MTL::Buffer* getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType);
+    MTL::Buffer* getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType,
+                                      size_t alignSize = TOTAL_COMPONENT_COUNT);
 
     void freeTemporaryBuffer(MTL::Buffer * buffer);
 

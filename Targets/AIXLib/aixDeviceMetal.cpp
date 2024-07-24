@@ -181,7 +181,7 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
         throw std::invalid_argument("DeviceMetal::fill() scalar address cannot be a device-allocated address.");
 
     // bufScalar is a temporary size aligned buffer to be used as vector of 4.
-    auto bufScalar = getReadOnlyMTLBuffer(scalar, 1, dataTypeSize(srcDType));
+    auto bufScalar = getReadOnlyMTLBuffer(scalar, 1, dataTypeSize(srcDType), 1);
     auto bufResult = m_allocMap[result];
     auto compFuncPSO = m_compFuncPSOFill[iSrcDType][iDstDType];
 
@@ -488,12 +488,12 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
 }
 
 
-MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType)
+MTL::Buffer* DeviceMetal::getReadOnlyMTLBuffer(const void * address, size_t size, size_t sizeofType, size_t alignSize)
 {
     // Memory could be from other devices. Create a temporary buffer for read only case.
     if (!isDeviceBuffer(address))
     {
-        auto asize = align(size, TOTAL_COMPONENT_COUNT);
+        auto asize = align(size, alignSize);
         auto buff = newBuffer(asize * sizeofType);
         std::memcpy(buff->contents(), address, size * sizeofType);
         return buff;
