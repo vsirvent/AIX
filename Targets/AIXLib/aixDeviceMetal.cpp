@@ -13,11 +13,11 @@
 
 // Project includes
 #include "aixDeviceMetal.hpp"
+#include "aixDeviceMetalCache.hpp"
 #include "aixDeviceMetalShaders.hpp"
 // External includes
 #include <Metal/Metal.hpp>
 // System includes
-#include <array>
 
 
 namespace aix
@@ -28,7 +28,8 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
     // Create autorelease pool.
     m_pool = NS::AutoreleasePool::alloc()->init();
     m_mtlDevice = createMTLDevice(deviceIndex);
-    m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.5);
+    m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.8);
+    m_bufferCache = std::make_unique<MTLBufferCache>();
     auto defaultLibrary = createLibrary(aix::shaders::aixDeviceMetalShaders);
     auto nullKernelName = "nullKernel";
 
@@ -77,6 +78,8 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
 // Destructor
 DeviceMetal::~DeviceMetal()
 {
+    m_bufferCache->clear();
+
     // Note: No need to release MTL Buffer objects in m_allocMap.
     m_compEncoder->endEncoding();
 
@@ -428,23 +431,30 @@ void DeviceMetal::commitAndWait()
     m_cmdBuffer->addCompletedHandler([tempBuffers](MTL::CommandBuffer* commandBuffer)
     {
         CheckCommandBufferStatus(commandBuffer);
-        // Release all temporary buffers when the commit is done.
-        for (const auto& [buf, bufPtr] : tempBuffers)
-        {
-            buf->release();
-        }
     });
     m_cmdBuffer->commit();                // Execute the command
+    // Wait until the current command buffer is finished.
+    m_cmdBuffer->waitUntilCompleted();
 
-    // Remove buffers from allocation map.
+    // Try to cache all the buffers before releasing them.
+    for (const auto& [buf, bufPtr] : tempBuffers)
+    {
+        m_bufferCache->recycle(buf);
+    }
+
+    // Reduce the size of the MTL buffer cache if the cache size is bigger than the max allowed working set size.
+    if (m_bufferCache->size() > m_maxWorkingSetSize)
+    {
+        m_bufferCache->reduceSize(m_bufferCache->size() - m_maxWorkingSetSize);
+    }
+
+    // Reduce the size of the MTL buffer cache if the cache size is bigger than the maximum allowed working set size.
     for (const auto& [buf, bufPtr] : m_tempBuffers)
     {
         m_allocMap.erase(bufPtr);
     }
     m_tempBuffers.clear();
     m_tempBuffers.reserve(MAX_CMD_BATCH_SIZE);
-    // Wait until the current command buffer is done.
-    m_cmdBuffer->waitUntilCompleted();
 
     m_cmdBuffer = m_cmdQueue->commandBuffer();
     m_compEncoder = m_cmdBuffer->computeCommandEncoder();
@@ -468,20 +478,31 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
     assert(size > 0);
     size_t asize = align(size, ALLOCATION_BYTE_ALIGNMENT_SIZE);
 
+    // Reduce memory footprint if the current working set size exceeds the limit.
     if (m_currentWorkingSetSize + asize >= m_maxWorkingSetSize && m_currentBatchSize > 0)
     {
         commitAndWait();
     }
-
-    auto buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
     m_currentWorkingSetSize += asize;
 
+    // Allocate from the MTL buffer cache if possible.
+    auto buffer = m_bufferCache->reuse(asize);
+    if (buffer)
+    {
+        return buffer;
+    }
+
+    // Allocate MTL buffer.
+    buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
     if (!buffer)
     {
+        m_bufferCache->reduceSize(asize * 2);
         commitAndWait();
         buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
         if (!buffer)
+        {
             throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
+        }
     }
     assert(buffer);
     return buffer;

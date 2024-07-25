@@ -35,7 +35,6 @@ namespace MTL
     struct Size;
 }
 
-
 namespace aix
 {
 
@@ -45,6 +44,8 @@ namespace aix
 #define VECTOR_TYPE_COMPONENT_COUNT         4       // i.e. float4 has 4 components.
 #define BATCH_PROCESS_SIZE_PER_THREAD       1       // i.e. each GPU thread will access/process 16 of float4 per dispatch.
 #define TOTAL_COMPONENT_COUNT               (BATCH_PROCESS_SIZE_PER_THREAD * VECTOR_TYPE_COMPONENT_COUNT)
+
+class MTLBufferCache;
 
 class DeviceMetal : public aix::Device
 {
@@ -199,6 +200,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount];
     std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
+    std::unique_ptr<MTLBufferCache>  m_bufferCache;
     size_t   m_currentBatchSize{0};
     size_t   m_maxBatchSize{0};
     size_t   m_maxWorkingSetSize{0};
