@@ -281,6 +281,7 @@ void DeviceMetal::pow(const void* a, const void* exp, size_t size, void* result,
 void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype)
 {
     validateDataType(dtype);
+    constexpr size_t tileSize = 32;
     auto iDType = static_cast<size_t>(dtype);
     auto compFuncPSO = m_compFuncPSOMatMul[iDType];
 
@@ -306,7 +307,7 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     m_compEncoder->setBuffer(bufResult, 0, 2);
     m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 3);
     m_compEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
-    m_compEncoder->dispatchThreads({s2[1], s1[0], 1}, {w, h, 1});
+    m_compEncoder->dispatchThreads({align(s2[1],tileSize), align(s1[0],tileSize), 1}, {w, h, 1});
 
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
