@@ -9,7 +9,7 @@
 
 #pragma once
 
-namespace aix::shaders
+namespace aix::metal::shaders
 {
 
 // Requires Metal Language Version 2_2 and higher.

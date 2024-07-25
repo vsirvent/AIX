@@ -35,7 +35,7 @@ namespace MTL
     struct Size;
 }
 
-namespace aix
+namespace aix::metal
 {
 
 #define MAX_CMD_BATCH_SIZE                  1000

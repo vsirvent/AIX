@@ -20,7 +20,7 @@
 // System includes
 
 
-namespace aix
+namespace aix::metal
 {
 
 DeviceMetal::DeviceMetal(size_t deviceIndex)
@@ -30,7 +30,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
     m_mtlDevice = createMTLDevice(deviceIndex);
     m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.8);
     m_bufferCache = std::make_unique<MTLBufferCache>();
-    auto defaultLibrary = createLibrary(aix::shaders::aixDeviceMetalShaders);
+    auto defaultLibrary = createLibrary(shaders::aixDeviceMetalShaders);
     auto nullKernelName = "nullKernel";
 
     for (size_t i=0; i<aix::DataTypeCount; ++i)

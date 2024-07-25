@@ -20,7 +20,7 @@
 #include <map>
 
 
-namespace aix
+namespace aix::metal
 {
 
 class MTLBufferCache

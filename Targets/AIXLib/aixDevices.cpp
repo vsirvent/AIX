@@ -27,7 +27,7 @@ std::unique_ptr<aix::Device> createDevice(aix::DeviceType type, size_t deviceInd
     {
         case DeviceType::kGPU_METAL:
         #if defined(__APPLE__) && defined(__arm64__)
-        return std::make_unique<aix::DeviceMetal>(deviceIndex);
+        return std::make_unique<aix::metal::DeviceMetal>(deviceIndex);
         #else
             return nullptr;
         #endif
