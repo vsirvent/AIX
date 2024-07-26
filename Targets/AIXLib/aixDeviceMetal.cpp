@@ -28,7 +28,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
     // Create autorelease pool.
     m_pool = NS::AutoreleasePool::alloc()->init();
     m_mtlDevice = createMTLDevice(deviceIndex);
-    m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.8);
+    m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.7);
     m_bufferCache = std::make_unique<MTLBufferCache>();
     auto defaultLibrary = createLibrary(shaders::aixDeviceMetalShaders);
     auto nullKernelName = "nullKernel";
@@ -479,12 +479,12 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
     assert(size > 0);
     size_t asize = align(size, ALLOCATION_BYTE_ALIGNMENT_SIZE);
 
+    m_currentWorkingSetSize += asize;
     // Reduce memory footprint if the current working set size exceeds the limit.
-    if (m_currentWorkingSetSize + asize >= m_maxWorkingSetSize && m_currentBatchSize > 0)
+    if (m_currentWorkingSetSize * 2 >= m_maxWorkingSetSize)
     {
         commitAndWait();
     }
-    m_currentWorkingSetSize += asize;
 
     // Allocate from the MTL buffer cache if possible.
     auto buffer = m_bufferCache->reuse(asize);
@@ -497,13 +497,7 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
     buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
     if (!buffer)
     {
-        m_bufferCache->reduceSize(asize * 2);
-        commitAndWait();
-        buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
-        if (!buffer)
-        {
-            throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
-        }
+        throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
     }
     assert(buffer);
     return buffer;
