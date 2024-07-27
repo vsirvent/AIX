@@ -111,7 +111,8 @@ public:
     void commitAndWait() override;
 
 protected:
-    void commitAndWaitBatchQueue();
+    void commit();
+    void commitBatchQueue();
 
     inline static void validateDataType(DataType dtype);
 
@@ -177,6 +178,7 @@ protected:
     MTL::Device*           m_mtlDevice{nullptr};
     MTL::CommandQueue*     m_cmdQueue{nullptr};
     MTL::CommandBuffer*    m_cmdBuffer{nullptr};
+    MTL::CommandBuffer*    m_committedCmdBuffer{nullptr};
     MTL::ComputeCommandEncoder*  m_compEncoder{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOAdd[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOSub[aix::DataTypeCount];

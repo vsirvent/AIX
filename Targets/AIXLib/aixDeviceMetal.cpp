@@ -196,7 +196,7 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
     encodeComputeCommandDoubleBuffer(bufScalar, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(bufScalar);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
@@ -224,7 +224,7 @@ void DeviceMetal::sum(const void* a, size_t size, void* result, DataType dtype)
         NS::UInteger w = std::min<size_t>(length+1, maxThreadsPerTG);
         // Serialize resource and states to be called by GPU.
         encodeComputeCommandDoubleBuffer(bufTemp, bufTemp, compFuncPSO, {length + 1, 1, 1}, {w, 1, 1});
-        commitAndWaitBatchQueue();
+        commitBatchQueue();
         length = (length - 1) / maxThreadsPerTG;
     }
 
@@ -312,7 +312,7 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
@@ -365,7 +365,7 @@ void DeviceMetal::transpose(size_t dim0, size_t dim1, const void* data, [[maybe_
     freeTemporaryBuffer(bufResult);
     freeTemporaryBuffer(bufStrides);
     freeTemporaryBuffer(bufNewStrides);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
@@ -391,7 +391,7 @@ void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType d
     encodeComputeCommandDoubleBuffer(buf1, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 void DeviceMetal::copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
@@ -425,21 +425,25 @@ void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape&
     // guaranteed, which might result in minor differences in the final results due to floating-point precision limits.
 }
 
-void DeviceMetal::commitAndWait()
+void DeviceMetal::commit()
 {
+    if (m_currentBatchSize == 0) return;
+
+    if (m_committedCmdBuffer)
+    {
+        m_committedCmdBuffer->waitUntilCompleted();
+    }
     m_compEncoder->endEncoding();
-    auto tempBuffers = m_tempBuffers;
-    m_cmdBuffer->addCompletedHandler([tempBuffers](MTL::CommandBuffer* commandBuffer)
+    m_cmdBuffer->addCompletedHandler([](MTL::CommandBuffer* commandBuffer)
     {
         CheckCommandBufferStatus(commandBuffer);
     });
     m_cmdBuffer->commit();                // Execute the command
-    // Wait until the current command buffer is finished.
-    m_cmdBuffer->waitUntilCompleted();
 
     // Try to cache all the buffers before releasing them.
-    for (const auto& [buf, bufPtr] : tempBuffers)
+    for (const auto& [buf, bufPtr] : m_tempBuffers)
     {
+        m_allocMap.erase(bufPtr);
         m_bufferCache->recycle(buf);
     }
 
@@ -449,14 +453,11 @@ void DeviceMetal::commitAndWait()
         m_bufferCache->reduceSize(m_bufferCache->size() - m_maxWorkingSetSize);
     }
 
-    // Reduce the size of the MTL buffer cache if the cache size is bigger than the maximum allowed working set size.
-    for (const auto& [buf, bufPtr] : m_tempBuffers)
-    {
-        m_allocMap.erase(bufPtr);
-    }
     m_tempBuffers.clear();
     m_tempBuffers.reserve(MAX_CMD_BATCH_SIZE);
 
+    m_committedCmdBuffer = m_cmdBuffer;
+    // Create a new command buffer for the next batch.
     m_cmdBuffer = m_cmdQueue->commandBuffer();
     m_compEncoder = m_cmdBuffer->computeCommandEncoder();
 
@@ -466,11 +467,17 @@ void DeviceMetal::commitAndWait()
     m_currentWorkingSetSize = 0;
 }
 
-void DeviceMetal::commitAndWaitBatchQueue()
+void DeviceMetal::commitAndWait()
+{
+    commit();
+    m_committedCmdBuffer->waitUntilCompleted();
+}
+
+void DeviceMetal::commitBatchQueue()
 {
     if (++m_currentBatchSize >= MAX_CMD_BATCH_SIZE)
     {
-        commitAndWait();
+        commit();
     }
 }
 
@@ -483,7 +490,7 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
     // Reduce memory footprint if the current working set size exceeds the limit.
     if (m_currentWorkingSetSize * 2 >= m_maxWorkingSetSize)
     {
-        commitAndWait();
+        commit();
     }
 
     // Allocate from the MTL buffer cache if possible.
@@ -524,7 +531,7 @@ void DeviceMetal::freeTemporaryBuffer(MTL::Buffer * buffer)
     // Release only temporary buffer.
     if (buffer && !isDeviceBuffer(buffer->contents()))
     {
-        // Add the buffer to the list to be released when commitAndWait() is executed.
+        // Add the buffer to the list to be released when commit() is executed.
         // Until then, the buffer could be in use, especially when a batch command is used.
         m_tempBuffers.emplace_back(buffer, buffer->contents());
     }
@@ -643,7 +650,7 @@ void DeviceMetal::executeDoubleArrayCmd(const void* a1, size_t size, void* resul
     encodeComputeCommandDoubleBuffer(buf, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 void DeviceMetal::executeTripleArrayCmd(const void* a1, const void* a2, size_t size, void* result,
@@ -669,7 +676,7 @@ void DeviceMetal::executeTripleArrayCmd(const void* a1, const void* a2, size_t s
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
     freeTemporaryBuffer(buf2);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 void DeviceMetal::translation(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
@@ -717,7 +724,7 @@ void DeviceMetal::translation(const void* src, void* dst, size_t size, const Sha
     freeTemporaryBuffer(bufSrc);
     freeTemporaryBuffer(bufShape1);
     freeTemporaryBuffer(bufShape2);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result, DataType dtype)
@@ -746,7 +753,7 @@ void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result,
 
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
-    commitAndWaitBatchQueue();
+    commitBatchQueue();
 }
 
 const std::string& DeviceMetal::toString(size_t dtypeIndex)
