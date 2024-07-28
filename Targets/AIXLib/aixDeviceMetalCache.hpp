@@ -18,6 +18,7 @@
 #include <Metal/Metal.hpp>
 // System includes
 #include <map>
+#include <mutex>
 
 
 namespace aix::metal
@@ -30,27 +31,27 @@ public:
     MTLBufferCache() = default;
 
     // Destructor
-    ~MTLBufferCache()  { clear(); }
+    ~MTLBufferCache()
+    {
+        std::lock_guard<std::mutex>  lock(m_syncObj);
+        clearCache();
+    }
 
-    inline size_t size() const  { return m_cacheSize; }
+    size_t size()
+    {
+        std::lock_guard<std::mutex>  lock(m_syncObj);
+        return m_cacheSize;
+    }
 
     void clear()
     {
-        for (auto& [size, cacheBufHolder] : m_cacheMap)
-        {
-            if (cacheBufHolder->buffer)
-            {
-                cacheBufHolder->buffer->release();
-            }
-            delete cacheBufHolder;
-        }
-        m_cacheMap.clear();
-        m_bhHead = m_bhTail = nullptr;
-        m_cacheSize = 0;
+        std::lock_guard<std::mutex>  lock(m_syncObj);
+        clearCache();
     }
 
     MTL::Buffer* reuse(size_t size)
     {
+        std::lock_guard<std::mutex>  lock(m_syncObj);
         MTL::Buffer* buffer{nullptr};
 
         // Find the closest buffer in the cached buffers with a similar size.
@@ -78,6 +79,7 @@ public:
 
     void recycle(MTL::Buffer* buffer)
     {
+        std::lock_guard<std::mutex>  lock(m_syncObj);
         if (!buffer) return;
         // Add to the cache.
         auto bufHolder = new BufferHolder(buffer);
@@ -88,6 +90,7 @@ public:
 
     void reduceSize(size_t bytesToFree)
     {
+        std::lock_guard<std::mutex>  lock(m_syncObj);
         if (bytesToFree < static_cast<size_t>(m_cacheSize * 0.9f))
         {
             size_t totalBytesFreed = 0;
@@ -105,7 +108,7 @@ public:
         }
         else
         {
-            clear();
+            clearCache();
         }
     }
 
@@ -117,6 +120,21 @@ private:
         BufferHolder* prev{nullptr};
         BufferHolder* next{nullptr};
     };
+
+    void clearCache()
+    {
+        for (auto& [size, cacheBufHolder] : m_cacheMap)
+        {
+            if (cacheBufHolder->buffer)
+            {
+                cacheBufHolder->buffer->release();
+            }
+            delete cacheBufHolder;
+        }
+        m_cacheMap.clear();
+        m_bhHead = m_bhTail = nullptr;
+        m_cacheSize = 0;
+    }
 
     void addAtHead(BufferHolder* bufHolder)
     {
@@ -166,6 +184,7 @@ private:
     BufferHolder* m_bhHead{nullptr};
     BufferHolder* m_bhTail{nullptr};
     size_t m_cacheSize{0};
+    std::mutex m_syncObj;
 };
 
 }   // namespace aix

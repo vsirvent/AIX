@@ -1764,3 +1764,51 @@ TEST_CASE("Device Tests - long command batch queue")
         CHECK(z.value().data<float>()[0] == 2048);
     }
 }
+
+
+TEST_CASE("Device Tests - loop without sync")
+{
+    constexpr int kNumSamples  = 4;
+    constexpr int kNumInputs   = 2;
+    constexpr int kNumTargets  = 1;
+    constexpr int kNumEpochs   = 1000;
+    constexpr float kLearningRate  = 0.01f;
+    constexpr float kLossThreshold = 1e-3f;
+
+    // Create a device that uses Apple Metal for GPU computations.
+    auto device = aix::createDevice(aix::DeviceType::kGPU_METAL);
+
+    aix::nn::Sequential model;
+    model.add(new aix::nn::Linear(kNumInputs, 10));
+    model.add(new aix::nn::Tanh());
+    model.add(new aix::nn::Linear(10, kNumTargets));
+    model.to(device);
+
+    // Example inputs and targets for demonstration purposes.
+    auto inputs = aix::tensor({0.0, 0.0,
+                               0.0, 1.0,
+                               1.0, 0.0,
+                               1.0, 1.0}, {kNumSamples, kNumInputs}).to(device);
+
+    auto targets = aix::tensor({0.0,
+                                1.0,
+                                1.0,
+                                0.0}, {kNumSamples, kNumTargets}).to(device);
+
+    aix::optim::Adam optimizer(model.parameters(), kLearningRate);
+    auto lossFunc = aix::nn::MSELoss();
+
+    for (size_t epoch = 0; epoch < kNumEpochs; ++epoch)
+    {
+        auto predictions = model.forward(inputs);
+        auto loss = lossFunc(predictions, targets);
+        optimizer.zeroGrad();
+        loss.backward();
+        optimizer.step();
+        // IMPORTANT NOTE: We keep optimizing without synchronizing.
+    }
+    auto loss = lossFunc(model.forward(inputs), targets);
+    device->commitAndWait();
+
+    CHECK(loss.value().item<float>() <= kLossThreshold);
+}

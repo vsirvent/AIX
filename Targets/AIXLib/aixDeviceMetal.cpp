@@ -434,17 +434,22 @@ void DeviceMetal::commit()
         m_committedCmdBuffer->waitUntilCompleted();
     }
     m_compEncoder->endEncoding();
-    m_cmdBuffer->addCompletedHandler([](MTL::CommandBuffer* commandBuffer)
+    m_cmdBuffer->addCompletedHandler([&,tempBuffers=m_tempBuffers](MTL::CommandBuffer* commandBuffer)
     {
         CheckCommandBufferStatus(commandBuffer);
+        // We must recycle the buffers only after the current command buffer execution is completed since the buffers
+        // could be in use.
+        for (const auto& [buf, bufPtr] : tempBuffers)
+        {
+            m_bufferCache->recycle(buf);
+        }
     });
     m_cmdBuffer->commit();                // Execute the command
 
-    // Try to cache all the buffers before releasing them.
+    // No need to track the allocations anymore for the buffer used in the last commit.
     for (const auto& [buf, bufPtr] : m_tempBuffers)
     {
         m_allocMap.erase(bufPtr);
-        m_bufferCache->recycle(buf);
     }
 
     // Reduce the size of the MTL buffer cache if the cache size is bigger than the max allowed working set size.
