@@ -36,20 +36,26 @@ set(CMAKE_CXX_FLAGS_TSAN "${CMAKE_CXX_FLAGS} -g -O2 -fsanitize=thread -fPIE")
 
 # Set external library versions
 set(DOCTEST_VERSION 2.4.11)
+set(DOCOPT_VERSION 0.6.3)
+set(YAML_VERSION 0.8.0)
 
 # Include folders
+include_directories(Externals/docopt/${DOCOPT_VERSION}/installed/include)
 include_directories(Externals/doctest/${DOCTEST_VERSION}/installed/include)
+include_directories(Externals/yaml-cpp/${YAML_VERSION}/installed/include)
 include_directories(Targets/AIXLib)
 
 # IMPORTANT: Read README.MD to install dependencies.
 
 # Lib folders
-#link_directories(...)
+link_directories(Externals/docopt/${DOCOPT_VERSION}/installed/lib)
+link_directories(Externals/yaml-cpp/${YAML_VERSION}/installed/lib)
 
 # Target folders
 add_subdirectory(Targets/AIXLib)
 
 if (AIX_BUILD_TESTS)
+    add_subdirectory(Targets/AIXBenchmarks)
     add_subdirectory(Targets/AIXTests)
 endif ()
 
