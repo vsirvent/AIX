@@ -23,7 +23,8 @@ struct AIXBenchmarkConfigs
     size_t warmupCount{1};
     size_t samplingCount{1};
     size_t iterationCount{1000};
-    const std::unordered_set<std::string>  testList;
+    std::string filterPattern;
+    const std::unordered_set<std::string> testList;
 };
 
 struct AIXBenchmarkResult

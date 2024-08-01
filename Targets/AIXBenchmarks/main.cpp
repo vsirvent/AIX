@@ -35,6 +35,49 @@ void registerAllBenchmarks()
 }
 
 
+bool matchWithWildcard(const std::string& str, const std::string& pattern)
+{
+    size_t strIndex = 0, patIndex = 0;
+    size_t starIndex = pattern.size();
+    size_t matchIndex = 0;
+
+    while (strIndex < str.size())
+    {
+        if (patIndex < pattern.size() && (pattern[patIndex] == str[strIndex] || pattern[patIndex] == '*'))
+        {
+            if (pattern[patIndex] == '*')
+            {
+                starIndex = patIndex;
+                matchIndex = strIndex;
+                patIndex++;
+            }
+            else
+            {
+                strIndex++;
+                patIndex++;
+            }
+        }
+        else if (starIndex != pattern.size())
+        {
+            patIndex = starIndex + 1;
+            matchIndex++;
+            strIndex = matchIndex;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    while (patIndex < pattern.size() && pattern[patIndex] == '*')
+    {
+        patIndex++;
+    }
+
+    return patIndex == pattern.size();
+}
+
+
 AIXBenchmarkResult runBenchmark(const std::shared_ptr<BenchmarkBase>& benchmark, const AIXBenchmarkConfigs& configs)
 {
     AIXBenchmarkResult result;
@@ -82,6 +125,7 @@ void saveBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& conf
     out << YAML::Key << "benchmarks" << YAML::BeginMap;
     for (auto& benchmark : registeredBenchmarksList)
     {
+        if (!configs.filterPattern.empty() && !matchWithWildcard(benchmark->name(), configs.filterPattern)) continue;
         if (!configs.testList.empty() && configs.testList.find(benchmark->name()) == configs.testList.end()) continue;
         auto result = runBenchmark(benchmark, configs);
 
@@ -125,10 +169,11 @@ void compareBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& c
 }
 
 
-void listBenchmarkNames()
+void listBenchmarkNames(const AIXBenchmarkConfigs& configs)
 {
     for (const auto& benchmark : registeredBenchmarksList)
     {
+        if (!configs.filterPattern.empty() && !matchWithWildcard(benchmark->name(), configs.filterPattern)) continue;
         std::cout << benchmark->name() << std::endl;
     }
 }
@@ -141,9 +186,9 @@ int main(int argc, const char* argv[])
     AIXBenchmarks - Copyright (c) 2024-Present, Arkin Terli. All rights reserved.
 
     Usage:
-        AIXBenchmarks (save|compare) --file=<name> --device=<name> [--testName=<name>...] [--wc=<number>]
-                                                                   [--sc=<number>] [--ic=<number>]
-        AIXBenchmarks list
+        AIXBenchmarks (save|compare) --file=<name> --device=<name> [--testName=<name>... | --filter=<pattern>]
+                                                                   [--wc=<number>] [--sc=<number>] [--ic=<number>]
+        AIXBenchmarks list [--filter=<pattern>]
 
     Options:
         save                Save benchmark results to a file. No comparison.
@@ -152,6 +197,10 @@ int main(int argc, const char* argv[])
 
         --file=<name>       YAML file that stores benchmark results.
         --device=<name>     Device Type: CPU|MCS.  [default: CPU]
+        --testName=<name>   Unique test name to run. (Could be multiple)
+                            (i.e. --testName=matmul1 --testName=matmul2)
+        --filter=<pattern>  Filter test names with wildcards.
+                            (i.e. --filter="*matmul*")
         --wc=<number>       Warm-up count.         [default: 1]
         --sc=<number>       Sampling count.        [default: 1]
         --ic=<number>       Iteration count.       [default: 1000]
@@ -219,6 +268,7 @@ int main(int argc, const char* argv[])
             return -1;
         }
 
+        auto filterPattern = args["--filter"] ? args["--filter"].asString() : "";
         auto testsToRun = args["--testName"] ? args["--testName"].asStringList() : std::vector<std::string>();
 
         AIXBenchmarkConfigs benchConfigs
@@ -227,6 +277,7 @@ int main(int argc, const char* argv[])
             .warmupCount    = static_cast<size_t>(warmupCount),
             .samplingCount  = static_cast<size_t>(samplingCount),
             .iterationCount = static_cast<size_t>(iterationCount),
+            .filterPattern  = filterPattern,
             .testList       = std::unordered_set<std::string>(testsToRun.begin(), testsToRun.end())
         };
 
@@ -242,7 +293,7 @@ int main(int argc, const char* argv[])
         }
         else if (args["list"].asBool())
         {
-            listBenchmarkNames();
+            listBenchmarkNames(benchConfigs);
         }
         else
         {
