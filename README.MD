@@ -140,6 +140,38 @@ int main()
 Each custom device should be tested against the reference device implemented in `aix.hpp`. This allows developers to create highly optimized devices without modifying the framework. 
 In the future, we plan to publish a device leaderboard to showcase performance.
 
+### How to run tests
+
+Build the project with `AIX_BUILD_TESTS=ON` option. For development, the option is on by default already. If you install AIX to be used as an external library, the option will be OFF by default.
+
+```
+$ ./AIXTests
+```
+
+### How to run benchmarks
+
+Build the project with `AIX_BUILD_TESTS=ON` option. For development, the option is on by default already.If you install AIX to be used as an external library, the option will be OFF by default.
+
+The benchmark has three modes: Save, Compare and List.
+
+First, run benchmarks to save timings as a base number into a YAML file.
+```
+$ ./AIXBenchmarks save --file=test.yaml --device=MCS --ic=10000
+```
+
+After your source code modifications, run benchmarks to compare with the base numbers.
+```
+$ ./AIXBenchmarks compare --file=test.yaml --device=MCS --ic=10000
+```
+
+You can filter to run specific benchmarks with the --filter parameter 
+
+```
+$ ./AIXBenchmarks compare --file=test.yaml --device=MCS --ic=10000 --filter="*matmul*"
+```
+
+NOTE: Run the benchmark without any parameters to display all the command-line options.
+
 # Project Build Instructions
 
 Follow the following steps to build the project and make it deployment ready.
