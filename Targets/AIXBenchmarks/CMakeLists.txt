@@ -12,6 +12,7 @@ set(TARGET_NAME AIXBenchmarks)
 add_executable(${TARGET_NAME}
         main.cpp
         Device.cpp
+        Model.cpp
         Tensor.cpp
 )
 

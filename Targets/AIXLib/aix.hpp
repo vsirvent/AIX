@@ -2279,6 +2279,8 @@ class Optimizer
 {
 public:
     // Constructor
+    Optimizer() = default;
+    // Constructor
     explicit Optimizer(const std::vector<Tensor> & parameters) : m_parameters(parameters) { }
 
     // Destructor
@@ -2328,13 +2330,14 @@ public:
     }
 
 private:
-    float m_lr;     // Learning rate
+    float m_lr{0.01f};      // Learning rate
 };
 
 
 class Adam : public Optimizer
 {
 public:
+    Adam() = default;
     explicit Adam(const std::vector<Tensor> & parameters, float lr = 0.001f, float beta1 = 0.9f,
                   float beta2 = 0.999f, float epsilon = 1e-8f)
         : Optimizer(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
@@ -2375,10 +2378,10 @@ public:
     }
 
 private:
-    float m_lr;                 // Learning rate.
-    float m_beta1;              // Exponential decay rate for the first moment estimates.
-    float m_beta2;              // Exponential decay rate for the second moment estimates.
-    float m_epsilon;            // Small constant for numerical stability.
+    float m_lr{0.001f};         // Learning rate.
+    float m_beta1{0.9f};        // Exponential decay rate for the first moment estimates.
+    float m_beta2{0.999f};      // Exponential decay rate for the second moment estimates.
+    float m_epsilon{1e-8f};     // Small constant for numerical stability.
     size_t m_timestep{0};       // Time step.
     std::vector<TensorValue>    m_m;    // First moment vector.
     std::vector<TensorValue>    m_v;    // Second moment vector.

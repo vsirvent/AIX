@@ -32,6 +32,8 @@ void registerAllBenchmarks()
     REGISTER_BENCHMARK(BenchmarkDeviceMulF3210M);
     REGISTER_BENCHMARK(BenchmarkDeviceDivF3210M);
     REGISTER_BENCHMARK(BenchmarkDeviceMatMulF32800);
+    REGISTER_BENCHMARK(BenchmarkModelXORF321K);
+    REGISTER_BENCHMARK(BenchmarkModelXORF3210);
 }
 
 
@@ -301,9 +303,9 @@ int main(int argc, const char* argv[])
             return -1;
         }
     }
-    catch (...)
+    catch (std::exception& e)
     {
-        std::cerr << "Invalid commandline parameter usage." << std::endl;
+        std::cerr << "Exception message: " << e.what() << std::endl;
         return -1;
     }
 
