@@ -102,6 +102,19 @@ bool matchWithWildcard(const std::string& str, const std::string& pattern)
 }
 
 
+size_t longestBenchmarkLength(const AIXBenchmarkConfigs& configs)
+{
+    size_t maxLength = 0;
+    for (const auto& benchmarkCreateFunc : registeredBenchmarksList)
+    {
+        auto benchmarkName = benchmarkCreateFunc()->name();
+        if (!configs.filterPattern.empty() && !matchWithWildcard(benchmarkName, configs.filterPattern)) continue;
+        maxLength = std::max(maxLength, benchmarkName.size());
+    }
+    return maxLength;
+}
+
+
 AIXBenchmarkResult runBenchmark(std::function<std::unique_ptr<BenchmarkBase>()>& benchmarkCreateFunc,
                                 const AIXBenchmarkConfigs& configs)
 {
@@ -177,8 +190,19 @@ void saveBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& conf
 
 void compareBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& configs)
 {
+    size_t maxNameLength = longestBenchmarkLength(configs);
+    constexpr int timeWidth = 14;
+    constexpr int changeWidth = 14;
+
     auto config = YAML::LoadFile(filename);
     auto benchmarks = config["benchmarks"];
+
+    // Print the header
+    std::cout << std::left << std::setw(maxNameLength) << "Name"
+              << std::right << std::setw(timeWidth) << "Base (ms)"
+              << std::right << std::setw(timeWidth) << "New (ms)"
+              << std::right << std::setw(changeWidth) << "Change (%)"
+              << std::endl << std::string(maxNameLength + 2*timeWidth + changeWidth, '-') << std::endl;
 
     for (auto& benchmarkCreateFunc : registeredBenchmarksList)
     {
@@ -189,10 +213,10 @@ void compareBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& c
         {
             auto results = runBenchmark(benchmarkCreateFunc, configs);
             auto avgChange = 100 * (test["avg"].as<double>() - results.avg) / test["avg"].as<double>();
-            std::cout << "[" << benchmarkName.c_str() << "]"
-                      << " avg base:" << test["avg"].as<double>() << "ms"
-                      << " new:" << results.avg << "ms"
-                      << " change:" << avgChange  << "%"
+            std::cout << std::left << std::setw(maxNameLength) << benchmarkName
+                      << std::right << std::setw(timeWidth) << std::fixed << std::setprecision(4) << test["avg"].as<double>()
+                      << std::right << std::setw(timeWidth) << std::fixed << std::setprecision(4) << results.avg
+                      << std::right << std::setw(changeWidth) << std::fixed << std::setprecision(4) << avgChange
                       << std::endl;
         }
     }
