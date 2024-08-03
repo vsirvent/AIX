@@ -2315,6 +2315,7 @@ protected:
 class SGD : public Optimizer
 {
 public:
+    SGD() = default;
     explicit SGD(const std::vector<Tensor> & parameters, float lr = 0.01f)
         : Optimizer(parameters), m_lr(lr) { }
 
