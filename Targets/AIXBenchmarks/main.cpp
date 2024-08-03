@@ -102,12 +102,16 @@ bool matchWithWildcard(const std::string& str, const std::string& pattern)
 }
 
 
-AIXBenchmarkResult runBenchmark(const std::shared_ptr<BenchmarkBase>& benchmark, const AIXBenchmarkConfigs& configs)
+AIXBenchmarkResult runBenchmark(std::function<std::unique_ptr<BenchmarkBase>()>& benchmarkCreateFunc,
+                                const AIXBenchmarkConfigs& configs)
 {
     AIXBenchmarkResult result;
     double avgDurationSum = 0;
     for (size_t i=0; i<configs.samplingCount + configs.warmupCount; ++i)
     {
+        // Create
+        auto benchmark = benchmarkCreateFunc();     // Create an instance of a benchmark.
+
         // Setup
         benchmark->setup(configs);
 
@@ -147,19 +151,20 @@ void saveBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& conf
     out << YAML::EndMap;
 
     out << YAML::Key << "benchmarks" << YAML::BeginMap;
-    for (auto& benchmark : registeredBenchmarksList)
+    for (auto& benchmarkCreateFunc : registeredBenchmarksList)
     {
-        if (!configs.filterPattern.empty() && !matchWithWildcard(benchmark->name(), configs.filterPattern)) continue;
-        if (!configs.testList.empty() && configs.testList.find(benchmark->name()) == configs.testList.end()) continue;
-        auto result = runBenchmark(benchmark, configs);
+        auto benchmarkName = benchmarkCreateFunc()->name();
+        if (!configs.filterPattern.empty() && !matchWithWildcard(benchmarkName, configs.filterPattern)) continue;
+        if (!configs.testList.empty() && !configs.testList.contains(benchmarkName)) continue;
+        auto result = runBenchmark(benchmarkCreateFunc, configs);
 
-        out << YAML::Key << benchmark->name() << YAML::BeginMap;
+        out << YAML::Key << benchmarkName << YAML::BeginMap;
         out << YAML::Key << "min" << YAML::Value << result.min;
         out << YAML::Key << "max" << YAML::Value << result.max;
         out << YAML::Key << "avg" << YAML::Value << result.avg;
         out << YAML::EndMap;
 
-        std::cout << "[" << benchmark->name().c_str() << "] : done!" << std::endl;
+        std::cout << "[" << benchmarkName.c_str() << "] : done!" << std::endl;
     }
     out << YAML::EndMap;
     out << YAML::EndMap;
@@ -175,15 +180,16 @@ void compareBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& c
     auto config = YAML::LoadFile(filename);
     auto benchmarks = config["benchmarks"];
 
-    for (auto& benchmark : registeredBenchmarksList)
+    for (auto& benchmarkCreateFunc : registeredBenchmarksList)
     {
-        if (!configs.testList.empty() && configs.testList.find(benchmark->name()) == configs.testList.end()) continue;
-        auto test = benchmarks[benchmark->name()];
+        auto benchmarkName = benchmarkCreateFunc()->name();
+        if (!configs.testList.empty() && !configs.testList.contains(benchmarkName)) continue;
+        auto test = benchmarks[benchmarkName];
         if (test)
         {
-            auto results = runBenchmark(benchmark, configs);
+            auto results = runBenchmark(benchmarkCreateFunc, configs);
             auto avgChange = 100 * (test["avg"].as<double>() - results.avg) / test["avg"].as<double>();
-            std::cout << "[" << benchmark->name().c_str() << "]"
+            std::cout << "[" << benchmarkName.c_str() << "]"
                       << " avg base:" << test["avg"].as<double>() << "ms"
                       << " new:" << results.avg << "ms"
                       << " change:" << avgChange  << "%"
@@ -195,10 +201,11 @@ void compareBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& c
 
 void listBenchmarkNames(const AIXBenchmarkConfigs& configs)
 {
-    for (const auto& benchmark : registeredBenchmarksList)
+    for (const auto& benchmarkCreateFunc : registeredBenchmarksList)
     {
-        if (!configs.filterPattern.empty() && !matchWithWildcard(benchmark->name(), configs.filterPattern)) continue;
-        std::cout << benchmark->name() << std::endl;
+        auto benchmarkName = benchmarkCreateFunc()->name();
+        if (!configs.filterPattern.empty() && !matchWithWildcard(benchmarkName, configs.filterPattern)) continue;
+        std::cout << benchmarkName << std::endl;
     }
 }
 

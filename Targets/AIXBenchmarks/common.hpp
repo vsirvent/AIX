@@ -16,6 +16,7 @@
 // System includes
 #include <string>
 #include <unordered_set>
+#include <functional>
 
 struct AIXBenchmarkConfigs
 {
@@ -48,20 +49,20 @@ private:
 };
 
 #define BENCHMARK(className, benchName)                 \
-std::shared_ptr<BenchmarkBase> create##className()      \
+std::unique_ptr<BenchmarkBase> create##className()      \
 {                                                       \
-    auto benchmark = std::make_shared<className>();     \
+    auto benchmark = std::make_unique<className>();     \
     benchmark->name(benchName);                         \
-    return benchmark;                                   \
+    return std::move(benchmark);                        \
 }
 
-static std::vector<std::shared_ptr<BenchmarkBase>> registeredBenchmarksList;
-static std::unordered_map<std::string, std::shared_ptr<BenchmarkBase>> registeredBenchmarksMap;
+static std::vector<std::function<std::unique_ptr<BenchmarkBase>()>> registeredBenchmarksList;
+static std::unordered_map<std::string, std::function<std::unique_ptr<BenchmarkBase>()>> registeredBenchmarksMap;
 
 #define REGISTER_BENCHMARK(className)                               \
 {                                                                   \
-    extern std::shared_ptr<BenchmarkBase> create##className();      \
+    extern std::unique_ptr<BenchmarkBase> create##className();      \
     auto benchmark = create##className();                           \
-    registeredBenchmarksMap[benchmark->name()] = benchmark;         \
-    registeredBenchmarksList.emplace_back(benchmark);               \
+    registeredBenchmarksMap[benchmark->name()] = create##className; \
+    registeredBenchmarksList.emplace_back(create##className);       \
 }
