@@ -1521,6 +1521,8 @@ private:
     template<typename T>
     void print(std::ostream & os) const
     {
+        os << std::fixed << std::setprecision(4);
+
         // Print scalar value, a tensor with no dimension.
         if (m_shape.empty())
         {
