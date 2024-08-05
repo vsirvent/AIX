@@ -2686,7 +2686,7 @@ inline void save(const nn::Module & module, const std::string & filename)
         const auto & value = param.value();
         size_t size = value.size();
         ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));                       // Save parameter size
-        size_t paramDTypeSize = param.device()->dataTypeSize(param.dataType());
+        size_t paramDTypeSize = Device::dataTypeSize(param.dataType());
         ofs.write(reinterpret_cast<const char*>(value.data()), size * paramDTypeSize);       // Save parameter data
     }
 
@@ -2710,7 +2710,7 @@ inline void load(nn::Module & module, const std::string & filename)
         {
             throw std::runtime_error("Invalid parameter size found when loading the model.");
         }
-        size_t paramDTypeSize = param.device()->dataTypeSize(param.dataType());
+        size_t paramDTypeSize = Device::dataTypeSize(param.dataType());
         ifs.read(reinterpret_cast<char*>(param.value().data()), size * paramDTypeSize); // Read the parameter data
     }
 
