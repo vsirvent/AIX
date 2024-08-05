@@ -405,6 +405,110 @@ TEST_CASE("TensorValue - Sum")
 }
 
 
+TEST_CASE("TensorValue - Sum with dim")
+{
+    auto t1  = aix::TensorValue({1.0, 2.0, 3.0,
+                                 4.0, 5.0, 6.0,
+                                 7.0, 8.0, 9.0,
+                                 10.0, 11.0, 12.0,
+                                 13.0, 14.0, 15.0,
+                                 16.0, 17.0, 18.0,
+                                 19.0, 20.0, 21.0,
+                                 22.0, 23.0, 24.0}, aix::Shape{3, 4, 2}, &testDevice);
+
+    SUBCASE("Shape{3,4,2} - dim=0 keepDim=false")
+    {
+        auto t = t1.sum(0, false);
+        auto expectedShape = Shape{4, 2};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({27.0, 30.0,
+                                                33.0, 36.0,
+                                                39.0, 42.0,
+                                                45.0, 48.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=0 keepDim=true")
+    {
+        auto t = t1.sum(0, true);
+        auto expectedShape = Shape{1, 4, 2};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({27.0, 30.0,
+                                                33.0, 36.0,
+                                                39.0, 42.0,
+                                                45.0, 48.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=1 keepDim=false")
+    {
+        auto t = t1.sum(1, false);
+        auto expectedShape = Shape{3, 2};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({16.0, 20.0,
+                                                48.0, 52.0,
+                                                80.0, 84.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=1 keepDim=true")
+    {
+        auto t = t1.sum(1, true);
+        auto expectedShape = Shape{3, 1, 2};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({16.0, 20.0,
+                                                48.0, 52.0,
+                                                80.0, 84.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=2 keepDim=false")
+    {
+        auto t = t1.sum(2, false);
+        auto expectedShape = Shape{3, 4};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({ 3.0,  7.0, 11.0, 15.0,
+                                                19.0, 23.0, 27.0, 31.0,
+                                                35.0, 39.0, 43.0, 47.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=2 keepDim=true")
+    {
+        auto t = t1.sum(2, true);
+        auto expectedShape = Shape{3, 4, 1};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({ 3.0,  7.0, 11.0, 15.0,
+                                                19.0, 23.0, 27.0, 31.0,
+                                                35.0, 39.0, 43.0, 47.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=-1 keepDim=false")
+    {
+        auto t = t1.sum(-1, false);
+        auto expectedShape = Shape{3, 4};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({ 3.0,  7.0, 11.0, 15.0,
+                                                19.0, 23.0, 27.0, 31.0,
+                                                35.0, 39.0, 43.0, 47.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=-1 keepDim=true")
+    {
+        auto t = t1.sum(-1, true);
+        auto expectedShape = Shape{3, 4, 1};
+        CHECK(t.shape() == expectedShape);
+        CheckVectorApproxValues(t, TensorValue({ 3.0,  7.0, 11.0, 15.0,
+                                                19.0, 23.0, 27.0, 31.0,
+                                                35.0, 39.0, 43.0, 47.0}, expectedShape, &testDevice));
+    }
+
+    SUBCASE("Shape{3,4,2} - dimension out of range")
+    {
+        CHECK_THROWS_AS({ t1.sum(3, false);  }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.sum(3, true);   }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.sum(-4, false); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.sum(-4, true);  }, std::invalid_argument);
+    }
+
+}
+
+
 TEST_CASE("TensorValue - Mean")
 {
     auto x = TensorValue({1.0, 2.0, 3.0, 4.0}, {2, 2}, &testDevice);

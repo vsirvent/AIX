@@ -1285,6 +1285,27 @@ public:
         return result;
     }
 
+    TensorValue sum(ssize_t dim, bool keepDim=false) const
+    {
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Dimension parameter of TensorValue::sum() is out of range.");
+        }
+
+        Shape resultShape = m_shape;
+        resultShape[dim] = 1;
+        auto result = reduceTo(resultShape);
+
+        if (!keepDim)
+        {
+            resultShape.erase(resultShape.begin() + dim);   // Squeeze the dimension.
+            return result.reshape(resultShape);
+        }
+
+        return result;
+    }
+
     TensorValue mean() const
     {
         return sum() / size();
@@ -1655,6 +1676,7 @@ public:
     std::shared_ptr<TensorNode>  m_b{nullptr};
     size_t m_dim0{0};
     size_t m_dim1{0};
+    bool m_keepDim{false};
     std::function<void(TensorNode * tensor, const TensorValue & seed)>  m_backwardFunc{nullptr};
 };
 
@@ -1916,6 +1938,27 @@ public:
         node->m_a->backward(seed);
     }
 
+    static void sumBackwardFunc2(TensorNode* node, const TensorValue& seed)
+    {
+        if (!node->m_a) return;
+        const auto& originalShape = node->m_a->m_value.shape();
+
+        // For keepDim=False case, 1 dimension was squeezed. That dimension needs to be unsqueezed.
+        if (!node->m_keepDim)
+        {
+            assert(seed.shape().size() + 1 == originalShape.size());
+            // Calculate the shape needed for broadcasting the seed.
+            auto unsqueezedShape = seed.shape();
+            unsqueezedShape.insert(unsqueezedShape.begin() + static_cast<ssize_t>(node->m_dim0), 1);
+            // Since number of elements is not changed, we reshape to broadcast.
+            node->m_a->backward(seed.reshape(unsqueezedShape).broadcastTo(originalShape));
+        }
+        else
+        {
+            node->m_a->backward(seed.broadcastTo(originalShape));
+        }
+    }
+
     // Overload the + operator
     Tensor operator+(const Tensor & other) const
     {
@@ -2105,6 +2148,17 @@ public:
         result.m_data->m_value = m_data->m_value.sum();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = sumBackwardFunc;
+        return result;
+    }
+
+    Tensor sum(ssize_t dim, bool keepDim=false) const
+    {
+        Tensor result({}, { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.sum(dim, keepDim);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = dim >= 0 ? dim : dim + m_data->m_value.shape().size();
+        result.m_data->m_keepDim = keepDim;
+        result.m_data->m_backwardFunc = sumBackwardFunc2;
         return result;
     }
 

@@ -494,3 +494,218 @@ TEST_CASE("Auto Grad - Broadcast from Scalar to [2x3]")
         CheckVectorApproxValues(y.grad(), tensor({0.2,0.2,0.2,0.2,0.2,0.2}, shape2).value());
     }
 }
+
+
+TEST_CASE("Auto Grad - sum with dimension")
+{
+    auto t  = aix::tensor({1.0, 2.0, 3.0,
+                           4.0, 5.0, 6.0,
+                           7.0, 8.0, 9.0,
+                           10.0, 11.0, 12.0,
+                           13.0, 14.0, 15.0,
+                           16.0, 17.0, 18.0,
+                           19.0, 20.0, 21.0,
+                           22.0, 23.0, 24.0}, aix::Shape{3, 4, 2}, { .requireGrad=true });
+
+    SUBCASE("Shape{3,4,2} - dim=0 keepDim=false")
+    {
+        auto sum = t.sum(0, false);
+        sum.retainGrad();
+        sum.backward(1, sum.shape());
+        CHECK(t.grad().shape() == t.shape());
+        CHECK(sum.grad().shape() == Shape{4, 2});
+        CheckVectorApproxValues(t.grad(), aix::onesLike(t).value());
+        CheckVectorApproxValues(sum.grad(), aix::onesLike(sum).value());
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=0 keepDim=true")
+    {
+        auto sum = t.sum(0, true);
+        sum.retainGrad();
+        sum.backward(1, sum.shape());
+        CHECK(t.grad().shape() == t.shape());
+        CHECK(sum.grad().shape() == Shape{1, 4, 2});
+        CheckVectorApproxValues(t.grad(), aix::onesLike(t).value());
+        CheckVectorApproxValues(sum.grad(), aix::onesLike(sum).value());
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=1 keepDim=false")
+    {
+        auto sum = t.sum(1, false);
+        sum.retainGrad();
+        sum.backward(1, sum.shape());
+        CHECK(t.grad().shape() == t.shape());
+        CHECK(sum.grad().shape() == Shape{3, 2});
+        CheckVectorApproxValues(t.grad(), aix::onesLike(t).value());
+        CheckVectorApproxValues(sum.grad(), aix::onesLike(sum).value());
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=1 keepDim=true")
+    {
+        auto sum = t.sum(1, true);
+        sum.retainGrad();
+        sum.backward(1, sum.shape());
+        CHECK(t.grad().shape() == t.shape());
+        CHECK(sum.grad().shape() == Shape{3, 1, 2});
+        CheckVectorApproxValues(t.grad(), aix::onesLike(t).value());
+        CheckVectorApproxValues(sum.grad(), aix::onesLike(sum).value());
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=2 keepDim=false")
+    {
+        auto sum = t.sum(2, false);
+        sum.retainGrad();
+        sum.backward(1, sum.shape());
+        CHECK(t.grad().shape() == t.shape());
+        CHECK(sum.grad().shape() == Shape{3, 4});
+        CheckVectorApproxValues(t.grad(), aix::onesLike(t).value());
+        CheckVectorApproxValues(sum.grad(), aix::onesLike(sum).value());
+    }
+
+    SUBCASE("Shape{3,4,2} - dim=2 keepDim=true")
+    {
+        auto sum = t.sum(2, true);
+        sum.retainGrad();
+        sum.backward(1, sum.shape());
+        CHECK(t.grad().shape() == t.shape());
+        CHECK(sum.grad().shape() == Shape{3, 4, 1});
+        CheckVectorApproxValues(t.grad(), aix::onesLike(t).value());
+        CheckVectorApproxValues(sum.grad(), aix::onesLike(sum).value());
+    }
+}
+
+
+TEST_CASE("Auto Grad - sum with dimension - complex")
+{
+    auto a  = aix::tensor({ 1.0,  2.0,  3.0,
+                            4.0,  5.0,  6.0,
+                            7.0,  8.0,  9.0,
+                           10.0, 11.0, 12.0,
+                           13.0, 14.0, 15.0,
+                           16.0, 17.0, 18.0,
+                           19.0, 20.0, 21.0,
+                           22.0, 23.0, 24.0}, aix::Shape{3, 4, 2}, {.requireGrad=true});
+
+    SUBCASE("Complex 1")
+    {
+        auto b = aix::tensor({1.0,2.0,3.0}, aix::Shape{3}, {.requireGrad=true});
+        auto z = a.sum(1, false).sum(1, true);
+        z.retainGrad();
+        auto sum = z * b;
+        sum.backward();
+
+        CHECK(z.shape() == Shape{3,1});
+        CHECK(z.grad().shape() == Shape{3,1});
+        CHECK(a.grad().shape() == Shape{3,4,2});
+
+        CheckVectorApproxValues(z, aix::tensor({36.0, 100.0, 164.0}, z.shape()));
+        CheckVectorApproxValues(z.grad(), aix::Tensor(6.0, z.shape()).value());
+        CheckVectorApproxValues(a.grad(), aix::Tensor(6.0, a.shape()).value());
+    }
+
+    SUBCASE("Complex 2")
+    {
+        auto a2 = aix::Tensor(5.0, aix::Shape{3, 4, 2}, {.requireGrad=true});
+        auto b = aix::Tensor(5.0, aix::Shape{3, 2}, {.requireGrad=true});
+        auto b2 = aix::tensor({1.0,2.0,3.0}, aix::Shape{3}, {.requireGrad=true});
+
+        auto sum = ((a * a2).sum(1, false) / b).sum(1, true);
+        sum.retainGrad();
+        sum.backward(1, sum.shape());
+
+        CHECK(a.grad().shape() == Shape{3,4,2});
+        CHECK(a2.grad().shape() == Shape{3,4,2});
+        CHECK(sum.grad().shape() == Shape{3,1});
+        CHECK(sum.shape() == Shape{3,1});
+
+        CheckVectorApproxValues(a.grad(), aix::onesLike(a).value());
+        CheckVectorApproxValues(a2.grad(), aix::tensor({0.2, 0.4,
+                                                        0.6, 0.8,
+                                                        1.0, 1.2,
+                                                        1.4, 1.6,
+                                                        1.8, 2.0,
+                                                        2.2, 2.4,
+                                                        2.6, 2.8,
+                                                        3.0, 3.2,
+                                                        3.4, 3.6,
+                                                        3.8, 4.0,
+                                                        4.2, 4.4,
+                                                        4.6, 4.8}, aix::Shape{3,4,2}).value());
+        CheckVectorApproxValues(sum.grad(), aix::tensor({1.0,1.0,1.0}, aix::Shape{3,1}).value());
+        CheckVectorApproxValues(sum.value(), aix::tensor({36.0,100.0,164.0}, aix::Shape{3,1}).value());
+    }
+
+    SUBCASE("Complex 3")
+    {
+        auto a2 = aix::Tensor(5.0, aix::Shape{3, 4, 2}, {.requireGrad=true});
+        auto b = aix::Tensor(5.0, aix::Shape{3, 2}, {.requireGrad=true});
+        auto b2 = aix::tensor({1.0,2.0,3.0}, aix::Shape{3}, {.requireGrad=true});
+
+        auto sum = b2 * ((a * a2).sum(1, false) / b).sum(1, true);
+        sum.retainGrad();
+        sum.backward();
+
+        CHECK(a.grad().shape() == Shape{3,4,2});
+        CHECK(a2.grad().shape() == Shape{3,4,2});
+        CHECK(sum.grad().shape() == Shape{3,3});
+        CHECK(sum.shape() == Shape{3,3});
+
+        CheckVectorApproxValues(a.grad(), aix::Tensor(6.0, a.shape()).value());
+        CheckVectorApproxValues(a2.grad(), aix::tensor({   1.2,  2.4,
+                                                           3.6,  4.8,
+                                                           6.0,  7.2,
+                                                           8.4,  9.6,
+                                                           10.8, 12.0,
+                                                           13.2, 14.4,
+                                                           15.6, 16.8,
+                                                           18.0, 19.2,
+                                                           20.4, 21.6,
+                                                           22.8, 24.0,
+                                                           25.2, 26.4,
+                                                           27.6, 28.8}, aix::Shape{3,4,2}).value());
+        CheckVectorApproxValues(sum.grad(), aix::Tensor(1.0, aix::Shape{3,3}).value());
+        CheckVectorApproxValues(sum.value(), aix::tensor({ 36.0,   72.0, 108.0,
+                                                           100.0,  200.0, 300.0,
+                                                           164.0,  328.0, 492.0}, aix::Shape{3,1}).value());
+    }
+
+    SUBCASE("Complex 4")
+    {
+        auto a2 = aix::tensor({4.0f, 5.0f, 6.0f}, aix::Shape{3, 1}, { .requireGrad=true });
+        auto b = aix::tensor({1.0f, 2.0f, 3.0f}, aix::Shape{3, 1}, { .requireGrad=true });
+
+        auto z = a2 * b;
+        z.retainGrad();
+        auto sum = z;
+        sum.backward(1, sum.shape());
+
+        CHECK(z.shape() == Shape{3,1});
+        CHECK(z.grad().shape() == Shape{3,1});
+        CHECK(a2.grad().shape() == Shape{3,1});
+
+        CheckVectorApproxValues(z, aix::tensor({4.0, 10.0, 18.0}, z.shape()));
+        CheckVectorApproxValues(z.grad(), aix::Tensor(1.0, z.shape()).value());
+        CheckVectorApproxValues(a2.grad(), aix::tensor({1.0,2.0,3.0}, a2.shape()).value());
+    }
+
+    SUBCASE("Complex 5")
+    {
+        auto a2 = aix::tensor({4.0f, 5.0f, 6.0f}, aix::Shape{3, 1}, { .requireGrad=true });
+        auto b = aix::tensor({1.0f, 2.0f, 3.0f}, aix::Shape{3}, { .requireGrad=true });
+
+        auto z = a2 * b;
+        z.retainGrad();
+        auto sum = z;
+        sum.backward(1, sum.shape());
+
+        CHECK(z.shape() == Shape{3,3});
+        CHECK(z.grad().shape() == Shape{3,3});
+        CHECK(a2.grad().shape() == Shape{3,1});
+
+        CheckVectorApproxValues(z, aix::tensor({4.0, 8.0, 12.0,
+                                                5.0, 10.0, 15.0,
+                                                6.0, 12.0, 18.0}, z.shape()));
+        CheckVectorApproxValues(z.grad(), aix::Tensor(1.0, z.shape()).value());
+        CheckVectorApproxValues(a2.grad(), aix::Tensor(6.0, a2.shape()).value());
+    }
+}
