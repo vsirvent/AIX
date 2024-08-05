@@ -1311,6 +1311,12 @@ public:
         return sum() / size();
     }
 
+    TensorValue mean(ssize_t dim, bool keepDim=false) const
+    {
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+        return sum(dim, keepDim) / shape()[dim];
+    }
+
     TensorValue sqrt() const
     {
         return tensorMathFunc(&Device::sqrt);
@@ -2165,6 +2171,12 @@ public:
     Tensor mean() const
     {
         return sum() / value().size();
+    }
+
+    Tensor mean(ssize_t dim, bool keepDim=false) const
+    {
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+        return sum(dim, keepDim) / value().shape()[dim];
     }
 
     Tensor pow(float exp) const
