@@ -169,7 +169,7 @@ TEST_CASE("Tensor - print")
         auto input = aix::tensor(1.0);
 
         ss << input;
-        std::string expected = R"(1
+        std::string expected = R"(1.0000
 
 [ CPU Float32 {} ]
 )";
@@ -182,7 +182,7 @@ TEST_CASE("Tensor - print")
         auto input = aix::tensor({1.0}, Shape{1});
 
         ss << input;
-        std::string expected = R"(  1
+        std::string expected = R"(  1.0000
 
 [ CPU Float32 {1} ]
 )";
@@ -195,9 +195,9 @@ TEST_CASE("Tensor - print")
         auto input = aix::tensor({1.0, 2.0, 3.0}, Shape{3});
 
         ss << input;
-        std::string expected = R"(  1
-  2
-  3
+        std::string expected = R"(  1.0000
+  2.0000
+  3.0000
 
 [ CPU Float32 {3} ]
 )";
@@ -210,7 +210,7 @@ TEST_CASE("Tensor - print")
         auto input = aix::tensor({1.0}, {1,1});
 
         ss << input;
-        std::string expected = R"(  1
+        std::string expected = R"(  1.0000
 
 [ CPU Float32 {1,1} ]
 )";
@@ -226,8 +226,8 @@ TEST_CASE("Tensor - print")
                                  }, {2, 2});
 
         ss << input;
-        std::string expected = R"(  1  2
-  2  3
+        std::string expected = R"(  1.0000  2.0000
+  2.0000  3.0000
 
 [ CPU Float32 {2,2} ]
 )";
@@ -244,8 +244,8 @@ TEST_CASE("Tensor - print")
 
         ss << input;
         std::string expected = R"((0,.,.) =
-  1  2
-  2  3
+  1.0000  2.0000
+  2.0000  3.0000
 
 [ CPU Float32 {1,2,2} ]
 )";
@@ -264,12 +264,12 @@ TEST_CASE("Tensor - print")
 
         ss << input;
         std::string expected = R"((0,.,.) =
-  1  2
-  2  3
+  1.0000  2.0000
+  2.0000  3.0000
 
 (1,.,.) =
-  3  4
-  4  5
+  3.0000  4.0000
+  4.0000  5.0000
 
 [ CPU Float32 {2,2,2} ]
 )";
@@ -282,7 +282,7 @@ TEST_CASE("Tensor - print")
         auto input = aix::tensor({1.0}, aix::Shape{1}, { .requireGrad=false, .dtype=DataType::kFloat64 });
 
         ss << input;
-        std::string expected = R"(  1
+        std::string expected = R"(  1.0000
 
 [ CPU Float64 {1} ]
 )";
