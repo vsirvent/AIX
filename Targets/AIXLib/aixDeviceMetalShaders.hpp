@@ -441,7 +441,7 @@ kernel void reduceTo_a(device const T* src       [[buffer(0)]],
                        constant T2& newShapeSize [[buffer(5)]],
                        uint index [[thread_position_in_grid]])
 {
-    size_t originalIndex = translationIndex(index, shape, newShape, shapeSize, newShapeSize);
+    size_t originalIndex = translationIndex(index, newShape, shape, newShapeSize, shapeSize);
     atomic_fetch_add_explicit((device atomic<T>*)&(dst[originalIndex]), src[index], memory_order_relaxed);
 
     // NOTE: Metal Framework supports add and sub operations for only atomic_float, atomic_uint and atomic_uint.

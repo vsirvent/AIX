@@ -788,7 +788,7 @@ protected:
         // Summing the gradients correctly aggregates these contributions.
         for (size_t index = 0; index < size; ++index)
         {
-            tDst[translationIndex(index, shape, newShape)] += tSrc[index];
+            tDst[translationIndex(index, newShape, shape)] += tSrc[index];
         }
     }
 
