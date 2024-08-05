@@ -2509,9 +2509,9 @@ public:
         return totalParams;
     }
 
-    void to(std::unique_ptr<Device> & device)    { to(*device); }
-    void to(Device * device)                     { to(*device); }
-    void to(Device & device)
+    void to(std::unique_ptr<Device> & device) const   { to(*device); }
+    void to(Device * device) const                    { to(*device); }
+    void to(Device & device) const
     {
         for (auto & param : parameters())
         {
@@ -2519,7 +2519,7 @@ public:
         }
     }
 
-    void to(DataType newDtype)
+    void to(DataType newDtype) const
     {
         for (auto & param : parameters())
         {
