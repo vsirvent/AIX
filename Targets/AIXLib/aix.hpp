@@ -1753,6 +1753,11 @@ public:
     inline void zeroGrad()                      { m_data->m_grad.fill(0); }
     inline bool isRequireGrad() const           { return m_data->m_requireGrad; }
     inline void retainGrad() const              { m_data->m_retainGrad = true; m_data->m_grad.fill(0); }
+    inline const Tensor& requireGrad(bool state) const
+    {
+        m_data->m_requireGrad = m_data->m_retainGrad = state;
+        return *this;
+    }
 
     // Set operation device for the tensor.
     inline Tensor & to(std::unique_ptr<Device> & device)    { return to(*device); }
