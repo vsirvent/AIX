@@ -2338,6 +2338,8 @@ inline Tensor log(const Tensor & A)    { return A.log();  }
 inline Tensor exp(const Tensor & A)    { return A.exp();  }
 inline Tensor sum(const Tensor & A)    { return A.sum();  }
 inline Tensor mean(const Tensor & A)   { return A.mean(); }
+inline Tensor sum(const Tensor & A, ssize_t dim, bool keepDim=false)    { return A.sum(dim, keepDim);  }
+inline Tensor mean(const Tensor & A, ssize_t dim, bool keepDim=false)   { return A.mean(dim, keepDim);  }
 inline Tensor pow(const Tensor & A, const Tensor & exp)     { return A.pow(exp); }
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 
