@@ -1296,14 +1296,7 @@ public:
         Shape resultShape = m_shape;
         resultShape[dim] = 1;
         auto result = reduceTo(resultShape);
-
-        if (!keepDim)
-        {
-            resultShape.erase(resultShape.begin() + dim);   // Squeeze the dimension.
-            return result.reshape(resultShape);
-        }
-
-        return result;
+        return keepDim ? result : result.squeeze(dim);
     }
 
     TensorValue mean() const
@@ -1988,18 +1981,9 @@ public:
 
         // For keepDim=False case, 1 dimension was squeezed. That dimension needs to be unsqueezed.
         if (!node->m_keepDim)
-        {
-            assert(seed.shape().size() + 1 == originalShape.size());
-            // Calculate the shape needed for broadcasting the seed.
-            auto unsqueezedShape = seed.shape();
-            unsqueezedShape.insert(unsqueezedShape.begin() + static_cast<ssize_t>(node->m_dim0), 1);
-            // Since number of elements is not changed, we reshape to broadcast.
-            node->m_a->backward(seed.reshape(unsqueezedShape).broadcastTo(originalShape));
-        }
+            node->m_a->backward(seed.unsqueeze(static_cast<ssize_t>(node->m_dim0)).broadcastTo(originalShape));
         else
-        {
             node->m_a->backward(seed.broadcastTo(originalShape));
-        }
     }
 
     static void squeezeBackwardFunc(TensorNode * node, const TensorValue & seed)
