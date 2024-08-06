@@ -2284,6 +2284,22 @@ public:
         return result;
     }
 
+    Tensor var(bool unbiased=true) const
+    {
+        auto deviation = *this - mean();
+        auto elementCount = unbiased ? deviation.value().size() - 1 : deviation.value().size();
+        return (deviation * deviation).sum() / float(elementCount);
+    }
+
+    Tensor var(ssize_t dim, bool unbiased=true, bool keepdim=false) const
+    {
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+        auto deviation = *this - mean(dim, true);
+        auto elementCount = unbiased ? shape()[dim] - 1 : shape()[dim];
+        auto var = (deviation * deviation).sum(dim, true) / float(elementCount);
+        return keepdim ? var : var.squeeze(dim);
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream & operator<<(std::ostream& os, const Tensor& tensor);
 
@@ -2390,6 +2406,11 @@ inline Tensor pow(const Tensor & A, const Tensor & exp)     { return A.pow(exp);
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 inline Tensor squeeze(const Tensor & A, ssize_t dim)    { return A.squeeze(dim);    }
 inline Tensor unsqueeze(const Tensor & A, ssize_t dim)  { return A.unsqueeze(dim);  }
+inline Tensor var(const Tensor & A, bool unbiased=true)     { return A.var(unbiased); }
+inline Tensor var(const Tensor & A, ssize_t dim, bool unbiased=true, bool keepdim=false)
+{
+    return A.var(dim, unbiased, keepdim);
+}
 
 
 // Optimizers Namespace

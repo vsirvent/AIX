@@ -739,3 +739,142 @@ TEST_CASE("Auto Grad - Unsqueeze")
         CheckVectorApproxValues(a.grad(), aix::tensor({1.0, 1.0, 1.0, 1.0}, a.shape()).value());
     }
 }
+
+
+TEST_CASE("Auto Grad - variance")
+{
+    std::initializer_list<float> data = { 1.0, 2.0,
+                                          3.0, 4.0 };
+    Shape shape{2,2};
+
+    SUBCASE("default")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var();
+        var.backward();
+        CheckVectorApproxValues(a.grad(), aix::tensor({-1.0000, -0.3333,
+                                                        0.3333,  1.0000}, a.shape()).value());
+    }
+
+    SUBCASE("unbiased = true")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var  = a.var(true);
+        var.backward();
+        CheckVectorApproxValues(a.grad(), aix::tensor({-1.0000, -0.3333,
+                                                        0.3333,  1.0000}, a.shape()).value());
+    }
+
+    SUBCASE("unbiased = false")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var  = a.var(false);
+        var.backward();
+        CheckVectorApproxValues(a.grad(), aix::tensor({-0.7500, -0.2500,
+                                                        0.2500,  0.7500}, a.shape()).value());
+    }
+
+    SUBCASE("dim = 0 unbiased = default, keepdim = default")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(ssize_t(0));
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-2.0, -2.0,
+                                                        2.0,  2.0}, shape).value());
+    }
+
+    SUBCASE("dim = 0 unbiased = true, keepdim = default")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(ssize_t(0), true);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-2.0, -2.0,
+                                                        2.0,  2.0}, shape).value());
+    }
+
+    // ---
+
+    SUBCASE("dim = 0 unbiased = true, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(0, true, false);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-2.0, -2.0,
+                                                        2.0,  2.0}, shape).value());
+    }
+
+    SUBCASE("dim = 0 unbiased = true, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(0, true, true);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{1,2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-2.0, -2.0,
+                                                        2.0,  2.0}, shape).value());
+    }
+
+    SUBCASE("dim = 0 unbiased = false, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(0, false, false);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-1.0, -1.0,
+                                                        1.0,  1.0}, shape).value());
+    }
+
+    SUBCASE("dim = 0 unbiased = false, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(0, false, true);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{1, 2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-1.0, -1.0,
+                                                        1.0,  1.0}, shape).value());
+    }
+
+    // ---
+
+    SUBCASE("dim = 1 unbiased = true, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(1, true, false);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-1.0, 1.0,
+                                                       -1.0, 1.0}, shape).value());
+    }
+
+    SUBCASE("dim = 1 unbiased = true, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(1, true, true);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-1.0, 1.0,
+                                                       -1.0, 1.0}, shape).value());
+    }
+
+    SUBCASE("dim = 1 unbiased = false, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(1, false, false);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-0.5, 0.5,
+                                                       -0.5, 0.5}, shape).value());
+    }
+
+    SUBCASE("dim = 1 unbiased = false, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto var = a.var(1, false, true);
+        var.backward(1, var.shape());
+        CHECK(var.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), aix::tensor({-0.5, 0.5,
+                                                       -0.5, 0.5}, shape).value());
+    }
+}

@@ -1259,3 +1259,157 @@ TEST_CASE("Tensor - Scalar OP Tensor - Data Type")
         }
     }
 }
+
+
+TEST_CASE("Tensor - Variance")
+{
+    std::initializer_list<float> data = { 1.0,  2.0,  3.0,
+                                          4.0,  5.0,  6.0,
+                                          7.0,  8.0,  9.0,
+                                          10.0, 11.0, 12.0,
+                                          13.0, 14.0, 15.0,
+                                          16.0, 17.0, 18.0,
+                                          19.0, 20.0, 21.0,
+                                          22.0, 23.0, 24.0};
+    Shape shape{3, 4, 2};
+
+    SUBCASE("default")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var();
+        CHECK(var.value().item<float>() == doctest::Approx(50));
+    }
+
+    SUBCASE("unbiased = true")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var  = a.var(true);
+        CHECK(var.value().item<float>() == doctest::Approx(50));
+    }
+
+    SUBCASE("unbiased = false")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var  = a.var(false);
+        CHECK(var.value().item<float>() == doctest::Approx(47.9167));
+    }
+
+    SUBCASE("dim = 0 unbiased = default, keepdim = default")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(0));
+        CHECK(var.shape() == Shape{4,2});
+        CheckVectorApproxValues(var, aix::Tensor(64.0, {4,2}));
+    }
+
+    SUBCASE("dim = 0 unbiased = true, keepdim = default")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(0), true);
+        CHECK(var.shape() == Shape{4, 2});
+        CheckVectorApproxValues(var, aix::Tensor(64.0, {4,2}));
+    }
+
+    // ---
+
+    SUBCASE("dim = 0 unbiased = true, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(0), true, false);
+        CHECK(var.shape() == Shape{4, 2});
+        CheckVectorApproxValues(var, aix::Tensor(64.0, {4,2}));
+    }
+
+    SUBCASE("dim = 0 unbiased = true, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(0), true, true);
+        CHECK(var.shape() == Shape{1,4,2});
+        CheckVectorApproxValues(var, aix::Tensor(64.0, {1,4,2}));
+    }
+
+    SUBCASE("dim = 0 unbiased = false, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(0), false, false);
+        CHECK(var.shape() == Shape{4, 2});
+        CheckVectorApproxValues(var, aix::Tensor(42.6667, {4,2}));
+    }
+
+    SUBCASE("dim = 0 unbiased = false, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(0), false, true);
+        CHECK(var.shape() == Shape{1,4,2});
+        CheckVectorApproxValues(var, aix::Tensor(42.6667, {1,4,2}));
+    }
+
+    // ---
+
+    SUBCASE("dim = 1 unbiased = true, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(1), true, false);
+        CHECK(var.shape() == Shape{3,2});
+        CheckVectorApproxValues(var, aix::Tensor(6.6667, {3,2}));
+    }
+
+    SUBCASE("dim = 1 unbiased = true, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(1), true, true);
+        CHECK(var.shape() == Shape{3,1,2});
+        CheckVectorApproxValues(var, aix::Tensor(6.6667, {3,1,2}));
+    }
+
+    SUBCASE("dim = 1 unbiased = false, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(1), false, false);
+        CHECK(var.shape() == Shape{3, 2});
+        CheckVectorApproxValues(var, aix::Tensor(5.0, {3,2}));
+    }
+
+    SUBCASE("dim = 1 unbiased = false, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(1), false, true);
+        CHECK(var.shape() == Shape{3,1,2});
+        CheckVectorApproxValues(var, aix::Tensor(5.0, {3,1,2}));
+    }
+
+    // ---
+
+    SUBCASE("dim = 2 unbiased = true, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(2), true, false);
+        CHECK(var.shape() == Shape{3,4});
+        CheckVectorApproxValues(var, aix::Tensor(0.5, {3,4}));
+    }
+
+    SUBCASE("dim = 2 unbiased = true, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(2), true, true);
+        CHECK(var.shape() == Shape{3,4,1});
+        CheckVectorApproxValues(var, aix::Tensor(0.5, {3,4,1}));
+    }
+
+    SUBCASE("dim = 2 unbiased = false, keepdim = false")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(2), false, false);
+        CHECK(var.shape() == Shape{3, 4});
+        CheckVectorApproxValues(var, aix::Tensor(0.25, {3,4}));
+    }
+
+    SUBCASE("dim = 2 unbiased = false, keepdim = true")
+    {
+        auto a = aix::tensor(data, shape);
+        auto var = a.var(ssize_t(2), false, true);
+        CHECK(var.shape() == Shape{3,4,1});
+        CheckVectorApproxValues(var, aix::Tensor(0.25, {3,4,1}));
+    }
+
+}
