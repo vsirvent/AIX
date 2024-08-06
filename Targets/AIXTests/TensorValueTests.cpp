@@ -1714,3 +1714,105 @@ TEST_CASE("TensorValue - Scalar OP TensorValue - Data Type")
         }
     }
 }
+
+
+TEST_CASE("TensorValue - Squeeze")
+{
+    std::initializer_list<float> data = {1.0, 2.0, 3.0, 4.0};
+    auto t = TensorValue(data, {1, 2, 1, 2, 1}, &testDevice);
+
+    SUBCASE("dim 0")
+    {
+        auto s = t.squeeze(0);
+        CHECK(s.shape() == Shape{2,1,2,1});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 1")
+    {
+        auto s = t.squeeze(1);
+        CHECK(s.shape() == Shape{1,2,1,2,1});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 2")
+    {
+        auto s = t.squeeze(2);
+        CHECK(s.shape() == Shape{1,2,2,1});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 3")
+    {
+        auto s = t.squeeze(3);
+        CHECK(s.shape() == Shape{1,2,1,2,1});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 4")
+    {
+        auto s = t.squeeze(4);
+        CHECK(s.shape() == Shape{1,2,1,2});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 4")
+    {
+        auto s = t.squeeze(0);
+        s = s.squeeze(0);
+        s = s.squeeze(1);
+        s = s.squeeze(1);
+        s = s.squeeze(2);
+        CHECK(s.shape() == Shape{2,2});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 5")
+    {
+        CHECK_THROWS_AS(t.squeeze(5), std::invalid_argument);
+        CheckVectorApproxValues(t, tensor(data, t.shape()).value());
+    }
+}
+
+
+TEST_CASE("TensorValue - Unsqueeze")
+{
+    std::initializer_list<float> data = {1.0, 2.0, 3.0, 4.0};
+    auto t = TensorValue(data, {2,2}, &testDevice);
+
+    SUBCASE("dim 0")
+    {
+        auto s = t.unsqueeze(0);
+        CHECK(s.shape() == Shape{1,2,2});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 1")
+    {
+        auto s = t.unsqueeze(1);
+        CHECK(s.shape() == Shape{2,1,2});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 2")
+    {
+        auto s = t.unsqueeze(2);
+        CHECK(s.shape() == Shape{2,2,1});
+        CHECK(s.size() == 4);
+        CheckVectorApproxValues(s, tensor(data, s.shape()).value());
+    }
+
+    SUBCASE("dim 3")
+    {
+        CHECK_THROWS_AS(t.unsqueeze(3), std::invalid_argument);
+        CheckVectorApproxValues(t, tensor(data, t.shape()).value());
+    }
+}

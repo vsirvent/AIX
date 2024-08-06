@@ -709,3 +709,33 @@ TEST_CASE("Auto Grad - sum with dimension - complex")
         CheckVectorApproxValues(a2.grad(), aix::Tensor(6.0, a2.shape()).value());
     }
 }
+
+
+TEST_CASE("Auto Grad - Squeeze")
+{
+    std::initializer_list<float> data = { 1.0, 2.0, 3.0, 4.0 };
+    Shape shape{2,1,2};
+
+    SUBCASE("dim 1")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto s = a.squeeze(1);
+        s.backward();
+        CheckVectorApproxValues(a.grad(), aix::tensor({1.0, 1.0, 1.0, 1.0}, a.shape()).value());
+    }
+}
+
+
+TEST_CASE("Auto Grad - Unsqueeze")
+{
+    std::initializer_list<float> data = { 1.0, 2.0, 3.0, 4.0 };
+    Shape shape{2,2};
+
+    SUBCASE("dim 1")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto s = a.unsqueeze(1);
+        s.backward();
+        CheckVectorApproxValues(a.grad(), aix::tensor({1.0, 1.0, 1.0, 1.0}, a.shape()).value());
+    }
+}

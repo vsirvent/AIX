@@ -1416,6 +1416,36 @@ public:
         return result;
     }
 
+    TensorValue squeeze(ssize_t dim) const
+    {
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+        if (dim >= static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Invalid dimension for squeeze.");
+        }
+
+        if (m_shape[dim] == 1)
+        {
+            auto squeezedShape = m_shape;
+            squeezedShape.erase(squeezedShape.begin() + dim);
+            return reshape(squeezedShape);
+        }
+        return *this;
+    }
+
+    TensorValue unsqueeze(ssize_t dim) const
+    {
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+        if (dim > static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Invalid dimension for unsqueeze.");
+        }
+
+        auto unsqueezedShape = m_shape;
+        unsqueezedShape.insert(unsqueezedShape.begin() + dim, 1);
+        return reshape(unsqueezedShape);
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
 
@@ -1972,6 +2002,18 @@ public:
         }
     }
 
+    static void squeezeBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        node->m_a->backward(seed.unsqueeze(node->m_dim0));
+    }
+
+    static void unsqueezeBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        node->m_a->backward(seed.squeeze(node->m_dim0));
+    }
+
     // Overload the + operator
     Tensor operator+(const Tensor & other) const
     {
@@ -2238,6 +2280,26 @@ public:
         return result;
     }
 
+    Tensor squeeze(ssize_t dim) const
+    {
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.squeeze(dim);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = dim;
+        result.m_data->m_backwardFunc = squeezeBackwardFunc;
+        return result;
+    }
+
+    Tensor unsqueeze(ssize_t dim) const
+    {
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.unsqueeze(dim);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = dim;
+        result.m_data->m_backwardFunc = unsqueezeBackwardFunc;
+        return result;
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream & operator<<(std::ostream& os, const Tensor& tensor);
 
@@ -2342,6 +2404,8 @@ inline Tensor sum(const Tensor & A, ssize_t dim, bool keepDim=false)    { return
 inline Tensor mean(const Tensor & A, ssize_t dim, bool keepDim=false)   { return A.mean(dim, keepDim);  }
 inline Tensor pow(const Tensor & A, const Tensor & exp)     { return A.pow(exp); }
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
+inline Tensor squeeze(const Tensor & A, ssize_t dim)    { return A.squeeze(dim);    }
+inline Tensor unsqueeze(const Tensor & A, ssize_t dim)  { return A.unsqueeze(dim);  }
 
 
 // Optimizers Namespace
