@@ -1413,3 +1413,99 @@ TEST_CASE("Tensor - Variance")
     }
 
 }
+
+
+TEST_CASE("Tensor - max")
+{
+    SUBCASE("scalar")
+    {
+        auto a = aix::tensor(5.0, {}).requireGrad(true);
+        auto max = a.max();
+        CHECK(max.shape() == Shape{});
+        CHECK(max.value().item<float>() == 5.0);
+    }
+
+    SUBCASE("1x1 tensor")
+    {
+        auto a = aix::tensor({5.0}, {1, 1}).requireGrad(true);
+        auto max = a.max();
+        CHECK(max.shape() == Shape{});
+        CHECK(max.value().item<float>() == 5.0);
+    }
+
+    SUBCASE("2x2 tensor - first is max")
+    {
+        auto a = aix::tensor({10.0, 9.0, 8.0, -10.0 }, {2,2}).requireGrad(true);
+        auto max = a.max();
+        CHECK(max.shape() == Shape{});
+        CHECK(max.value().item<float>() == 10.0);
+    }
+
+    SUBCASE("2x2 tensor - last is max")
+    {
+        auto a = aix::tensor({-10.0, 9.0, 8.0, 10.0 }, {2,2}).requireGrad(true);
+        auto max = a.max();
+        CHECK(max.shape() == Shape{});
+        CHECK(max.value().item<float>() == 10.0);
+    }
+
+    SUBCASE("2x2 tensor - first found max")
+    {
+        auto a = aix::tensor({7.0, 8.0, 9.0, 9.0 }, {2,2}).requireGrad(true);
+        auto max = a.max();
+        CHECK(max.shape() == Shape{});
+        CHECK(max.value().item<float>() == 9.0);
+    }
+
+    SUBCASE("2x2 tensor - complex")
+    {
+        auto a = aix::tensor({1.0, 4.0, 3.0, 2.0}, {2,2}).requireGrad(true);
+        auto max = a.max() * a;
+        CHECK(max.shape() == Shape{2,2});
+        CheckVectorApproxValues(max, aix::tensor({ 4.0, 16.0, 12.0, 8.0 }, max.shape()));
+    }
+}
+
+
+TEST_CASE("Tensor - argmax")
+{
+    SUBCASE("scalar")
+    {
+        auto a = aix::tensor(5.0, {}).requireGrad(true);
+        auto amax = a.argmax();
+        CHECK(amax.shape() == Shape{});
+        CHECK(amax.value().item<int32_t>() == 0);
+    }
+
+    SUBCASE("1 tensor")
+    {
+        auto a = aix::Tensor(5.0, Shape{1}).requireGrad(true);
+        auto amax = a.argmax();
+        CHECK(amax.shape() == Shape{});
+        CHECK(amax.value().item<int32_t>() == 0);
+    }
+
+    SUBCASE("1x1 tensor")
+    {
+        auto a = aix::Tensor(5.0, Shape{1,1}).requireGrad(true);
+        auto amax = a.argmax();
+        CHECK(amax.shape() == Shape{});
+        CHECK(amax.value().item<int32_t>() == 0);
+    }
+
+    SUBCASE("2x2 tensor")
+    {
+        auto a = aix::tensor({1.0,2.0,3.0,4.0}, Shape{2,2}).requireGrad(true);
+        auto amax = a.argmax();
+        CHECK(amax.shape() == Shape{});
+        CHECK(amax.value().item<int32_t>() == 3);
+    }
+
+    SUBCASE("2x2 tensor - complex")
+    {
+        auto a = aix::tensor({1.0,4.0,3.0,2.0}, Shape{2,2}).requireGrad(true);
+        auto amax = a.argmax() * a;
+        CHECK(amax.shape() == Shape{2,2});
+        CheckVectorApproxValues(amax, aix::tensor({ 1.0,4.0,3.0,2.0 }, amax.shape()));
+    }
+}

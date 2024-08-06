@@ -278,6 +278,34 @@ void DeviceMetal::pow(const void* a, const void* exp, size_t size, void* result,
     executeTripleArrayCmd(a, exp, size, result, m_compFuncPSOPow[iDType], dtype, "pow_" + toString(dtype));
 }
 
+void DeviceMetal::max(const void* a, size_t size, void* result, DataType dtype)
+{
+    commitAndWait();
+    Device::max(a, size, result, dtype);
+}
+
+void DeviceMetal::argmax(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype)
+{
+    if (resultDtype != DataType::kInt32)
+    {
+        throw std::invalid_argument("Device::argmax supports only int32 data type for its result.");
+    }
+
+    commitAndWait();
+    Device::argmax(a, size, result, dtype, resultDtype);
+}
+
+void DeviceMetal::argmaxIndices(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype)
+{
+    if (resultDtype != DataType::kInt32)
+    {
+        throw std::invalid_argument("Device::argmaxIndices supports only int32 data type for its result.");
+    }
+
+    commitAndWait();
+    Device::argmaxIndices(a, size, result, dtype, resultDtype);
+}
+
 void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype)
 {
     validateDataType(dtype);

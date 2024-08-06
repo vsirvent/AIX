@@ -95,6 +95,12 @@ public:
 
     void pow(const void* a, const void* exp, size_t size, void* result, DataType dtype) override;
 
+    void max(const void* a, size_t size, void* result, DataType dtype) override;
+
+    void argmax(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype) override;
+
+    void argmaxIndices(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype) override;
+
     void matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype) override;
 
     void transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,

@@ -419,6 +419,70 @@ public:
         funcTable[static_cast<size_t>(dtype)](a, exp, size, result);
     }
 
+    virtual void max(const void* a, size_t size, void* result, DataType dtype)
+    {
+        static const auto funcTable = std::array
+        {
+            maxGeneric<double    >,
+            maxGeneric<float     >,
+            maxGeneric<float16_t >,
+            maxGeneric<bfloat16_t>,
+            maxGeneric<int64_t   >,
+            maxGeneric<int32_t   >,
+            maxGeneric<int16_t   >,
+            maxGeneric<int8_t    >,
+            maxGeneric<uint8_t   >,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](a, size, result);
+    }
+
+    virtual void argmax(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype)
+    {
+        if (resultDtype != DataType::kInt32)
+        {
+            throw std::invalid_argument("Device::argmax supports only int32 data type for its result.");
+        }
+
+        static const auto funcTable = std::array
+        {
+            argmaxGeneric<double    , int32_t>,
+            argmaxGeneric<float     , int32_t>,
+            argmaxGeneric<float16_t , int32_t>,
+            argmaxGeneric<bfloat16_t, int32_t>,
+            argmaxGeneric<int64_t   , int32_t>,
+            argmaxGeneric<int32_t   , int32_t>,
+            argmaxGeneric<int16_t   , int32_t>,
+            argmaxGeneric<int8_t    , int32_t>,
+            argmaxGeneric<uint8_t   , int32_t>,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](a, size, result);
+    }
+
+    virtual void argmaxIndices(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype)
+    {
+        if (resultDtype != DataType::kInt32)
+        {
+            throw std::invalid_argument("Device::argmaxIndices supports only int32 data type for its result.");
+        }
+
+        static const auto funcTable = std::array
+        {
+            argmaxIndicesGeneric<double    , int32_t>,
+            argmaxIndicesGeneric<float     , int32_t>,
+            argmaxIndicesGeneric<float16_t , int32_t>,
+            argmaxIndicesGeneric<bfloat16_t, int32_t>,
+            argmaxIndicesGeneric<int64_t   , int32_t>,
+            argmaxIndicesGeneric<int32_t   , int32_t>,
+            argmaxIndicesGeneric<int16_t   , int32_t>,
+            argmaxIndicesGeneric<int8_t    , int32_t>,
+            argmaxIndicesGeneric<uint8_t   , int32_t>,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](a, size, result);
+    }
+
     virtual void matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype)
     {
         static const auto funcTable = std::array
@@ -700,6 +764,57 @@ protected:
         {
             res[i] = std::pow(t1[i], t2[i]);
         }
+    }
+
+    template <typename T>
+    static void maxGeneric(const void* a, const size_t size, void* result)
+    {
+        auto t  = static_cast<const T*>(a);
+        auto res = static_cast<T*>(result);
+
+        res[0] = t[0];
+        for (size_t i = 1; i < size; ++i)
+        {
+            res[0] = std::max<T>(res[0], t[i]);
+        }
+    }
+
+    template <typename T, typename T2>
+    static void argmaxGeneric(const void* a, const size_t size, void* result)
+    {
+        auto t  = static_cast<const T*>(a);
+        auto res = static_cast<T2*>(result);
+
+        T max = t[0];
+        res[0] = 0;
+        for (size_t i = 1; i < size; ++i)
+        {
+            if (t[i] > max)
+            {
+                max = t[i];
+                res[0] = i;
+            }
+        }
+    }
+
+    template <typename T, typename T2>
+    static void argmaxIndicesGeneric(const void* a, const size_t size, void* result)
+    {
+        auto t  = static_cast<const T*>(a);
+        auto res = static_cast<T2*>(result);
+
+        T max = t[0];
+        T2 index = res[0] = 0;
+        for (size_t i = 1; i < size; ++i)
+        {
+            res[i] = 0;
+            if (t[i] > max)
+            {
+                max = t[i];
+                index = i;
+            }
+        }
+        res[index] = 1;
     }
 
     template <typename T>
@@ -1357,6 +1472,30 @@ public:
         return result;
     }
 
+    TensorValue max() const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result({}, m_device, m_dType);
+        m_device->max(m_data, m_size, result.m_data, m_dType);
+        return result;
+    }
+
+    TensorValue argmax() const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result({}, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
+        m_device->argmax(m_data, m_size, result.m_data, m_dType, aix::DataType::kInt32);
+        return result;
+    }
+
+    TensorValue argmaxIndices() const
+    {
+        // Create a new TensorValue to store the result. Perform element-wise.
+        TensorValue result(m_shape, m_device, aix::DataType::kInt32);   // Index is by default in int32 type.
+        m_device->argmaxIndices(m_data, m_size, result.m_data, m_dType, aix::DataType::kInt32);
+        return result;
+    }
+
     // Matrix multiplication for 2D tensors.
     TensorValue matmul(const TensorValue & b) const
     {
@@ -1941,6 +2080,13 @@ public:
         node->m_a->backward(seed * node->m_a->m_value.exp());  // ∂f/∂a = exp(a)
     }
 
+    static void maxBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // The derivative of max(a) with respect to 'a' is a zero tensor with argmax index set to 1.
+        node->m_a->backward(seed * node->m_a->m_value.argmaxIndices());
+    }
+
     static void powBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a || !node->m_b) return;
@@ -2212,6 +2358,23 @@ public:
         return sum(dim, keepDim) / value().shape()[dim];
     }
 
+    Tensor max() const
+    {
+        Tensor result({}, { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.max();
+        result.m_data->m_a = m_data;
+        result.m_data->m_backwardFunc = maxBackwardFunc;
+        return result;
+    }
+
+    Tensor argmax() const
+    {
+        Tensor result({}, { .requireGrad=false, .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.argmax();
+        // argmax does not require gradient.
+        return result;
+    }
+
     Tensor pow(float exp) const
     {
         TensorOptions opt{ .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() };
@@ -2403,6 +2566,8 @@ inline Tensor mean(const Tensor & A)   { return A.mean(); }
 inline Tensor sum(const Tensor & A, ssize_t dim, bool keepDim=false)    { return A.sum(dim, keepDim);  }
 inline Tensor mean(const Tensor & A, ssize_t dim, bool keepDim=false)   { return A.mean(dim, keepDim);  }
 inline Tensor pow(const Tensor & A, const Tensor & exp)     { return A.pow(exp); }
+inline Tensor max(const Tensor & A)         { return A.max();    }
+inline Tensor argmax(const Tensor & A)      { return A.argmax(); }
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 inline Tensor squeeze(const Tensor & A, ssize_t dim)    { return A.squeeze(dim);    }
 inline Tensor unsqueeze(const Tensor & A, ssize_t dim)  { return A.unsqueeze(dim);  }
