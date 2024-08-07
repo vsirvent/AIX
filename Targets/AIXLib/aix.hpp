@@ -275,6 +275,25 @@ public:
         funcTable[static_cast<size_t>(srcDType)][static_cast<size_t>(dstDType)](scalar, result, size);
     }
 
+    virtual void fillMin(DataType dtype, size_t size, void* result)
+    {
+        // Create a lookup table of the functions.
+        static const auto funcTable = std::array
+        {
+            fillMinGeneric<double    >,
+            fillMinGeneric<float     >,
+            fillMinGeneric<float16_t >,
+            fillMinGeneric<bfloat16_t>,
+            fillMinGeneric<int64_t   >,
+            fillMinGeneric<int32_t   >,
+            fillMinGeneric<int16_t   >,
+            fillMinGeneric<int8_t    >,
+            fillMinGeneric<uint8_t   >,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](result, size);
+    }
+
     virtual void sum(const void* a, const size_t size, void* result, DataType dtype)
     {
         static const auto funcTable = std::array
@@ -664,6 +683,16 @@ protected:
         for (size_t i=0; i<size; ++i)
         {
             tDst[i] = static_cast<DstType>(tSrc[0]);
+        }
+    }
+
+    template <typename T>
+    static void fillMinGeneric(void* dst, size_t size)
+    {
+        auto tDst = static_cast<T*>(dst);
+        for (size_t i=0; i<size; ++i)
+        {
+            tDst[i] = std::numeric_limits<T>::lowest();
         }
     }
 

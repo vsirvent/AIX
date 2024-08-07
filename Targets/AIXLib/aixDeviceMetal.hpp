@@ -79,6 +79,8 @@ public:
 
     void fill(const void* scalar, DataType srcDType, size_t size, void* result, DataType dstDType) override;
 
+    void fillMin(DataType dtype, size_t size, void* result) override;
+
     void sum(const void* a, size_t size, void* result, DataType dtype) override;
 
     void sqrt(const void* a, size_t size, void* result, DataType dtype) override;
@@ -205,6 +207,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOTranspose[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOCopyAA[aix::DataTypeCount][aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOFill[aix::DataTypeCount][aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOFillMin[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount];
     std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;

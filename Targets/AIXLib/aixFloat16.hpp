@@ -708,6 +708,11 @@ public:
         return oldValue;
     }
 
+    static bfloat16_t lowest() noexcept
+    {
+        return {-3.382823e+38f};  // Lowest negative value
+    }
+
     // Stream operator for printing.
     friend std::ostream& operator<<(std::ostream& os, const bfloat16_t& bf16)
     {
@@ -747,3 +752,27 @@ private:
 };
 
 }   // namespace
+
+
+// numeric_limits template specialization support for the aix custom data types.
+
+
+template<>
+class std::numeric_limits<aix::bfloat16_t>
+{
+public:
+    static aix::bfloat16_t lowest()
+    {
+        return {-3.38953139e+38f};      // Lowest negative number.
+    }
+};
+
+template<>
+class std::numeric_limits<aix::float16_t>
+{
+public:
+    static aix::float16_t lowest()
+    {
+        return {-65504};                // Lowest negative number.
+    }
+};

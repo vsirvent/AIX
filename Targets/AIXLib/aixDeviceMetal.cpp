@@ -55,6 +55,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOMul[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "mul_aa_" + dtypeStr);
         m_compFuncPSODiv[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "div_aa_" + dtypeStr);
         m_compFuncPSOUnary[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "unary_a_" + dtypeStr);
+        m_compFuncPSOFillMin[i]     = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "fillMin_a_" + dtypeStr);
         m_compFuncPSOSqrt[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sqrt_a_" + dtypeStr);
         m_compFuncPSOSin[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sin_a_" + dtypeStr);
         m_compFuncPSOCos[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "cos_a_" + dtypeStr);
@@ -198,6 +199,32 @@ void DeviceMetal::fill(const void* scalar, DataType srcDType, size_t size, void*
     encodeComputeCommandDoubleBuffer(bufScalar, bufResult, compFuncPSO, {asize, 1, 1}, {w, 1, 1});
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(bufScalar);
+    commitBatchQueue();
+}
+
+void DeviceMetal::fillMin(DataType dtype, size_t size, void* result)
+{
+    validateDataType(dtype);
+    auto iDType = static_cast<size_t>(dtype);
+    auto compFuncPSO = m_compFuncPSOFillMin[iDType];
+
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (!isDeviceBuffer(result))
+        throw std::invalid_argument("DeviceMetal::fillMin() result must have GPU memory.");
+
+    // Memory could be a GPU allocated memory or system memory.
+    auto bufResult = m_allocMap[result];
+
+    // Calculate maximum thread group dimensions
+    auto asize = align(size, TOTAL_COMPONENT_COUNT) / TOTAL_COMPONENT_COUNT;
+    NS::UInteger w = std::min(asize, compFuncPSO->maxTotalThreadsPerThreadgroup());
+
+    // Encode the pipeline state object and its parameters.
+    m_compEncoder->setComputePipelineState(compFuncPSO);
+    m_compEncoder->setBuffer(bufResult, 0, 0);
+    m_compEncoder->dispatchThreads({asize, 1, 1}, {w, 1, 1});
+
+    // Free operation is delayed until the commit is done.
     commitBatchQueue();
 }
 

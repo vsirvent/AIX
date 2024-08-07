@@ -874,6 +874,40 @@ bool testFill(Device* testDevice, size_t n)
 }
 
 
+bool testFillMin(Device* testDevice, size_t n)
+{
+    for (size_t j=0; j<aix::DataTypeCount; ++j)
+    {
+        auto dtype = static_cast<DataType>(j);
+
+        // Apple Metal Framework does not support kFloat64 data type.
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
+
+        aix::Device  refDevice;     // Reference/CPU device.
+        auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
+        auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
+
+        // We used unifiedScalarValue to pass a pointer to data to the fill method with its data type.
+        refDevice.fillMin(dtype, n, cpuResult.data());
+        testDevice->fillMin(dtype, n, deviceResult.data());
+        testDevice->commitAndWait();
+
+        // Compare results with the true/reference results
+        if (!verifyResults(cpuResult, deviceResult))
+        {
+            #ifdef DEBUG_LOG
+            std::cout << "----------------------" << std::endl;
+            std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+            std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+            #endif
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
 bool testBroadcastTo(Device* testDevice)
 {
     for (size_t i=0; i<aix::DataTypeCount; ++i)
@@ -1344,6 +1378,25 @@ TEST_CASE("Device Tests - Fill")
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testFill(&*device2, size));
+        }
+    }
+}
+
+
+TEST_CASE("Device Tests - FillMin")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aix::createDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+
+        // Create a new device per test
+        for (auto size: testSizes)
+        {
+            auto device2 = aix::createDevice(deviceType);
+            CHECK(testFillMin(&*device2, size));
         }
     }
 }

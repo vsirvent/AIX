@@ -349,6 +349,21 @@ kernel void fill_aa(device const T* scalar [[buffer(0)]],
 }
 
 
+// FillMin - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T>
+kernel void fillMin_a(device T* result   [[buffer(0)]],
+                      uint index [[thread_position_in_grid]])
+{
+    T minVal = static_cast<T>(numeric_limits<T>::lowest().xxxx);
+
+    index *= BATCH_PROCESS_SIZE_PER_THREAD;
+    #pragma clang loop unroll(full)
+    for (size_t i=0; i<BATCH_PROCESS_SIZE_PER_THREAD; ++i)
+        result[index + i] = minVal;
+}
+
+
 // Sum - Naive Implementation
 // -----------------------------------------------------------------
 template<typename T>
@@ -2055,6 +2070,41 @@ template [[ host_name("fill_aa_ui8_ui8") ]]
 kernel void fill_aa(device const uchar4*,
                     device uchar4*,
                     uint index [[thread_position_in_grid]]);
+
+
+// FillMin
+// -----------------------------------------------------------------
+template [[ host_name("fillMin_a_f32") ]]
+kernel void fillMin_a(device float4*,
+                      uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fillMin_a_f16") ]]
+kernel void fillMin_a(device half4*,
+                      uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fillMin_a_bf16") ]]
+kernel void fillMin_a(device bfloat4*,
+                      uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fillMin_a_i64") ]]
+kernel void fillMin_a(device long4*,
+                      uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fillMin_a_i32") ]]
+kernel void fillMin_a(device int4*,
+                      uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fillMin_a_i16") ]]
+kernel void fillMin_a(device short4*,
+                      uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fillMin_a_i8") ]]
+kernel void fillMin_a(device char4*,
+                      uint index [[thread_position_in_grid]]);
+
+template [[ host_name("fillMin_a_ui8") ]]
+kernel void fillMin_a(device uchar4*,
+                      uint index [[thread_position_in_grid]]);
 
 
 // BroadcastTo
