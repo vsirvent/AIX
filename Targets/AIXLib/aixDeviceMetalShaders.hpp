@@ -386,6 +386,43 @@ kernel void sum_a(device const T* inA [[buffer(0)]],
 }
 
 
+// Max - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T>
+kernel void max_a(device const T* inA [[buffer(0)]],
+                  device T* result    [[buffer(1)]],
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]])
+{
+    const size_t MAX_THREADS = 1024;
+    threadgroup T sharedData[MAX_THREADS];
+    sharedData[li] = inA[tgi * MAX_THREADS + li];
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    // Perform parallel reduction in shared memory
+    size_t size = threadsPerThreadgroup;
+    for (uint stride = size / 2; stride > 0; stride >>= 1)
+    {
+        if (size % 2 == 1 && li == 0)
+            sharedData[0] = sharedData[0] > sharedData[size-1] ? sharedData[0] : sharedData[size-1];
+        size >>= 1;
+
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+
+        if (li < stride)
+            sharedData[li] = sharedData[li] > sharedData[li + stride] ? sharedData[li] : sharedData[li + stride];
+
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    if (li == 0)
+    {
+        result[tgi] = sharedData[0];
+    }
+}
+
+
 // TranslationIndex - Naive Implementation
 // -----------------------------------------------------------------
 size_t translationIndex(size_t index, device const size_t* shape, device const size_t* newShape,
@@ -1033,6 +1070,65 @@ kernel void sum_a(device const char*,
 
 template [[ host_name("sum_a_ui8") ]]
 kernel void sum_a(device const uchar*,
+                  device uchar*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+
+// Max
+// -----------------------------------------------------------------
+template [[ host_name("max_a_f32") ]]
+kernel void max_a(device const float*,
+                  device float*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+template [[ host_name("max_a_f16") ]]
+kernel void max_a(device const half*,
+                  device half*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+template [[ host_name("max_a_bf16") ]]
+kernel void max_a(device const bfloat*,
+                  device bfloat*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+template [[ host_name("max_a_i64") ]]
+kernel void max_a(device const long*,
+                  device long*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+template [[ host_name("max_a_i32") ]]
+kernel void max_a(device const int*,
+                  device int*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+template [[ host_name("max_a_i16") ]]
+kernel void max_a(device const short*,
+                  device short*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+template [[ host_name("max_a_i8") ]]
+kernel void max_a(device const char*,
+                  device char*,
+                  uint li [[thread_position_in_threadgroup]],
+                  uint tgi [[threadgroup_position_in_grid]],
+                  uint threadsPerThreadgroup [[threads_per_threadgroup]]);
+
+template [[ host_name("max_a_ui8") ]]
+kernel void max_a(device const uchar*,
                   device uchar*,
                   uint li [[thread_position_in_threadgroup]],
                   uint tgi [[threadgroup_position_in_grid]],

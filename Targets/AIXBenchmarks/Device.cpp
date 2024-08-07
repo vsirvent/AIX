@@ -305,6 +305,47 @@ using BenchmarkDeviceSumF3210M = BenchmarkDeviceSum<aix::DataType::kFloat32, 100
 BENCHMARK(BenchmarkDeviceSumF3210M, "device_sum_f32_10m");
 
 // --------------------------------------------------------------------------------
+// MAX
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t elementCount>
+class BenchmarkDeviceMax : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        m_t = aix::randn({1, elementCount}, opt);
+        m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
+        m_device->commitAndWait();
+    }
+
+    void run(const AIXBenchmarkConfigs& configs) final
+    {
+        for (size_t i=0; i<configs.iterationCount; ++i)
+        {
+            m_device->max(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+            m_device->commitAndWait();
+        }
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    aix::Tensor  m_t, m_result;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkDeviceMaxF3210M = BenchmarkDeviceMax<aix::DataType::kFloat32, 10000000>;
+
+BENCHMARK(BenchmarkDeviceMaxF3210M, "device_max_f32_10m");
+
+// --------------------------------------------------------------------------------
 // SQRT
 // --------------------------------------------------------------------------------
 

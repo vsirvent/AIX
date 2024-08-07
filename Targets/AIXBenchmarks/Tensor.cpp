@@ -252,6 +252,45 @@ using BenchmarkTensorSumF3210M = BenchmarkTensorSum<aix::DataType::kFloat32, 100
 BENCHMARK(BenchmarkTensorSumF3210M, "tensor_sum_f32_10m");
 
 // --------------------------------------------------------------------------------
+// MAX
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t elementCount>
+class BenchmarkTensorMax : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        m_t = aix::randn({1, elementCount}, opt);
+        m_device->commitAndWait();
+    }
+
+    void run(const AIXBenchmarkConfigs& configs) final
+    {
+        for (size_t i=0; i<configs.iterationCount; ++i)
+        {
+            auto t = m_t.max();
+            m_device->commitAndWait();
+        }
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    aix::Tensor  m_t;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkTensorMaxF3210M = BenchmarkTensorSum<aix::DataType::kFloat32, 10000000>;
+BENCHMARK(BenchmarkTensorMaxF3210M, "tensor_max_f32_10m");
+
+// --------------------------------------------------------------------------------
 // SQRT
 // --------------------------------------------------------------------------------
 

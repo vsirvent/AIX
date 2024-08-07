@@ -199,6 +199,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOExp[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOPow[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOSum[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOMax[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOMatMul[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOTranspose2D[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOTranspose[aix::DataTypeCount];

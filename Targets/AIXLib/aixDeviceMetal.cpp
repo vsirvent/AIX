@@ -63,6 +63,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOExp[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "exp_a_" + dtypeStr);
         m_compFuncPSOPow[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "pow_aa_" + dtypeStr);
         m_compFuncPSOSum[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sum_a_" + dtypeStr);
+        m_compFuncPSOMax[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "max_a_" + dtypeStr);
         m_compFuncPSOMatMul[i]      = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_aa_" + dtypeStr);
         m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_a_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
@@ -103,6 +104,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOExp[i]->release();
         m_compFuncPSOPow[i]->release();
         m_compFuncPSOSum[i]->release();
+        m_compFuncPSOMax[i]->release();
         m_compFuncPSOMatMul[i]->release();
         m_compFuncPSOTranspose2D[i]->release();
         m_compFuncPSOTranspose[i]->release();
@@ -280,8 +282,39 @@ void DeviceMetal::pow(const void* a, const void* exp, size_t size, void* result,
 
 void DeviceMetal::max(const void* a, size_t size, void* result, DataType dtype)
 {
-    commitAndWait();
-    Device::max(a, size, result, dtype);
+    auto iDType = static_cast<size_t>(dtype);
+    auto compFuncPSO = m_compFuncPSOMax[iDType];
+
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (!isDeviceBuffer(result))
+        throw std::invalid_argument("DeviceMetal::max() result must have GPU memory.");
+
+    size_t maxThreadsPerTG = std::min<size_t>(MAX_THREADS_PER_THREADGROUP, compFuncPSO->maxTotalThreadsPerThreadgroup());
+
+    auto buf1    = getReadOnlyMTLBuffer(a, size, dataTypeSize(dtype));
+    auto bufTemp = m_allocMap[allocate(buf1->allocatedSize())];
+
+    // TODO: Avoid the following copy if possible when changing the algorithm.
+    copy(buf1->contents(), dtype, bufTemp->contents(), dtype, size);
+
+    // Apply Parallel Reduction Max.
+    size_t length = size - 1;
+    while (length > 0)
+    {
+        // Calculate maximum thread group dimensions.
+        NS::UInteger w = std::min<size_t>(length+1, maxThreadsPerTG);
+        // Serialize resource and states to be called by GPU.
+        encodeComputeCommandDoubleBuffer(bufTemp, bufTemp, compFuncPSO, {length + 1, 1, 1}, {w, 1, 1});
+        commitBatchQueue();
+        length = (length - 1) / maxThreadsPerTG;
+    }
+
+    // Copy result from temp buf to result buffer.
+    copy(bufTemp->contents(), dtype, result, dtype, 1);
+
+    // Free operation is delayed until the commit is done.
+    freeTemporaryBuffer(buf1);
+    deallocate(bufTemp->contents());
 }
 
 void DeviceMetal::argmax(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype)
