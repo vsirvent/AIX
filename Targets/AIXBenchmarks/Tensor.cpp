@@ -287,8 +287,47 @@ private:
     std::unique_ptr<aix::Device>  m_device;
 };
 
-using BenchmarkTensorMaxF3210M = BenchmarkTensorSum<aix::DataType::kFloat32, 10000000>;
+using BenchmarkTensorMaxF3210M = BenchmarkTensorMax<aix::DataType::kFloat32, 10000000>;
 BENCHMARK(BenchmarkTensorMaxF3210M, "tensor_max_f32_10m");
+
+// --------------------------------------------------------------------------------
+// MAX WITH DIMENSION
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t elementCount>
+class BenchmarkTensorMaxWithDim : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        m_t = aix::randn({elementCount, elementCount, elementCount}, opt);
+        m_device->commitAndWait();
+    }
+
+    void run(const AIXBenchmarkConfigs& configs) final
+    {
+        for (size_t i=0; i<configs.iterationCount; ++i)
+        {
+            auto t = m_t.max(1, false);
+            m_device->commitAndWait();
+        }
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    aix::Tensor  m_t;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkTensorMaxWithDimF32300 = BenchmarkTensorMaxWithDim<aix::DataType::kFloat32, 300>;
+BENCHMARK(BenchmarkTensorMaxWithDimF32300, "tensor_max_wd_f32_300");
 
 // --------------------------------------------------------------------------------
 // SQRT

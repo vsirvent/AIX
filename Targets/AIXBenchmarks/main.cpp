@@ -29,6 +29,7 @@ void registerAllBenchmarks()
     REGISTER_BENCHMARK(BenchmarkTensorUnaryF3210M);
     REGISTER_BENCHMARK(BenchmarkTensorSumF3210M);
     REGISTER_BENCHMARK(BenchmarkTensorMaxF3210M);
+    REGISTER_BENCHMARK(BenchmarkTensorMaxWithDimF32300);
     REGISTER_BENCHMARK(BenchmarkTensorSqrtF3210M);
     REGISTER_BENCHMARK(BenchmarkTensorSinF3210M);
     REGISTER_BENCHMARK(BenchmarkTensorCosF3210M);
