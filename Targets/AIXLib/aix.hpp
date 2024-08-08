@@ -650,6 +650,30 @@ public:
         funcTable[static_cast<size_t>(dtype)](src, dst, srcSize, dstSize, shape, newShape, strides, dim);
     }
 
+    virtual void argmaxIndicesTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
+                                 const Shape& shape, const Shape& newShape, DataType dtype, DataType resultDtype)
+    {
+        if (resultDtype != DataType::kInt32)
+        {
+            throw std::invalid_argument("Device::argmaxIndicesTo supports only int32 data type for its result.");
+        }
+
+        static const auto funcTable = std::array
+        {
+            argmaxIndicesToGeneric<double    , int32_t>,
+            argmaxIndicesToGeneric<float     , int32_t>,
+            argmaxIndicesToGeneric<float16_t , int32_t>,
+            argmaxIndicesToGeneric<bfloat16_t, int32_t>,
+            argmaxIndicesToGeneric<int64_t   , int32_t>,
+            argmaxIndicesToGeneric<int32_t   , int32_t>,
+            argmaxIndicesToGeneric<int16_t   , int32_t>,
+            argmaxIndicesToGeneric<int8_t    , int32_t>,
+            argmaxIndicesToGeneric<uint8_t   , int32_t>,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](src, dst, srcSize, dstSize, shape, newShape);
+    }
+
     virtual void commitAndWait()
     {
     }
@@ -911,6 +935,43 @@ protected:
             }
         }
         res[index] = 1;
+    }
+
+    template <typename T, typename T2>
+    static void argmaxIndicesToGeneric(const void* src, void* dst, size_t srcSize, size_t dstSize,
+                                       const Shape& shape, const Shape& newShape)
+    {
+        auto tSrc = static_cast<const T*>(src);
+        auto tDst = static_cast<T2*>(dst);
+        auto tmaxTemp = new T[dstSize];     // Temporary helper buffer to store max values for comparison.
+
+        // Initialize the temp buffer with the lowest value of the data type, T.
+        fillMinGeneric<T>(tmaxTemp, dstSize);
+        size_t maxElementCount = 1;
+        for (auto i : newShape)
+        {
+            maxElementCount *= i;
+        }
+
+        auto tDstTemp = new T2[maxElementCount];   // Temporary helper buffer to store index of max elements.
+
+        for (size_t index = 0; index < srcSize; ++index)
+        {
+            auto transIndex = translationIndex(index, newShape, shape);
+            if (tSrc[index] > tmaxTemp[transIndex])
+            {
+                tmaxTemp[transIndex] = tSrc[index];
+                tDstTemp[transIndex] = index;
+            }
+        }
+
+        for (size_t i = 0; i < maxElementCount; ++i)
+        {
+            tDst[tDstTemp[i]] = 1;
+        }
+
+        delete [] tmaxTemp;
+        delete [] tDstTemp;
     }
 
     template <typename T>
@@ -1641,6 +1702,25 @@ public:
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, aix::DataType::kInt32);   // Index is by default in int32 type.
         m_device->argmaxIndices(m_data, m_size, result.m_data, m_dType, aix::DataType::kInt32);
+        return result;
+    }
+
+    TensorValue argmaxIndices(ssize_t dim) const
+    {
+        if (m_shape.empty()) return {1, m_shape, m_device, aix::DataType::kInt32};  // Scalar tensor.
+
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Dimension parameter of TensorValue::argmaxIndices() is out of range.");
+        }
+
+        Shape newShape = m_shape;
+        newShape[dim] = 1;
+
+        TensorValue result(0, m_shape, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
+        m_device->argmaxIndicesTo(m_data, result.data(), m_size, result.size(), m_shape, newShape, m_dType,
+                                  aix::DataType::kInt32);
         return result;
     }
 

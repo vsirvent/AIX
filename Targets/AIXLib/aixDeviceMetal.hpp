@@ -121,6 +121,9 @@ public:
     void argmaxTo(const void* src, void* dst, size_t srcSize, size_t dstSize, const Shape& shape, const Shape& newShape,
                   const Shape& strides, size_t dim, DataType dtype, DataType resultDtype) override;
 
+    void argmaxIndicesTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
+                         const Shape& shape, const Shape& newShape, DataType dtype, DataType resultDtype) override;
+
     void commitAndWait() override;
 
 protected:

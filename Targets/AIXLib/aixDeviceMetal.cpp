@@ -538,6 +538,14 @@ void DeviceMetal::argmaxTo(const void* src, void* dst, size_t srcSize, size_t ds
     Device::argmaxTo(src, dst, srcSize, dstSize, shape, newShape, strides, dim, dtype, resultDtype);
 }
 
+void DeviceMetal::argmaxIndicesTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
+                                  const Shape& shape, const Shape& newShape, DataType dtype, DataType resultDtype)
+{
+    validateDataType(dtype);
+    commitAndWait();
+    Device::argmaxIndicesTo(src, dst, srcSize, dstSize, shape, newShape, dtype, resultDtype);
+}
+
 void DeviceMetal::commit()
 {
     if (m_currentBatchSize == 0) return;
