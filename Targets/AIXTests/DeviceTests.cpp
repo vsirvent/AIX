@@ -170,10 +170,10 @@ bool testAllocate(Device* testDevice, size_t n)
         auto deviceBuf = testDevice->allocate(n, dtype);
 
         // Device should be able to allocate memory, and it should be accessible by CPU to read and write.
-        for (size_t i=0; i < n * Device::dataTypeSize(dtype); ++i)
+        for (size_t index=0; index < n * Device::dataTypeSize(dtype); ++index)
         {
-            static_cast<uint8_t*>(cpuBuf)[i]    = 5;
-            static_cast<uint8_t*>(deviceBuf)[i] = 5;
+            static_cast<uint8_t*>(cpuBuf)[index]    = 5;
+            static_cast<uint8_t*>(deviceBuf)[index] = 5;
         }
 
         refDevice.deallocate(cpuBuf);
@@ -535,7 +535,7 @@ bool testMaxWithDim(Device* testDevice)
         aix::Device  refDevice;     // Reference/CPU device.
 
         auto shape  = createRandomShape(1, 6);      // max element size 6^6 = 46,656
-        ssize_t dim = std::rand() % shape.size();
+        ssize_t dim = std::rand() % static_cast<ssize_t>(shape.size());
         bool keepdim = static_cast<bool>(std::rand() % 2);
 
         auto array        = (1 + aix::randn(shape)).to(dtype);
@@ -1258,7 +1258,7 @@ TEST_CASE("Device Tests - Max with dim")
         if (!device) continue;      // Skip if the device is not available.
 
         // Create a new device per test
-        for (auto size: testSizes)
+        for (size_t i=0; i<testSizes.size(); ++i)
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testMaxWithDim(&*device2));

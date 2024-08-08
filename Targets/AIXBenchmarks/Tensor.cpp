@@ -26,7 +26,7 @@ public:
         m_device = aix::createDevice(configs.deviceType);
         aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
-        m_t2 = aix::randn({1, elementCount}, opt);;
+        m_t2 = aix::randn({1, elementCount}, opt);
         m_device->commitAndWait();
     }
 
@@ -51,7 +51,7 @@ private:
 };
 
 using BenchmarkTensorAddF3210M = BenchmarkTensorAdd<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorAddF3210M, "tensor_add_f32_10m");
+BENCHMARK(BenchmarkTensorAddF3210M, "tensor_add_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SUB
@@ -66,7 +66,7 @@ public:
         m_device = aix::createDevice(configs.deviceType);
         aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
-        m_t2 = aix::randn({1, elementCount}, opt);;
+        m_t2 = aix::randn({1, elementCount}, opt);
         m_device->commitAndWait();
     }
 
@@ -91,7 +91,7 @@ private:
 };
 
 using BenchmarkTensorSubF3210M = BenchmarkTensorSub<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorSubF3210M, "tensor_sub_f32_10m");
+BENCHMARK(BenchmarkTensorSubF3210M, "tensor_sub_f32_10m")
 
 // --------------------------------------------------------------------------------
 // MUL
@@ -106,7 +106,7 @@ public:
         m_device = aix::createDevice(configs.deviceType);
         aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
-        m_t2 = aix::randn({1, elementCount}, opt);;
+        m_t2 = aix::randn({1, elementCount}, opt);
         m_device->commitAndWait();
     }
 
@@ -131,7 +131,7 @@ private:
 };
 
 using BenchmarkTensorMulF3210M = BenchmarkTensorMul<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorMulF3210M, "tensor_mul_f32_10m");
+BENCHMARK(BenchmarkTensorMulF3210M, "tensor_mul_f32_10m")
 
 // --------------------------------------------------------------------------------
 // DIV
@@ -146,7 +146,7 @@ public:
         m_device = aix::createDevice(configs.deviceType);
         aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
-        m_t2 = aix::randn({1, elementCount}, opt);;
+        m_t2 = aix::randn({1, elementCount}, opt);
         m_device->commitAndWait();
     }
 
@@ -171,7 +171,7 @@ private:
 };
 
 using BenchmarkTensorDivF3210M = BenchmarkTensorDiv<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorDivF3210M, "tensor_div_f32_10m");
+BENCHMARK(BenchmarkTensorDivF3210M, "tensor_div_f32_10m")
 
 // --------------------------------------------------------------------------------
 // UNARY
@@ -210,7 +210,7 @@ private:
 };
 
 using BenchmarkTensorUnaryF3210M = BenchmarkTensorUnary<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorUnaryF3210M, "tensor_unary_f32_10m");
+BENCHMARK(BenchmarkTensorUnaryF3210M, "tensor_unary_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SUM
@@ -249,7 +249,7 @@ private:
 };
 
 using BenchmarkTensorSumF3210M = BenchmarkTensorSum<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorSumF3210M, "tensor_sum_f32_10m");
+BENCHMARK(BenchmarkTensorSumF3210M, "tensor_sum_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SUM WITH DIMENSION
@@ -288,7 +288,7 @@ private:
 };
 
 using BenchmarkTensorSumWithDimF32300 = BenchmarkTensorSumWithDim<aix::DataType::kFloat32, 300>;
-BENCHMARK(BenchmarkTensorSumWithDimF32300, "tensor_sum_wd_f32_300");
+BENCHMARK(BenchmarkTensorSumWithDimF32300, "tensor_sum_wd_f32_300")
 
 // --------------------------------------------------------------------------------
 // MAX
@@ -327,7 +327,7 @@ private:
 };
 
 using BenchmarkTensorMaxF3210M = BenchmarkTensorMax<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorMaxF3210M, "tensor_max_f32_10m");
+BENCHMARK(BenchmarkTensorMaxF3210M, "tensor_max_f32_10m")
 
 // --------------------------------------------------------------------------------
 // MAX WITH DIMENSION
@@ -366,7 +366,7 @@ private:
 };
 
 using BenchmarkTensorMaxWithDimF32300 = BenchmarkTensorMaxWithDim<aix::DataType::kFloat32, 300>;
-BENCHMARK(BenchmarkTensorMaxWithDimF32300, "tensor_max_wd_f32_300");
+BENCHMARK(BenchmarkTensorMaxWithDimF32300, "tensor_max_wd_f32_300")
 
 // --------------------------------------------------------------------------------
 // SQRT
@@ -405,7 +405,7 @@ private:
 };
 
 using BenchmarkTensorSqrtF3210M = BenchmarkTensorSqrt<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorSqrtF3210M, "tensor_sqrt_f32_10m");
+BENCHMARK(BenchmarkTensorSqrtF3210M, "tensor_sqrt_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SIN
@@ -444,7 +444,7 @@ private:
 };
 
 using BenchmarkTensorSinF3210M = BenchmarkTensorSin<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorSinF3210M, "tensor_sin_f32_10m");
+BENCHMARK(BenchmarkTensorSinF3210M, "tensor_sin_f32_10m")
 
 // --------------------------------------------------------------------------------
 // COS
@@ -483,7 +483,7 @@ private:
 };
 
 using BenchmarkTensorCosF3210M = BenchmarkTensorCos<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorCosF3210M, "tensor_cos_f32_10m");
+BENCHMARK(BenchmarkTensorCosF3210M, "tensor_cos_f32_10m")
 
 // --------------------------------------------------------------------------------
 // TANH
@@ -522,7 +522,7 @@ private:
 };
 
 using BenchmarkTensorTanhF3210M = BenchmarkTensorTanh<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorTanhF3210M, "tensor_tanh_f32_10m");
+BENCHMARK(BenchmarkTensorTanhF3210M, "tensor_tanh_f32_10m")
 
 // --------------------------------------------------------------------------------
 // LOG
@@ -561,7 +561,7 @@ private:
 };
 
 using BenchmarkTensorLogF3210M = BenchmarkTensorLog<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorLogF3210M, "tensor_log_f32_10m");
+BENCHMARK(BenchmarkTensorLogF3210M, "tensor_log_f32_10m")
 
 // --------------------------------------------------------------------------------
 // EXP
@@ -600,7 +600,7 @@ private:
 };
 
 using BenchmarkTensorExpF3210M = BenchmarkTensorExp<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorExpF3210M, "tensor_exp_f32_10m");
+BENCHMARK(BenchmarkTensorExpF3210M, "tensor_exp_f32_10m")
 
 // --------------------------------------------------------------------------------
 // POW
@@ -640,7 +640,7 @@ private:
 };
 
 using BenchmarkTensorPowF3210M = BenchmarkTensorPow<aix::DataType::kFloat32, 10000000>;
-BENCHMARK(BenchmarkTensorPowF3210M, "tensor_pow_f32_10m");
+BENCHMARK(BenchmarkTensorPowF3210M, "tensor_pow_f32_10m")
 
 // --------------------------------------------------------------------------------
 // MATMUL
@@ -682,7 +682,7 @@ private:
 
 using BenchmarkTensorMatMulF32800 = BenchmarkTensorMatMul<aix::DataType::kFloat32,800>;
 
-BENCHMARK(BenchmarkTensorMatMulF32800, "tensor_matmul_f32_800");
+BENCHMARK(BenchmarkTensorMatMulF32800, "tensor_matmul_f32_800")
 
 // --------------------------------------------------------------------------------
 // TRANSPOSE
@@ -722,4 +722,4 @@ private:
 
 using BenchmarkTensorTransposeF325K = BenchmarkTensorTranspose<aix::DataType::kFloat32,5000>;
 
-BENCHMARK(BenchmarkTensorTransposeF325K, "tensor_transpose_f32_5k");
+BENCHMARK(BenchmarkTensorTransposeF325K, "tensor_transpose_f32_5k")

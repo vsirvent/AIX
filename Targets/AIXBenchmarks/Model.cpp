@@ -88,5 +88,5 @@ private:
 using BenchmarkModelXORF321K = BenchmarkModelXOR<aix::DataType::kFloat32, 1000>;
 using BenchmarkModelXORF3210 = BenchmarkModelXOR<aix::DataType::kFloat32, 10>;
 
-BENCHMARK(BenchmarkModelXORF321K,  "model_xor_f32_1k");
-BENCHMARK(BenchmarkModelXORF3210, "model_xor_f32_10");
+BENCHMARK(BenchmarkModelXORF321K,  "model_xor_f32_1k")
+BENCHMARK(BenchmarkModelXORF3210, "model_xor_f32_10")

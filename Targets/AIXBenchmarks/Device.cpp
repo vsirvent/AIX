@@ -53,7 +53,7 @@ private:
 
 using BenchmarkDeviceAddF3210M = BenchmarkDeviceAdd<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceAddF3210M, "device_add_f32_10m");
+BENCHMARK(BenchmarkDeviceAddF3210M, "device_add_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SUB
@@ -95,7 +95,7 @@ private:
 
 using BenchmarkDeviceSubF3210M = BenchmarkDeviceSub<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceSubF3210M, "device_sub_f32_10m");
+BENCHMARK(BenchmarkDeviceSubF3210M, "device_sub_f32_10m")
 
 // --------------------------------------------------------------------------------
 // MUL
@@ -137,7 +137,7 @@ private:
 
 using BenchmarkDeviceMulF3210M = BenchmarkDeviceMul<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceMulF3210M, "device_mul_f32_10m");
+BENCHMARK(BenchmarkDeviceMulF3210M, "device_mul_f32_10m")
 
 // --------------------------------------------------------------------------------
 // DIV
@@ -179,7 +179,7 @@ private:
 
 using BenchmarkDeviceDivF3210M = BenchmarkDeviceDiv<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceDivF3210M, "device_div_f32_10m");
+BENCHMARK(BenchmarkDeviceDivF3210M, "device_div_f32_10m")
 
 // --------------------------------------------------------------------------------
 // UNARY
@@ -220,7 +220,7 @@ private:
 
 using BenchmarkDeviceUnaryF3210M = BenchmarkDeviceUnary<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceUnaryF3210M, "device_unary_f32_10m");
+BENCHMARK(BenchmarkDeviceUnaryF3210M, "device_unary_f32_10m")
 
 // --------------------------------------------------------------------------------
 // FILL
@@ -261,7 +261,7 @@ private:
 
 using BenchmarkDeviceFillF32F3210M = BenchmarkDeviceFill<aix::DataType::kFloat32, aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceFillF32F3210M, "device_fill_f32_f32_10m");
+BENCHMARK(BenchmarkDeviceFillF32F3210M, "device_fill_f32_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SUM
@@ -302,7 +302,7 @@ private:
 
 using BenchmarkDeviceSumF3210M = BenchmarkDeviceSum<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceSumF3210M, "device_sum_f32_10m");
+BENCHMARK(BenchmarkDeviceSumF3210M, "device_sum_f32_10m")
 
 // --------------------------------------------------------------------------------
 // MAX
@@ -343,7 +343,7 @@ private:
 
 using BenchmarkDeviceMaxF3210M = BenchmarkDeviceMax<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceMaxF3210M, "device_max_f32_10m");
+BENCHMARK(BenchmarkDeviceMaxF3210M, "device_max_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SQRT
@@ -384,7 +384,7 @@ private:
 
 using BenchmarkDeviceSqrtF3210M = BenchmarkDeviceSqrt<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceSqrtF3210M, "device_sqrt_f32_10m");
+BENCHMARK(BenchmarkDeviceSqrtF3210M, "device_sqrt_f32_10m")
 
 // --------------------------------------------------------------------------------
 // SIN
@@ -425,7 +425,7 @@ private:
 
 using BenchmarkDeviceSinF3210M = BenchmarkDeviceSin<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceSinF3210M, "device_sin_f32_10m");
+BENCHMARK(BenchmarkDeviceSinF3210M, "device_sin_f32_10m")
 
 // --------------------------------------------------------------------------------
 // COS
@@ -466,7 +466,7 @@ private:
 
 using BenchmarkDeviceCosF3210M = BenchmarkDeviceCos<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceCosF3210M, "device_cos_f32_10m");
+BENCHMARK(BenchmarkDeviceCosF3210M, "device_cos_f32_10m")
 
 // --------------------------------------------------------------------------------
 // TANH
@@ -507,7 +507,7 @@ private:
 
 using BenchmarkDeviceTanhF3210M = BenchmarkDeviceTanh<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceTanhF3210M, "device_tanh_f32_10m");
+BENCHMARK(BenchmarkDeviceTanhF3210M, "device_tanh_f32_10m")
 
 // --------------------------------------------------------------------------------
 // LOG
@@ -548,7 +548,7 @@ private:
 
 using BenchmarkDeviceLogF3210M = BenchmarkDeviceLog<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceLogF3210M, "device_log_f32_10m");
+BENCHMARK(BenchmarkDeviceLogF3210M, "device_log_f32_10m")
 
 // --------------------------------------------------------------------------------
 // EXP
@@ -589,7 +589,7 @@ private:
 
 using BenchmarkDeviceExpF3210M = BenchmarkDeviceExp<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceExpF3210M, "device_exp_f32_10m");
+BENCHMARK(BenchmarkDeviceExpF3210M, "device_exp_f32_10m")
 
 // --------------------------------------------------------------------------------
 // POW
@@ -631,7 +631,7 @@ private:
 
 using BenchmarkDevicePowF3210M = BenchmarkDevicePow<aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDevicePowF3210M, "device_pow_f32_10m");
+BENCHMARK(BenchmarkDevicePowF3210M, "device_pow_f32_10m")
 
 // --------------------------------------------------------------------------------
 // MATMUL
@@ -674,7 +674,7 @@ private:
 
 using BenchmarkDeviceMatMulF32800 = BenchmarkDeviceMatMul<aix::DataType::kFloat32,800>;
 
-BENCHMARK(BenchmarkDeviceMatMulF32800, "device_matmul_f32_800");
+BENCHMARK(BenchmarkDeviceMatMulF32800, "device_matmul_f32_800")
 
 // --------------------------------------------------------------------------------
 // TRANSPOSE
@@ -716,7 +716,7 @@ private:
 
 using BenchmarkDeviceTransposeF325K = BenchmarkDeviceTranspose<aix::DataType::kFloat32,5000>;
 
-BENCHMARK(BenchmarkDeviceTransposeF325K, "device_transpose_f32_5k");
+BENCHMARK(BenchmarkDeviceTransposeF325K, "device_transpose_f32_5k")
 
 // --------------------------------------------------------------------------------
 // COPY
@@ -756,4 +756,4 @@ private:
 
 using BenchmarkDeviceCopyF32F3210M = BenchmarkDeviceCopy<aix::DataType::kFloat32, aix::DataType::kFloat32, 10000000>;
 
-BENCHMARK(BenchmarkDeviceCopyF32F3210M, "device_copy_f32_f32_10m");
+BENCHMARK(BenchmarkDeviceCopyF32F3210M, "device_copy_f32_f32_10m")

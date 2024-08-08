@@ -115,7 +115,7 @@ public:
 private:
     struct BufferHolder
     {
-        BufferHolder(MTL::Buffer* buffer) : buffer(buffer) { }
+        explicit BufferHolder(MTL::Buffer* buffer) : buffer(buffer) { }
         MTL::Buffer*  buffer;
         BufferHolder* prev{nullptr};
         BufferHolder* next{nullptr};
