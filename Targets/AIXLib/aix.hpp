@@ -625,6 +625,31 @@ public:
         funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
     }
 
+    virtual void argmaxTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
+                          const Shape& shape, const Shape& newShape, const Shape& strides, size_t dim,
+                          DataType dtype, DataType resultDtype)
+    {
+        if (resultDtype != DataType::kInt32)
+        {
+            throw std::invalid_argument("Device::argmaxTo supports only int32 data type for its result.");
+        }
+
+        static const auto funcTable = std::array
+        {
+            argmaxToGeneric<double    , int32_t>,
+            argmaxToGeneric<float     , int32_t>,
+            argmaxToGeneric<float16_t , int32_t>,
+            argmaxToGeneric<bfloat16_t, int32_t>,
+            argmaxToGeneric<int64_t   , int32_t>,
+            argmaxToGeneric<int32_t   , int32_t>,
+            argmaxToGeneric<int16_t   , int32_t>,
+            argmaxToGeneric<int8_t    , int32_t>,
+            argmaxToGeneric<uint8_t   , int32_t>,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](src, dst, srcSize, dstSize, shape, newShape, strides, dim);
+    }
+
     virtual void commitAndWait()
     {
     }
@@ -843,6 +868,29 @@ protected:
                 res[0] = i;
             }
         }
+    }
+
+    template <typename T, typename T2>
+    static void argmaxToGeneric(const void* src, void* dst, size_t srcSize, size_t dstSize,
+                                const Shape& shape, const Shape& newShape, const Shape& strides, size_t dim)
+    {
+        auto tSrc = static_cast<const T*>(src);
+        auto tDst = static_cast<T2*>(dst);
+        auto tmaxTemp = new T[dstSize];     // Temporary helper buffer to store max values for comparison.
+
+        // Initialize the temp buffer with the lowest value of the data type, T.
+        fillMinGeneric<T>(tmaxTemp, dstSize);
+
+        for (size_t index = 0; index < srcSize; ++index)
+        {
+            auto transIndex = translationIndex(index, newShape, shape);
+            if (tSrc[index] > tmaxTemp[transIndex])
+            {
+                tmaxTemp[transIndex] = tSrc[index];
+                tDst[transIndex] = (index / strides[dim]) % shape[dim];
+            }
+        }
+        delete [] tmaxTemp;
     }
 
     template <typename T, typename T2>
@@ -1567,6 +1615,25 @@ public:
         TensorValue result({}, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
         m_device->argmax(m_data, m_size, result.m_data, m_dType, aix::DataType::kInt32);
         return result;
+    }
+
+    TensorValue argmax(ssize_t dim, bool keepDim=false) const
+    {
+        if (m_shape.empty()) return {0, m_shape, m_device, aix::DataType::kInt32};  // Scalar tensor.
+
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Dimension parameter of TensorValue::argmax() is out of range.");
+        }
+
+        Shape newShape = m_shape;
+        newShape[dim] = 1;
+
+        TensorValue result(newShape, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
+        m_device->argmaxTo(m_data, result.data(), m_size, result.size(), m_shape, newShape, m_strides, dim,
+                           m_dType, aix::DataType::kInt32);
+        return keepDim ? result : result.squeeze(dim);
     }
 
     TensorValue argmaxIndices() const
@@ -2452,6 +2519,14 @@ public:
     {
         Tensor result({}, { .requireGrad=false, .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.argmax();
+        // argmax does not require gradient.
+        return result;
+    }
+
+    Tensor argmax(ssize_t dim, bool keepDim=false) const
+    {
+        Tensor result({}, { .requireGrad=false, .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.argmax(dim, keepDim);
         // argmax does not require gradient.
         return result;
     }

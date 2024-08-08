@@ -118,6 +118,9 @@ public:
 
     void maxTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
 
+    void argmaxTo(const void* src, void* dst, size_t srcSize, size_t dstSize, const Shape& shape, const Shape& newShape,
+                  const Shape& strides, size_t dim, DataType dtype, DataType resultDtype) override;
+
     void commitAndWait() override;
 
 protected:

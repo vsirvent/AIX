@@ -530,6 +530,14 @@ void DeviceMetal::maxTo(const void* src, void* dst, size_t size, const Shape& sh
     translation(src, dst, size, shape, newShape, m_compFuncPSOMaxTo[iDType], dtype, "maxTo_" + toString(dtype));
 }
 
+void DeviceMetal::argmaxTo(const void* src, void* dst, size_t srcSize, size_t dstSize, const Shape& shape,
+                           const Shape& newShape, const Shape& strides, size_t dim, DataType dtype, DataType resultDtype)
+{
+    validateDataType(dtype);
+    commitAndWait();
+    Device::argmaxTo(src, dst, srcSize, dstSize, shape, newShape, strides, dim, dtype, resultDtype);
+}
+
 void DeviceMetal::commit()
 {
     if (m_currentBatchSize == 0) return;

@@ -1509,3 +1509,86 @@ TEST_CASE("Tensor - argmax")
         CheckVectorApproxValues(amax, aix::tensor({ 1.0,4.0,3.0,2.0 }, amax.shape()));
     }
 }
+
+
+TEST_CASE("Tensor - Argmax with dim")
+{
+    auto t1  = tensor({1.0, 2.0, 3.0, 4.0, 6.0, 5.0, 9.0, 8.0, 7.0}, Shape{3,3});
+
+    SUBCASE("Shape{} - dim=0 keepDim=false")
+    {
+        auto t = Tensor(5.0, Shape{});     // Scalar tensor.
+        t = t.argmax(0, false);
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, Tensor(0, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{1} - dim=0 keepDim=false")
+    {
+        auto t  = tensor({5.0}, Shape{1});
+        t = t.argmax(0, false);
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, Tensor(0, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{1} - dim=0 keepDim=true")
+    {
+        auto t  = tensor({5.0}, Shape{1});
+        t = t.argmax(0, true);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, Tensor(0, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{1,1} - dim=0 keepDim=false")
+    {
+        auto t  = tensor({5.0}, Shape{1,1});
+        t = t.argmax(0, false);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, Tensor(0, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{1,1} - dim=0 keepDim=true")
+    {
+        auto t  = tensor({5.0}, Shape{1,1});
+        t = t.argmax(0, true);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, Tensor(0, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 keepDim=false")
+    {
+        auto t = t1.argmax(0, false);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, tensor({2.0, 2.0, 2.0}, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 keepDim=true")
+    {
+        auto t = t1.argmax(0, true);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, tensor({2.0, 2.0, 2.0}, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 keepDim=false")
+    {
+        auto t = t1.argmax(1, false);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, tensor({2.0, 1.0, 0.0}, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 keepDim=true")
+    {
+        auto t = t1.argmax(1, true);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, tensor({2.0, 1.0, 0.0}, t.shape(), { .dtype=DataType::kInt32 }));
+    }
+
+    SUBCASE("Shape{3,3} - dimension out of range")
+    {
+        CHECK_THROWS_AS({ t1.argmax(2, false);  }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.argmax(2, true);   }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.argmax(-3, false); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.argmax(-3, true);  }, std::invalid_argument);
+    }
+
+}
