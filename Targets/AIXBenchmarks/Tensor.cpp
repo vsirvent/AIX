@@ -252,6 +252,45 @@ using BenchmarkTensorSumF3210M = BenchmarkTensorSum<aix::DataType::kFloat32, 100
 BENCHMARK(BenchmarkTensorSumF3210M, "tensor_sum_f32_10m");
 
 // --------------------------------------------------------------------------------
+// SUM WITH DIMENSION
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t elementCount>
+class BenchmarkTensorSumWithDim : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        m_t = aix::randn({elementCount,elementCount,elementCount}, opt);
+        m_device->commitAndWait();
+    }
+
+    void run(const AIXBenchmarkConfigs& configs) final
+    {
+        for (size_t i=0; i<configs.iterationCount; ++i)
+        {
+            auto t = m_t.sum(1, false);
+            m_device->commitAndWait();
+        }
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    aix::Tensor  m_t;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkTensorSumWithDimF32300 = BenchmarkTensorSumWithDim<aix::DataType::kFloat32, 300>;
+BENCHMARK(BenchmarkTensorSumWithDimF32300, "tensor_sum_wd_f32_300");
+
+// --------------------------------------------------------------------------------
 // MAX
 // --------------------------------------------------------------------------------
 
