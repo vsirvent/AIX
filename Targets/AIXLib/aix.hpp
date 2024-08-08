@@ -606,6 +606,25 @@ public:
         funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
     }
 
+    virtual void maxTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
+                       DataType dtype)
+    {
+        static const auto funcTable = std::array
+        {
+            maxToGeneric<double    >,
+            maxToGeneric<float     >,
+            maxToGeneric<float16_t >,
+            maxToGeneric<bfloat16_t>,
+            maxToGeneric<int64_t   >,
+            maxToGeneric<int32_t   >,
+            maxToGeneric<int16_t   >,
+            maxToGeneric<int8_t    >,
+            maxToGeneric<uint8_t   >,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
+    }
+
     virtual void commitAndWait()
     {
     }
@@ -933,6 +952,19 @@ protected:
         for (size_t index = 0; index < size; ++index)
         {
             tDst[translationIndex(index, newShape, shape)] += tSrc[index];
+        }
+    }
+
+    template <typename T>
+    static void maxToGeneric(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)
+    {
+        auto tSrc = static_cast<const T*>(src);
+        auto tDst = static_cast<T*>(dst);
+
+        for (size_t index = 0; index < size; ++index)
+        {
+            auto transIndex = translationIndex(index, newShape, shape);
+            tDst[transIndex] = std::max<T>(tDst[transIndex], tSrc[index]);
         }
     }
 
@@ -1507,6 +1539,26 @@ public:
         TensorValue result({}, m_device, m_dType);
         m_device->max(m_data, m_size, result.m_data, m_dType);
         return result;
+    }
+
+    TensorValue max(ssize_t dim, bool keepDim=false) const
+    {
+        if (m_shape.empty()) return *this;      // Return itself if it's a scalar tensor.
+
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Dimension parameter of TensorValue::max() is out of range.");
+        }
+
+        Shape newShape = m_shape;
+        newShape[dim] = 1;
+
+        TensorValue result(newShape, device(), m_dType);            // Zero initialization is not required.
+        device()->fillMin(m_dType, result.size(), result.data());   // Initialize the tensor with the lowest value.
+        device()->commitAndWait();
+        device()->maxTo(m_data, result.data(), m_size, m_shape, newShape, m_dType);
+        return keepDim ? result : result.squeeze(dim);
     }
 
     TensorValue argmax() const

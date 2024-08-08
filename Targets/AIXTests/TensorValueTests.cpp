@@ -1860,3 +1860,88 @@ TEST_CASE("TensorValue - argmaxIndices")
         CheckVectorApproxValues(amax, tensor({0.0, 1.0, 0.0, 0.0}, amax.shape(), { .dtype=DataType::kInt32 }).value());
     }
 }
+
+
+TEST_CASE("TensorValue - Max with dim")
+{
+    auto t1  = aix::TensorValue({1.0, 2.0, 3.0,
+                                 4.0, 5.0, 6.0,
+                                 7.0, 8.0, 9.0}, aix::Shape{3, 3}, &testDevice);
+
+    SUBCASE("Shape{} - dim=0 keepDim=false")
+    {
+        auto t  = aix::TensorValue(5.0, aix::Shape{}, &testDevice);     // Scalar Tensor
+        t = t.max(0, false);
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, TensorValue(5.0, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{1} - dim=0 keepDim=false")
+    {
+        auto t  = aix::TensorValue({5.0}, aix::Shape{1}, &testDevice);     // Scalar Tensor
+        t = t.max(0, false);
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, TensorValue(5.0, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{1} - dim=0 keepDim=true")
+    {
+        auto t  = aix::TensorValue({5.0}, aix::Shape{1}, &testDevice);     // Scalar Tensor
+        t = t.max(0, true);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, TensorValue(5.0, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{1,1} - dim=0 keepDim=false")
+    {
+        auto t  = aix::TensorValue({5.0}, aix::Shape{1,1}, &testDevice);
+        t = t.max(0, false);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, TensorValue({5.0}, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{1,1} - dim=0 keepDim=true")
+    {
+        auto t  = aix::TensorValue({5.0}, aix::Shape{1,1}, &testDevice);
+        t = t.max(0, true);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, TensorValue({5.0}, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 keepDim=false")
+    {
+        auto t = t1.max(0, false);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, TensorValue({7,8,9}, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 keepDim=true")
+    {
+        auto t = t1.max(0, true);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, TensorValue({7,8,9}, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 keepDim=false")
+    {
+        auto t = t1.max(1, false);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, TensorValue({3,6,9}, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 keepDim=true")
+    {
+        auto t = t1.max(1, true);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, TensorValue({3,6,9}, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dimension out of range")
+    {
+        CHECK_THROWS_AS({ t1.max(2, false);  }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.max(2, true);   }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.max(-3, false); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.max(-3, true);  }, std::invalid_argument);
+    }
+
+}
