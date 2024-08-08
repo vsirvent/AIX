@@ -2315,6 +2315,13 @@ public:
         node->m_a->backward(seed * node->m_a->m_value.argmaxIndices());
     }
 
+    static void maxBackwardFunc2(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // The derivative of max(a) with respect to 'a' is a zero tensor with max indexes set to 1.
+        node->m_a->backward(seed * node->m_a->m_value.argmaxIndices(static_cast<ssize_t>(node->m_dim0)));
+    }
+
     static void powBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a || !node->m_b) return;
@@ -2592,6 +2599,16 @@ public:
         result.m_data->m_value = m_data->m_value.max();
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = maxBackwardFunc;
+        return result;
+    }
+
+    Tensor max(ssize_t dim, bool keepDim=false) const
+    {
+        Tensor result({}, { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.max(dim, keepDim);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = dim >= 0 ? dim : dim + m_data->m_value.shape().size();
+        result.m_data->m_backwardFunc = maxBackwardFunc2;
         return result;
     }
 

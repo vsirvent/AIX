@@ -1005,3 +1005,113 @@ TEST_CASE("Auto Grad - argmax")
         CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
     }
 }
+
+
+TEST_CASE("Auto Grad - max with dimension")
+{
+    std::initializer_list<float> data = { 1.0, 2.0, 3.0,
+                                          4.0, 6.0, 5.0,
+                                          9.0, 8.0, 7.0 };
+    Shape shape{3,3};
+
+    SUBCASE("{} dim = 0 keepdim = false")
+    {
+        auto a = aix::Tensor(5, {}).requireGrad(true);
+        auto max = a.max(0, false);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
+    }
+
+    SUBCASE("{} dim = 0 keepdim = true")
+    {
+        auto a = aix::Tensor(5, {}).requireGrad(true);
+        auto max = a.max(0, true);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
+    }
+
+    SUBCASE("{1} dim = 0 keepdim = false")
+    {
+        auto a = aix::Tensor(5, {1}).requireGrad(true);
+        auto max = a.max(0, false);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{1});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
+    }
+
+    SUBCASE("{1} dim = 0 keepdim = true")
+    {
+        auto a = aix::Tensor(5, {1}).requireGrad(true);
+        auto max = a.max(0, true);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{1});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
+    }
+
+    SUBCASE("{1,1} dim = 0 keepdim = false")
+    {
+        auto a = aix::Tensor(5, {1,1}).requireGrad(true);
+        auto max = a.max(0, false);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
+    }
+
+    SUBCASE("{1,1} dim = 0 keepdim = true")
+    {
+        auto a = aix::Tensor(5, {1,1}).requireGrad(true);
+        auto max = a.max(0, true);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
+    }
+
+
+    SUBCASE("{3,3} dim = 0 keepdim = false")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto max = a.max(0, false);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{3,3});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                        0.0, 0.0, 0.0,
+                                                        1.0, 1.0, 1.0 }, a.shape()).value());
+    }
+
+    SUBCASE("{3,3} dim = 0 keepdim = true")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto max = a.max(0, true);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{3,3});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                        0.0, 0.0, 0.0,
+                                                        1.0, 1.0, 1.0 }, a.shape()).value());
+    }
+
+    // ---
+
+    SUBCASE("{3,3} dim = 1 keepdim = false")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto max = a.max(1, false);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{3,3});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0, 0.0, 1.0,
+                                                        0.0, 1.0, 0.0,
+                                                        1.0, 0.0, 0.0 }, a.shape()).value());
+    }
+
+    SUBCASE("{3,3} dim = 1 keepdim = true")
+    {
+        auto a = aix::tensor(data, shape).requireGrad(true);
+        auto max = a.max(1, true);
+        max.backward(1, max.shape());
+        CHECK(a.shape() == Shape{3,3});
+        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0, 0.0, 1.0,
+                                                        0.0, 1.0, 0.0,
+                                                        1.0, 0.0, 0.0 }, a.shape()).value());
+    }
+}
