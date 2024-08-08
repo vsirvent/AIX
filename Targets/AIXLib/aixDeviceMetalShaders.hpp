@@ -809,6 +809,22 @@ kernel void reduceTo_a(device const T* src       [[buffer(0)]],
 }
 
 
+// MaxTo - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2>
+kernel void maxTo_a(device const T* src       [[buffer(0)]],
+                    device       T* dst       [[buffer(1)]],
+                    device const T2* shape    [[buffer(2)]],
+                    device const T2* newShape [[buffer(3)]],
+                    constant T2& shapeSize    [[buffer(4)]],
+                    constant T2& newShapeSize [[buffer(5)]],
+                    uint index [[thread_position_in_grid]])
+{
+    size_t originalIndex = translationIndex(index, newShape, shape, newShapeSize, shapeSize);
+    aix_atomic_fetch_max_explicit((device aix_atomic<T>*)&(dst[originalIndex]), src[index], memory_order_relaxed);
+}
+
+
 // nullKernel
 // -----------------------------------------------------------------
 kernel void nullKernel(uint index [[thread_position_in_grid]])
@@ -2561,6 +2577,80 @@ kernel void reduceTo_a_ui8(device const uint8_t* src,
                            constant size_t& newShapeSize,
                            uint index [[thread_position_in_grid]]) { }
 
+
+// MaxTo
+// -----------------------------------------------------------------
+template [[ host_name("maxTo_a_f32") ]]
+kernel void maxTo_a(device const float* src,
+                    device       float* dst,
+                    device const size_t* shape,
+                    device const size_t* newShape,
+                    constant size_t& shapeSize,
+                    constant size_t& newShapeSize,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("maxTo_a_i32") ]]
+kernel void maxTo_a(device const int* src,
+                    device       int* dst,
+                    device const size_t* shape,
+                    device const size_t* newShape,
+                    constant size_t& shapeSize,
+                    constant size_t& newShapeSize,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("maxTo_a_f16") ]]
+kernel void maxTo_a(device const half* src,
+                    device       half* dst,
+                    device const size_t* shape,
+                    device const size_t* newShape,
+                    constant size_t& shapeSize,
+                    constant size_t& newShapeSize,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("maxTo_a_i16") ]]
+kernel void maxTo_a(device const int16_t* src,
+                    device       int16_t* dst,
+                    device const size_t* shape,
+                    device const size_t* newShape,
+                    constant size_t& shapeSize,
+                    constant size_t& newShapeSize,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("maxTo_a_i8") ]]
+kernel void maxTo_a(device const int8_t* src,
+                    device       int8_t* dst,
+                    device const size_t* shape,
+                    device const size_t* newShape,
+                    constant size_t& shapeSize,
+                    constant size_t& newShapeSize,
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("maxTo_a_ui8") ]]
+kernel void maxTo_a(device const uint8_t* src,
+                    device       uint8_t* dst,
+                    device const size_t* shape,
+                    device const size_t* newShape,
+                    constant size_t& shapeSize,
+                    constant size_t& newShapeSize,
+                    uint index [[thread_position_in_grid]]);
+
+// IMPORTANT NOTE: The following specialization is just a dummy kernel. Currently the formats are not supported.
+
+kernel void maxTo_a_bf16(device const bfloat* src,
+                         device       bfloat* dst,
+                         device const size_t* shape,
+                         device const size_t* newShape,
+                         constant size_t& shapeSize,
+                         constant size_t& newShapeSize,
+                         uint index [[thread_position_in_grid]]) { }
+
+kernel void maxTo_a_i64(device const int64_t* src,
+                        device       int64_t* dst,
+                        device const size_t* shape,
+                        device const size_t* newShape,
+                        constant size_t& shapeSize,
+                        constant size_t& newShapeSize,
+                        uint index [[thread_position_in_grid]]) { }
 
 )";
 

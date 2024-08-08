@@ -116,6 +116,8 @@ public:
 
     void reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
 
+    void maxTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
+
     void commitAndWait() override;
 
 protected:
@@ -210,6 +212,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOFillMin[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOMaxTo[aix::DataTypeCount];
     std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     std::unique_ptr<MTLBufferCache>  m_bufferCache;

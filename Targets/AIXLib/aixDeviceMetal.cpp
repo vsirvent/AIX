@@ -70,6 +70,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
         m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_a_" + dtypeStr);
         m_compFuncPSOReduceTo[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "reduceTo_a_" + dtypeStr);
+        m_compFuncPSOMaxTo[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "maxTo_a_" + dtypeStr);
     }
 
     m_cmdQueue = createCommandQueue();
@@ -111,6 +112,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOTranspose[i]->release();
         m_compFuncPSOBroadcastTo[i]->release();
         m_compFuncPSOReduceTo[i]->release();
+        m_compFuncPSOMaxTo[i]->release();
     }
 
     m_cmdQueue->release();
@@ -511,6 +513,21 @@ void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape&
     translation(src, dst, size, shape, newShape, m_compFuncPSOReduceTo[iDType], dtype, "reduceTo_" + toString(dtype));
     // NOTE: The ReduceTo function performs a sum operation. The order of these operations by GPU threads is not
     // guaranteed, which might result in minor differences in the final results due to floating-point precision limits.
+}
+
+void DeviceMetal::maxTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)
+{
+    validateDataType(dtype);
+    // NOTE: Only certain data types are supported due to limitation of Metal Framework atomics.
+    if (!(dtype == DataType::kFloat32 || dtype == DataType::kInt32))
+    {
+        commitAndWait();
+        Device::maxTo(src, dst, size, shape, newShape, dtype);
+        return;
+    }
+
+    auto iDType = static_cast<size_t>(dtype);
+    translation(src, dst, size, shape, newShape, m_compFuncPSOMaxTo[iDType], dtype, "maxTo_" + toString(dtype));
 }
 
 void DeviceMetal::commit()

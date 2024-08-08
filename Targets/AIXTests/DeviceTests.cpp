@@ -524,6 +524,41 @@ bool testMax(Device* testDevice, size_t n)
     return true;
 }
 
+bool testMaxWithDim(Device* testDevice)
+{
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto dtype = static_cast<DataType>(i);
+        // Apple Metal Framework does not support kFloat64 data type.
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
+
+        aix::Device  refDevice;     // Reference/CPU device.
+
+        auto shape  = createRandomShape(1, 6);      // max element size 6^6 = 46,656
+        ssize_t dim = std::rand() % shape.size();
+        bool keepdim = static_cast<bool>(std::rand() % 2);
+
+        auto array        = (1 + aix::randn(shape)).to(dtype);
+        auto cpuResult    = array.max(dim, keepdim).value();
+        auto deviceResult = array.to(*testDevice).max(dim, keepdim).value();
+        testDevice->commitAndWait();
+
+        // Compare results with the true/reference results
+        if (!verifyResults(cpuResult, deviceResult))
+        {
+            #ifdef DEBUG_LOG
+            std::cout << "----------------------" << std::endl;
+            std::cout << "Array" << std::endl << array.value() << std::endl;
+            std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+            std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+            #endif
+            return false;
+        }
+    }
+
+    return true;
+}
+
 
 bool testPow(Device* testDevice, size_t n)
 {
@@ -1208,6 +1243,25 @@ TEST_CASE("Device Tests - Max")
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testMax(&*device2, size));
+        }
+    }
+}
+
+
+TEST_CASE("Device Tests - Max with dim")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aix::createDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+
+        // Create a new device per test
+        for (auto size: testSizes)
+        {
+            auto device2 = aix::createDevice(deviceType);
+            CHECK(testMaxWithDim(&*device2));
         }
     }
 }
