@@ -1665,7 +1665,6 @@ public:
 
         TensorValue result(newShape, device(), m_dType);            // Zero initialization is not required.
         device()->fillMin(m_dType, result.size(), result.data());   // Initialize the tensor with the lowest value.
-        device()->commitAndWait();
         device()->maxTo(m_data, result.data(), m_size, m_shape, newShape, m_dType);
         return keepDim ? result : result.squeeze(dim);
     }
