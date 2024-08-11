@@ -1945,3 +1945,396 @@ TEST_CASE("TensorValue - Max with dim")
     }
 
 }
+
+
+TEST_CASE("TensorValue - slice")
+{
+    auto t1  = aix::TensorValue({1.0, 2.0, 3.0,
+                                 4.0, 5.0, 6.0,
+                                 7.0, 8.0, 9.0}, aix::Shape{3, 3}, &testDevice);
+
+    auto t2  = aix::TensorValue({1.0, 2.0,
+                                 3.0, 4.0,
+                                 5.0, 6.0,
+                                 7.0, 8.0}, aix::Shape{2,2,2}, &testDevice);
+
+    // Default parameters
+
+    SUBCASE("Shape{1} - default parameters")
+    {
+        auto t2  = aix::TensorValue({5.0}, aix::Shape{1}, &testDevice);
+        auto t = t2.slice();
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, t2);
+    }
+
+    SUBCASE("Shape{1,1} - default parameters")
+    {
+        auto t2  = aix::TensorValue({5.0}, aix::Shape{1,1}, &testDevice);
+        auto t = t2.slice();
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, t2);
+    }
+
+    SUBCASE("Shape{3,3} - default parameters")
+    {
+        auto t = t1.slice();
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, t1);
+    }
+
+    // Dim 0
+
+    SUBCASE("Shape{1,1} - dim=0 start=0 end=1 step=1")
+    {
+        auto t2  = aix::TensorValue({5.0}, aix::Shape{1,1}, &testDevice);
+        auto t = t2.slice(0, 0, 1, 1);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, t2);
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=1")
+    {
+        auto t = t1.slice(0,0,3,1);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, t1);
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=2 step=1")
+    {
+        auto t = t1.slice(0,0,2,1);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::TensorValue({1.0, 2.0, 3.0,
+                                                     4.0, 5.0, 6.0}, aix::Shape{2, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=-2 start=-3 end=-1 step=1")
+    {
+        auto t = t1.slice(-2,-3,-1,1);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::TensorValue({1.0, 2.0, 3.0,
+                                                     4.0, 5.0, 6.0}, aix::Shape{2, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=1 step=1")
+    {
+        auto t = t1.slice(0,0,1,1);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({1.0, 2.0, 3.0}, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=1 end=3 step=1")
+    {
+        auto t = t1.slice(0,1,3,1);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 4.0, 5.0, 6.0,
+                                                      7.0, 8.0, 9.0 }, aix::Shape{2, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=2 end=3 step=1")
+    {
+        auto t = t1.slice(0,2,3,1);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 7.0, 8.0, 9.0 }, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=2")
+    {
+        auto t = t1.slice(0,0,3,2);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0, 2.0, 3.0,
+                                                      7.0, 8.0, 9.0 }, aix::Shape{2, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=3")
+    {
+        auto t = t1.slice(0,0,3,3);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0, 2.0, 3.0 }, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=4")
+    {
+        auto t = t1.slice(0,0,3,4);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0, 2.0, 3.0 }, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=1 end=3 step=2")
+    {
+        auto t = t1.slice(0,1,3,2);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 4.0, 5.0, 6.0 }, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=1 end=3 step=3")
+    {
+        auto t = t1.slice(0,1,3,2);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 4.0, 5.0, 6.0 }, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=2 end=3 step=2")
+    {
+        auto t = t1.slice(0,2,3,2);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 7.0, 8.0, 9.0 }, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=2 end=3 step=3")
+    {
+        auto t = t1.slice(0,2,3,3);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::TensorValue({ 7.0, 8.0, 9.0 }, aix::Shape{1, 3}, &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=0 end=2 step=1")
+    {
+        auto t = t2.slice(0,0,2,1);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, t2);
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=0 end=1 step=1")
+    {
+        auto t = t2.slice(0,0,1,1);
+        CHECK(t.shape() == Shape{1,2,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0, 2.0,
+                                                      3.0, 4.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=1 end=2 step=1")
+    {
+        auto t = t2.slice(0,1,2,1);
+        CHECK(t.shape() == Shape{1,2,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 5.0, 6.0,
+                                                      7.0, 8.0 }, aix::Shape{1, 2, 2}, &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=1 end=2 step=2")
+    {
+        auto t = t2.slice(0,1,2,2);
+        CHECK(t.shape() == Shape{1,2,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 5.0, 6.0,
+                                                      7.0, 8.0 }, aix::Shape{1, 2, 2}, &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-3 start=-2 end=2 step=2")
+    {
+        auto t = t2.slice(-3,-1,2,2);
+        CHECK(t.shape() == Shape{1,2,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 5.0, 6.0,
+                                                      7.0, 8.0 }, aix::Shape{1, 2, 2}, &testDevice));
+    }
+
+    // Dim 1
+
+    SUBCASE("Shape{1,1} - dim=1 start=0 end=1 step=1")
+    {
+        auto t2  = aix::TensorValue({5.0}, aix::Shape{1,1}, &testDevice);
+        auto t = t2.slice(1, 0, 1, 1);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, t2);
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=1")
+    {
+        auto t = t1.slice(1,0,3,1);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, t1);
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=2 step=1")
+    {
+        auto t = t1.slice(1,0,2,1);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::TensorValue({1.0, 2.0,
+                                                     4.0, 5.0,
+                                                     7.0, 8.0,}, aix::Shape{3,2}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=1 step=1")
+    {
+        auto t = t1.slice(1,0,1,1);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({1.0,
+                                                     4.0,
+                                                     7.0}, aix::Shape{3, 1}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=1 end=3 step=1")
+    {
+        auto t = t1.slice(1,1,3,1);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 2.0, 3.0,
+                                                      5.0, 6.0,
+                                                      8.0, 9.0 }, aix::Shape{3, 2}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=2 end=3 step=1")
+    {
+        auto t = t1.slice(1,2,3,1);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 3.0,
+                                                      6.0,
+                                                      9.0 }, aix::Shape{3, 1}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=2")
+    {
+        auto t = t1.slice(1,0,3,2);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0, 3.0,
+                                                      4.0, 6.0,
+                                                      7.0, 9.0 }, aix::Shape{3, 2}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=3")
+    {
+        auto t = t1.slice(1,0,3,3);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0,
+                                                      4.0,
+                                                      7.0 }, aix::Shape{3, 1}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=4")
+    {
+        auto t = t1.slice(1,0,3,4);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0,
+                                                      4.0,
+                                                      7.0 }, aix::Shape{3, 1}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=1 end=3 step=2")
+    {
+        auto t = t1.slice(1,1,3,2);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 2.0,
+                                                      5.0,
+                                                      8.0 }, aix::Shape{3, 1}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=1 end=3 step=3")
+    {
+        auto t = t1.slice(1,1,3,3);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 2.0,
+                                                      5.0,
+                                                      8.0 }, aix::Shape{3, 1}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=2 end=3 step=2")
+    {
+        auto t = t1.slice(1,2,3,2);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 3.0,
+                                                      6.0,
+                                                      9.0 }, aix::Shape{3, 1}, &testDevice));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=2 end=3 step=3")
+    {
+        auto t = t1.slice(1,2,3,3);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 3.0,
+                                                      6.0,
+                                                      9.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=0 end=2 step=1")
+    {
+        auto t = t2.slice(1,0,2,1);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, t2);
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=0 end=1 step=1")
+    {
+        auto t = t2.slice(1,0,1,1);
+        CHECK(t.shape() == Shape{2,1,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0, 2.0,
+                                                      5.0, 6.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=1 end=2 step=1")
+    {
+        auto t = t2.slice(1,1,2,1);
+        CHECK(t.shape() == Shape{2,1,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 3.0, 4.0,
+                                                      7.0, 8.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=1 end=2 step=2")
+    {
+        auto t = t2.slice(1,1,2,2);
+        CHECK(t.shape() == Shape{2,1,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 3.0, 4.0,
+                                                      7.0, 8.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-2 start=1 end=2 step=2")
+    {
+        auto t = t2.slice(-2,1,2,2);
+        CHECK(t.shape() == Shape{2,1,2});
+        CheckVectorApproxValues(t, aix::TensorValue({ 3.0, 4.0,
+                                                      7.0, 8.0 }, t.shape(), &testDevice));
+    }
+
+    // Dim 2
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=0 end=2 step=1")
+    {
+        auto t = t2.slice(2,0,2,1);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, t2);
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=0 end=1 step=1")
+    {
+        auto t = t2.slice(2,0,1,1);
+        CHECK(t.shape() == Shape{2,2,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 1.0,
+                                                      3.0,
+                                                      5.0,
+                                                      7.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=1 end=2 step=1")
+    {
+        auto t = t2.slice(2,1,2,1);
+        CHECK(t.shape() == Shape{2,2,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 2.0,
+                                                      4.0,
+                                                      6.0,
+                                                      8.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=1 end=2 step=2")
+    {
+        auto t = t2.slice(2,1,2,2);
+        CHECK(t.shape() == Shape{2,2,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 2.0,
+                                                      4.0,
+                                                      6.0,
+                                                      8.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-1 start=1 end=2 step=2")
+    {
+        auto t = t2.slice(-1,1,2,2);
+        CHECK(t.shape() == Shape{2,2,1});
+        CheckVectorApproxValues(t, aix::TensorValue({ 2.0,
+                                                      4.0,
+                                                      6.0,
+                                                      8.0 }, t.shape(), &testDevice));
+    }
+
+    SUBCASE("invalid parameters")
+    {
+        CHECK_THROWS_AS({ aix::TensorValue(5.0, aix::Shape{}, &testDevice).slice(); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.slice(0, 0, 1, 0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.slice(0, 0, 0, 1); }, std::invalid_argument);
+    }
+}

@@ -21,6 +21,7 @@
 #include <iostream>
 #include <numbers>
 #include <numeric>
+#include <optional>
 #include <random>
 #include <stack>
 #include <utility>
@@ -674,6 +675,45 @@ public:
         funcTable[static_cast<size_t>(dtype)](src, dst, srcSize, dstSize, shape, newShape);
     }
 
+    virtual void slice(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
+                       const Shape& strides, size_t dim, size_t start, size_t step, DataType dtype)
+    {
+        static const auto funcTable = std::array
+        {
+            sliceGeneric<double    >,
+            sliceGeneric<float     >,
+            sliceGeneric<float16_t >,
+            sliceGeneric<bfloat16_t>,
+            sliceGeneric<int64_t   >,
+            sliceGeneric<int32_t   >,
+            sliceGeneric<int16_t   >,
+            sliceGeneric<int8_t    >,
+            sliceGeneric<uint8_t   >,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape, strides, dim, start, step);
+    }
+
+    virtual void sliceSet(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
+                            const Shape& strides, size_t dim, size_t start, size_t step, DataType dtype)
+    {
+        static const auto funcTable = std::array
+        {
+            sliceSetGeneric<double    >,
+            sliceSetGeneric<float     >,
+            sliceSetGeneric<float16_t >,
+            sliceSetGeneric<bfloat16_t>,
+            sliceSetGeneric<int64_t   >,
+            sliceSetGeneric<int32_t   >,
+            sliceSetGeneric<int16_t   >,
+            sliceSetGeneric<int8_t    >,
+            sliceSetGeneric<uint8_t   >,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape, strides, dim, start, step);
+    }
+
+
     virtual void commitAndWait()
     {
     }
@@ -1074,6 +1114,64 @@ protected:
         {
             auto transIndex = translationIndex(index, newShape, shape);
             tDst[transIndex] = std::max<T>(tDst[transIndex], tSrc[index]);
+        }
+    }
+
+    template <typename T>
+    static void sliceGeneric(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
+                             const Shape& strides, size_t dim, size_t start, size_t step)
+    {
+        auto tSrc = static_cast<const T*>(src);
+        auto tDst = static_cast<T*>(dst);
+
+        // Iterate over all elements in the destination tensor.
+        for (size_t index = 0; index < size; ++index)
+        {
+            // Translate the flat index into multi-dimensional indices.
+            size_t dstIndex = index;
+            size_t srcIndex = 0;
+
+            for (ssize_t i = static_cast<ssize_t>(shape.size()) - 1; i >= 0; --i)
+            {
+                size_t coordinate = dstIndex % newShape[i];
+                dstIndex /= newShape[i];
+
+                if (i == static_cast<ssize_t>(dim))   // Handle the slicing dimension.
+                    srcIndex += (start + coordinate * step) * strides[i];
+                else
+                    srcIndex += coordinate * strides[i];
+            }
+
+            // Copy the element from the source to the destination.
+            tDst[index] = tSrc[srcIndex];
+        }
+    }
+
+    template <typename T>
+    static void sliceSetGeneric(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
+                                const Shape& strides, size_t dim, size_t start, size_t step)
+    {
+        auto tSrc = static_cast<T*>(src);
+        auto tDst = static_cast<T*>(dst);
+
+        for (size_t index = 0; index < size; ++index)
+        {
+            // Translate the flat index into multi-dimensional indices.
+            size_t dstIndex = index;
+            size_t srcIndex = 0;
+
+            for (ssize_t i = static_cast<ssize_t>(shape.size()) - 1; i >= 0; --i)
+            {
+                size_t coordinate = dstIndex % newShape[i];
+                dstIndex /= newShape[i];
+
+                if (i == static_cast<ssize_t>(dim))   // Handle the slicing dimension.
+                    srcIndex += (start + coordinate * step) * strides[i];
+                else
+                    srcIndex += coordinate * strides[i];
+            }
+
+            tDst[srcIndex] = tSrc[index];
         }
     }
 
@@ -1805,6 +1903,107 @@ public:
         return reshape(unsqueezedShape);
     }
 
+    TensorValue slice(ssize_t dim=0, std::optional<ssize_t> startOpt = std::nullopt,
+                      std::optional<ssize_t> endOpt = std::nullopt, ssize_t step=1) const
+    {
+        if (m_shape.empty())
+        {
+            throw std::invalid_argument("slice() cannot be applied to a 0-dim, a scalar tensor.");
+        }
+
+        if (step < 1)
+        {
+            throw std::invalid_argument("Slice step must be greater than zero.");
+        }
+
+        // Normalize dimension index.
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Dimension parameter of slice() is out of range.");
+        }
+
+        // Handle start and end indices.
+        ssize_t start = startOpt.value_or(0);
+        ssize_t end   = endOpt.value_or(static_cast<ssize_t>(m_shape[dim]));
+
+        // Normalize negative indices.
+        start = start < 0 ? static_cast<ssize_t>(m_shape[dim]) + start : start;
+        end   = end   < 0 ? static_cast<ssize_t>(m_shape[dim]) + end   : end;
+
+        // Clamp the start and end indices within valid bounds.
+        start = std::max<ssize_t>(0, std::min<ssize_t>(start, static_cast<ssize_t>(m_shape[dim])));
+        end   = std::max<ssize_t>(0, std::min<ssize_t>(end,   static_cast<ssize_t>(m_shape[dim])));
+
+        if (start >= end)
+        {
+            throw std::invalid_argument("Start index of slice() must be less than end index.");
+        }
+
+        // Calculate the new shape for the sliced tensor.
+        Shape newShape = m_shape;
+        newShape[dim] = (end - start + step - 1) / step; // This computes the size along the slicing dimension.
+
+        TensorValue result(newShape, device(), m_dType);    // Zero initialization is not required.
+        // Slice and copy data to the result tensor.
+        device()->slice(m_data, result.data(), result.size(), m_shape, newShape, m_strides,
+                        dim, start, step, m_dType);
+        return result;
+    }
+
+    TensorValue sliceSet(const TensorValue& tensor, ssize_t dim=0, std::optional<ssize_t> startOpt = std::nullopt,
+                         std::optional<ssize_t> endOpt = std::nullopt, ssize_t step=1) const
+    {
+        if (m_shape.empty())
+        {
+            throw std::invalid_argument("slice() cannot be applied to a 0-dim, a scalar tensor.");
+        }
+
+        if (step < 1)
+        {
+            throw std::invalid_argument("Slice step must be greater than zero.");
+        }
+
+        // Normalize dimension index.
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(m_shape.size()))
+        {
+            throw std::invalid_argument("Dimension parameter of slice() is out of range.");
+        }
+
+        // Handle start and end indices.
+        ssize_t start = startOpt.value_or(0);
+        ssize_t end   = endOpt.value_or(static_cast<ssize_t>(m_shape[dim]));
+
+        // Normalize negative indices.
+        start = start < 0 ? static_cast<ssize_t>(m_shape[dim]) + start : start;
+        end   = end   < 0 ? static_cast<ssize_t>(m_shape[dim]) + end   : end;
+
+        // Clamp the start and end indices within valid bounds.
+        start = std::max<ssize_t>(0, std::min<ssize_t>(start, static_cast<ssize_t>(m_shape[dim])));
+        end   = std::max<ssize_t>(0, std::min<ssize_t>(end,   static_cast<ssize_t>(m_shape[dim])));
+
+        if (start >= end)
+        {
+            throw std::invalid_argument("Start index of slice() must be less than end index.");
+        }
+
+        // Calculate the new shape for the sliced tensor.
+        Shape newShape = m_shape;
+        newShape[dim] = (end - start + step - 1) / step; // This computes the size along the slicing dimension.
+
+        if (tensor.shape() != newShape)
+        {
+            throw std::invalid_argument("The tensor's shape does not match the new shape of sliceSet().");
+        }
+
+        TensorValue result(0, m_shape, device(), m_dType);  // Zero initialization is required.
+        // Slice and set tensor's data to the result tensor.
+        device()->sliceSet(tensor.m_data, result.data(), tensor.size(), m_shape, newShape, m_strides, dim, start, step,
+                           m_dType);
+        return result;
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
 
@@ -2074,6 +2273,8 @@ public:
     size_t m_dim0{0};
     size_t m_dim1{0};
     bool m_keepDim{false};
+    std::optional<ssize_t> m_start;
+    std::optional<ssize_t> m_end;
     std::function<void(TensorNode * tensor, const TensorValue & seed)>  m_backwardFunc{nullptr};
 };
 
@@ -2345,6 +2546,12 @@ public:
     {
         if (!node->m_a) return;
         node->m_a->backward(seed.transpose(node->m_dim0, node->m_dim1));
+    }
+
+    static void sliceBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        node->m_a->backward(node->m_a->m_value.sliceSet(seed, node->m_dim0, node->m_start, node->m_end, node->m_dim1));
     }
 
     static void sumBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -2676,6 +2883,20 @@ public:
         result.m_data->m_dim0 = dim0;
         result.m_data->m_dim1 = dim1;
         result.m_data->m_backwardFunc = transposeBackwardFunc;
+        return result;
+    }
+
+    Tensor slice(ssize_t dim=0, std::optional<ssize_t> startOpt = std::nullopt,
+                 std::optional<ssize_t> endOpt = std::nullopt, ssize_t step=1) const
+    {
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.slice(dim, startOpt, endOpt, step);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = dim;
+        result.m_data->m_dim1 = step;
+        result.m_data->m_start = startOpt;
+        result.m_data->m_end = endOpt;
+        result.m_data->m_backwardFunc = sliceBackwardFunc;
         return result;
     }
 

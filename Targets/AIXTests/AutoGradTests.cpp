@@ -1115,3 +1115,527 @@ TEST_CASE("Auto Grad - max with dimension")
                                                         1.0, 0.0, 0.0 }, a.shape()).value());
     }
 }
+
+
+TEST_CASE("Auto Grad - slice")
+{
+    auto t33  = aix::tensor({1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0}, aix::Shape{3,3}).requireGrad(true);
+
+    auto t222  = aix::tensor({1.0, 2.0,
+                              3.0, 4.0,
+                              5.0, 6.0,
+                              7.0, 8.0}, aix::Shape{2,2,2}).requireGrad(true);
+
+    // Default parameters
+
+    SUBCASE("Shape{1} - default parameters")
+    {
+        auto t3  = aix::tensor({5.0}, aix::Shape{1}).requireGrad(true);
+        auto t = t3.slice();
+        t.backward(1, t.shape());
+        CHECK(t3.grad().shape() == Shape{1});
+        CheckVectorApproxValues(t3.grad(), aix::Tensor(1.0, t3.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1,1} - default parameters")
+    {
+        auto t3  = aix::tensor({5.0}, aix::Shape{1,1}).requireGrad(true);
+        auto t = t3.slice();
+        t.backward(1, t.shape());
+        CHECK(t3.grad().shape() == Shape{1,1});
+        CheckVectorApproxValues(t3.grad(), aix::Tensor(1.0, t3.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - default parameters")
+    {
+        auto t = t33.slice();
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::Tensor(1.0, t33.grad().shape()).value());
+    }
+
+    // Dim 0
+
+    SUBCASE("Shape{1,1} - dim=0 start=0 end=1 step=1")
+    {
+        auto t11  = aix::tensor({5.0}, aix::Shape{1,1}).requireGrad(true);
+        auto t = t11.slice(0,0,1,1);
+        t.backward(1, t.shape());
+        CHECK(t11.grad().shape() == Shape{1,1});
+        CheckVectorApproxValues(t11.grad(), aix::Tensor(1.0, t11.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=1")
+    {
+        auto t = t33.slice(0,0,3,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::Tensor(1.0, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=2 step=1")
+    {
+        auto t = t33.slice(0,0,2,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 1.0, 1.0, 1.0,
+                                                          1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=-2 start=-3 end=-1 step=1")
+    {
+        auto t = t33.slice(-2,-3,-1,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 1.0, 1.0, 1.0,
+                                                          1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=1 step=1")
+    {
+        auto t = t33.slice(0,0,1,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=1 end=3 step=1")
+    {
+        auto t = t33.slice(0,1,3,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                          1.0, 1.0, 1.0,
+                                                          1.0, 1.0, 1.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=2 end=3 step=1")
+    {
+        auto t = t33.slice(0,2,3,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                          0.0, 0.0, 0.0,
+                                                          1.0, 1.0, 1.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=2")
+    {
+        auto t = t33.slice(0,0,3,2);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0,
+                                                          1.0, 1.0, 1.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=3")
+    {
+        auto t = t33.slice(0,0,3,3);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=0 end=3 step=4")
+    {
+        auto t = t33.slice(0,0,3,4);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=1 end=3 step=2")
+    {
+        auto t = t33.slice(0,1,3,2);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                          1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=1 end=3 step=3")
+    {
+        auto t = t33.slice(0,1,3,3);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                          1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=2 end=3 step=2")
+    {
+        auto t = t33.slice(0,2,3,2);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                          0.0, 0.0, 0.0,
+                                                          1.0, 1.0, 1.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 start=2 end=3 step=3")
+    {
+        auto t = t33.slice(0,2,3,3);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0, 0.0, 0.0,
+                                                          0.0, 0.0, 0.0,
+                                                          1.0, 1.0, 1.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=0 end=2 step=1")
+    {
+        auto t = t33.slice(0,0,2,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 1.0, 1.0, 1.0,
+                                                          1.0, 1.0, 1.0,
+                                                          0.0, 0.0, 0.0, }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=0 end=1 step=1")
+    {
+        auto t = t222.slice(0,0,1,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({ 1.0, 1.0,
+                                                           1.0, 1.0,
+                                                           0.0, 0.0,
+                                                           0.0, 0.0, }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=1 end=2 step=1")
+    {
+        auto t = t222.slice(0,1,2,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({ 0.0, 0.0,
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                           1.0, 1.0, }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 start=1 end=2 step=2")
+    {
+        auto t = t222.slice(0,1,2,2);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({ 0.0, 0.0,
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                           1.0, 1.0, }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-3 start=-2 end=2 step=2")
+    {
+        auto t = t222.slice(-3,-2,2,2);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({ 1.0, 1.0,
+                                                           1.0, 1.0,
+                                                           0.0, 0.0,
+                                                           0.0, 0.0, }, t222.grad().shape()).value());
+    }
+
+    // Dim 1
+
+    SUBCASE("Shape{1,1} - dim=1 start=0 end=1 step=1")
+    {
+        auto t3  = aix::tensor({5.0}, aix::Shape{1,1}).requireGrad(true);
+        auto t = t3.slice(1,0,1,1);
+        t.backward(1, t.shape());
+        CHECK(t3.grad().shape() == Shape{1,1});
+        CheckVectorApproxValues(t3.grad(), aix::Tensor(1.0, t3.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=1")
+    {
+        auto t = t33.slice(1,0,3,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::Tensor(1.0, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=2 step=1")
+    {
+        auto t = t33.slice(1,0,2,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          1.0, 1.0, 0.0,
+                                                          1.0, 1.0, 0.0,
+                                                          1.0, 1.0, 0.0,
+                                                         }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=1 step=1")
+    {
+        auto t = t33.slice(1,0,1,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          1.0, 0.0, 0.0,
+                                                          1.0, 0.0, 0.0,
+                                                          1.0, 0.0, 0.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=1 end=3 step=1")
+    {
+        auto t = t33.slice(1,1,3,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          0.0, 1.0, 1.0,
+                                                          0.0, 1.0, 1.0,
+                                                          0.0, 1.0, 1.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=2 end=3 step=1")
+    {
+        auto t = t33.slice(1,2,3,1);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          0.0, 0.0, 1.0,
+                                                          0.0, 0.0, 1.0,
+                                                          0.0, 0.0, 1.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=2")
+    {
+        auto t = t33.slice(1,0,3,2);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          1.0, 0.0, 1.0,
+                                                          1.0, 0.0, 1.0,
+                                                          1.0, 0.0, 1.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=3")
+    {
+        auto t = t33.slice(1,0,3,3);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          1.0, 0.0, 0.0,
+                                                          1.0, 0.0, 0.0,
+                                                          1.0, 0.0, 0.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=0 end=3 step=4")
+    {
+        auto t = t33.slice(1,0,3,4);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          1.0, 0.0, 0.0,
+                                                          1.0, 0.0, 0.0,
+                                                          1.0, 0.0, 0.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=1 end=3 step=2")
+    {
+        auto t = t33.slice(1,1,3,2);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          0.0, 1.0, 0.0,
+                                                          0.0, 1.0, 0.0,
+                                                          0.0, 1.0, 0.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=1 end=3 step=3")
+    {
+        auto t = t33.slice(1,1,3,3);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          0.0, 1.0, 0.0,
+                                                          0.0, 1.0, 0.0,
+                                                          0.0, 1.0, 0.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=2 end=3 step=2")
+    {
+        auto t = t33.slice(1,2,3,2);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          0.0, 0.0, 1.0,
+                                                          0.0, 0.0, 1.0,
+                                                          0.0, 0.0, 1.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 start=2 end=3 step=3")
+    {
+        auto t = t33.slice(1,2,3,3);
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                          0.0, 0.0, 1.0,
+                                                          0.0, 0.0, 1.0,
+                                                          0.0, 0.0, 1.0,
+                                                        }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=0 end=2 step=1")
+    {
+        auto t = t222.slice(1,0,2,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           1.0, 1.0,
+                                                           1.0, 1.0,
+                                                           1.0, 1.0,
+                                                           1.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=0 end=1 step=1")
+    {
+        auto t = t222.slice(1,0,1,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           1.0, 1.0,
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                           0.0, 0.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=1 end=2 step=1")
+    {
+        auto t = t222.slice(1,1,2,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 start=1 end=2 step=2")
+    {
+        auto t = t222.slice(1,1,2,2);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-2 start=1 end=2 step=2")
+    {
+        auto t = t222.slice(-2,1,2,2);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                           0.0, 0.0,
+                                                           1.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    // Dim 2
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=0 end=2 step=1")
+    {
+        auto t = t222.slice(2,0,2,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           1.0, 1.0,
+                                                           1.0, 1.0,
+                                                           1.0, 1.0,
+                                                           1.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=0 end=1 step=1")
+    {
+        auto t = t222.slice(2,0,1,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           1.0, 0.0,
+                                                           1.0, 0.0,
+                                                           1.0, 0.0,
+                                                           1.0, 0.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=1 end=2 step=1")
+    {
+        auto t = t222.slice(2,1,2,1);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 start=1 end=2 step=2")
+    {
+        auto t = t222.slice(2,1,2,2);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-1 start=1 end=2 step=2")
+    {
+        auto t = t222.slice(-1,1,2,2);
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                           0.0, 1.0,
+                                                         }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("invalid parameters")
+    {
+        CHECK_THROWS_AS({ aix::Tensor(5.0, aix::Shape{}).slice(); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t33.slice(0, 0, 1, 0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t33.slice(0, 0, 0, 1); }, std::invalid_argument);
+    }
+}
