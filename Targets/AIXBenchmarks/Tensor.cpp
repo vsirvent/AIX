@@ -723,3 +723,42 @@ private:
 using BenchmarkTensorTransposeF325K = BenchmarkTensorTranspose<aix::DataType::kFloat32,5000>;
 
 BENCHMARK(BenchmarkTensorTransposeF325K, "tensor_transpose_f32_5k")
+
+// --------------------------------------------------------------------------------
+// SLICE
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t elementCount>
+class BenchmarkTensorSlice : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        m_t = aix::randn({elementCount, elementCount}, opt);
+        m_device->commitAndWait();
+    }
+
+    void run(const AIXBenchmarkConfigs& configs) final
+    {
+        for (size_t i=0; i<configs.iterationCount; ++i)
+        {
+            auto t = m_t.slice(0, 0, elementCount, 1);
+            m_device->commitAndWait();
+        }
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    aix::Tensor  m_t;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkTensorSliceF323K = BenchmarkTensorSlice<aix::DataType::kFloat32, 3000>;
+BENCHMARK(BenchmarkTensorSliceF323K, "tensor_slice_f32_3k")
