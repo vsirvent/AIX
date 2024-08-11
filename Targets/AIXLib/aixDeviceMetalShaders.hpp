@@ -825,6 +825,76 @@ kernel void maxTo_a(device const T* src       [[buffer(0)]],
 }
 
 
+// Slice - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2>
+kernel void slice_a(device const T* src       [[buffer(0)]],
+                    device       T* dst       [[buffer(1)]],
+                    device const T2* shape    [[buffer(2)]],
+                    device const T2* newShape [[buffer(3)]],
+                    device const T2* strides  [[buffer(4)]],
+                    constant T2& shapeSize    [[buffer(5)]],
+                    constant T2& newShapeSize [[buffer(6)]],
+                    constant T2& stridesSize  [[buffer(7)]],
+                    constant T2& dim          [[buffer(8)]],
+                    constant T2& start        [[buffer(9)]],
+                    constant T2& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]])
+{
+    // Translate the flat index into multi-dimensional indices.
+    size_t dstIndex = index;
+    size_t srcIndex = 0;
+
+    for (int64_t i = static_cast<int64_t>(shapeSize) - 1; i >= 0; --i)
+    {
+        size_t coordinate = dstIndex % newShape[i];
+        dstIndex /= newShape[i];
+
+        if (i == static_cast<int64_t>(dim))   // Handle the slicing dimension.
+            srcIndex += (start + coordinate * step) * strides[i];
+        else
+            srcIndex += coordinate * strides[i];
+    }
+
+    dst[index] = src[srcIndex];
+}
+
+
+// SliceSet - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2>
+kernel void sliceSet_a(device const T* src       [[buffer(0)]],
+                       device       T* dst       [[buffer(1)]],
+                       device const T2* shape    [[buffer(2)]],
+                       device const T2* newShape [[buffer(3)]],
+                       device const T2* strides  [[buffer(4)]],
+                       constant T2& shapeSize    [[buffer(5)]],
+                       constant T2& newShapeSize [[buffer(6)]],
+                       constant T2& stridesSize  [[buffer(7)]],
+                       constant T2& dim          [[buffer(8)]],
+                       constant T2& start        [[buffer(9)]],
+                       constant T2& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]])
+{
+    // Translate the flat index into multi-dimensional indices.
+    size_t dstIndex = index;
+    size_t srcIndex = 0;
+
+    for (int64_t i = static_cast<int64_t>(shapeSize) - 1; i >= 0; --i)
+    {
+        size_t coordinate = dstIndex % newShape[i];
+        dstIndex /= newShape[i];
+
+        if (i == static_cast<int64_t>(dim))   // Handle the slicing dimension.
+            srcIndex += (start + coordinate * step) * strides[i];
+        else
+            srcIndex += coordinate * strides[i];
+    }
+
+    dst[srcIndex] = src[index];
+}
+
+
 // nullKernel
 // -----------------------------------------------------------------
 kernel void nullKernel(uint index [[thread_position_in_grid]])
@@ -2651,6 +2721,236 @@ kernel void maxTo_a_i64(device const int64_t* src,
                         constant size_t& shapeSize,
                         constant size_t& newShapeSize,
                         uint index [[thread_position_in_grid]]) { }
+
+
+// Slice
+// -----------------------------------------------------------------
+template [[ host_name("slice_a_f32") ]]
+kernel void slice_a(device const float* src       [[buffer(0)]],
+                    device       float* dst       [[buffer(1)]],
+                    device const size_t* shape    [[buffer(2)]],
+                    device const size_t* newShape [[buffer(3)]],
+                    device const size_t* strides  [[buffer(4)]],
+                    constant size_t& shapeSize    [[buffer(5)]],
+                    constant size_t& newShapeSize [[buffer(6)]],
+                    constant size_t& stridesSize  [[buffer(7)]],
+                    constant size_t& dim          [[buffer(8)]],
+                    constant size_t& start        [[buffer(9)]],
+                    constant size_t& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("slice_a_f16") ]]
+kernel void slice_a(device const half* src        [[buffer(0)]],
+                    device       half* dst        [[buffer(1)]],
+                    device const size_t* shape    [[buffer(2)]],
+                    device const size_t* newShape [[buffer(3)]],
+                    device const size_t* strides  [[buffer(4)]],
+                    constant size_t& shapeSize    [[buffer(5)]],
+                    constant size_t& newShapeSize [[buffer(6)]],
+                    constant size_t& stridesSize  [[buffer(7)]],
+                    constant size_t& dim          [[buffer(8)]],
+                    constant size_t& start        [[buffer(9)]],
+                    constant size_t& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("slice_a_bf16") ]]
+kernel void slice_a(device const bfloat* src        [[buffer(0)]],
+                    device       bfloat* dst        [[buffer(1)]],
+                    device const size_t* shape    [[buffer(2)]],
+                    device const size_t* newShape [[buffer(3)]],
+                    device const size_t* strides  [[buffer(4)]],
+                    constant size_t& shapeSize    [[buffer(5)]],
+                    constant size_t& newShapeSize [[buffer(6)]],
+                    constant size_t& stridesSize  [[buffer(7)]],
+                    constant size_t& dim          [[buffer(8)]],
+                    constant size_t& start        [[buffer(9)]],
+                    constant size_t& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("slice_a_i64") ]]
+kernel void slice_a(device const long* src        [[buffer(0)]],
+                    device       long* dst        [[buffer(1)]],
+                    device const size_t* shape    [[buffer(2)]],
+                    device const size_t* newShape [[buffer(3)]],
+                    device const size_t* strides  [[buffer(4)]],
+                    constant size_t& shapeSize    [[buffer(5)]],
+                    constant size_t& newShapeSize [[buffer(6)]],
+                    constant size_t& stridesSize  [[buffer(7)]],
+                    constant size_t& dim          [[buffer(8)]],
+                    constant size_t& start        [[buffer(9)]],
+                    constant size_t& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("slice_a_i32") ]]
+kernel void slice_a(device const int* src         [[buffer(0)]],
+                    device       int* dst         [[buffer(1)]],
+                    device const size_t* shape    [[buffer(2)]],
+                    device const size_t* newShape [[buffer(3)]],
+                    device const size_t* strides  [[buffer(4)]],
+                    constant size_t& shapeSize    [[buffer(5)]],
+                    constant size_t& newShapeSize [[buffer(6)]],
+                    constant size_t& stridesSize  [[buffer(7)]],
+                    constant size_t& dim          [[buffer(8)]],
+                    constant size_t& start        [[buffer(9)]],
+                    constant size_t& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("slice_a_i16") ]]
+kernel void slice_a(device const short* src       [[buffer(0)]],
+                    device       short* dst       [[buffer(1)]],
+                    device const size_t* shape    [[buffer(2)]],
+                    device const size_t* newShape [[buffer(3)]],
+                    device const size_t* strides  [[buffer(4)]],
+                    constant size_t& shapeSize    [[buffer(5)]],
+                    constant size_t& newShapeSize [[buffer(6)]],
+                    constant size_t& stridesSize  [[buffer(7)]],
+                    constant size_t& dim          [[buffer(8)]],
+                    constant size_t& start        [[buffer(9)]],
+                    constant size_t& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("slice_a_i8") ]]
+kernel void slice_a(device const char* src        [[buffer(0)]],
+                    device       char* dst        [[buffer(1)]],
+                    device const size_t* shape    [[buffer(2)]],
+                    device const size_t* newShape [[buffer(3)]],
+                    device const size_t* strides  [[buffer(4)]],
+                    constant size_t& shapeSize    [[buffer(5)]],
+                    constant size_t& newShapeSize [[buffer(6)]],
+                    constant size_t& stridesSize  [[buffer(7)]],
+                    constant size_t& dim          [[buffer(8)]],
+                    constant size_t& start        [[buffer(9)]],
+                    constant size_t& step         [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+template [[ host_name("slice_a_ui8") ]]
+kernel void slice_a(device const unsigned char* src  [[buffer(0)]],
+                    device       unsigned char* dst  [[buffer(1)]],
+                    device const size_t* shape       [[buffer(2)]],
+                    device const size_t* newShape    [[buffer(3)]],
+                    device const size_t* strides     [[buffer(4)]],
+                    constant size_t& shapeSize       [[buffer(5)]],
+                    constant size_t& newShapeSize    [[buffer(6)]],
+                    constant size_t& stridesSize     [[buffer(7)]],
+                    constant size_t& dim             [[buffer(8)]],
+                    constant size_t& start           [[buffer(9)]],
+                    constant size_t& step            [[buffer(10)]],
+                    uint index [[thread_position_in_grid]]);
+
+
+// SliceSet
+// -----------------------------------------------------------------
+template [[ host_name("sliceSet_a_f32") ]]
+kernel void sliceSet_a(device const float* src       [[buffer(0)]],
+                       device       float* dst       [[buffer(1)]],
+                       device const size_t* shape    [[buffer(2)]],
+                       device const size_t* newShape [[buffer(3)]],
+                       device const size_t* strides  [[buffer(4)]],
+                       constant size_t& shapeSize    [[buffer(5)]],
+                       constant size_t& newShapeSize [[buffer(6)]],
+                       constant size_t& stridesSize  [[buffer(7)]],
+                       constant size_t& dim          [[buffer(8)]],
+                       constant size_t& start        [[buffer(9)]],
+                       constant size_t& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
+
+template [[ host_name("sliceSet_a_f16") ]]
+kernel void sliceSet_a(device const half* src        [[buffer(0)]],
+                       device       half* dst        [[buffer(1)]],
+                       device const size_t* shape    [[buffer(2)]],
+                       device const size_t* newShape [[buffer(3)]],
+                       device const size_t* strides  [[buffer(4)]],
+                       constant size_t& shapeSize    [[buffer(5)]],
+                       constant size_t& newShapeSize [[buffer(6)]],
+                       constant size_t& stridesSize  [[buffer(7)]],
+                       constant size_t& dim          [[buffer(8)]],
+                       constant size_t& start        [[buffer(9)]],
+                       constant size_t& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
+
+template [[ host_name("sliceSet_a_bf16") ]]
+kernel void sliceSet_a(device const bfloat* src        [[buffer(0)]],
+                       device       bfloat* dst        [[buffer(1)]],
+                       device const size_t* shape    [[buffer(2)]],
+                       device const size_t* newShape [[buffer(3)]],
+                       device const size_t* strides  [[buffer(4)]],
+                       constant size_t& shapeSize    [[buffer(5)]],
+                       constant size_t& newShapeSize [[buffer(6)]],
+                       constant size_t& stridesSize  [[buffer(7)]],
+                       constant size_t& dim          [[buffer(8)]],
+                       constant size_t& start        [[buffer(9)]],
+                       constant size_t& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
+
+template [[ host_name("sliceSet_a_i64") ]]
+kernel void sliceSet_a(device const long* src        [[buffer(0)]],
+                       device       long* dst        [[buffer(1)]],
+                       device const size_t* shape    [[buffer(2)]],
+                       device const size_t* newShape [[buffer(3)]],
+                       device const size_t* strides  [[buffer(4)]],
+                       constant size_t& shapeSize    [[buffer(5)]],
+                       constant size_t& newShapeSize [[buffer(6)]],
+                       constant size_t& stridesSize  [[buffer(7)]],
+                       constant size_t& dim          [[buffer(8)]],
+                       constant size_t& start        [[buffer(9)]],
+                       constant size_t& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
+
+template [[ host_name("sliceSet_a_i32") ]]
+kernel void sliceSet_a(device const int* src         [[buffer(0)]],
+                       device       int* dst         [[buffer(1)]],
+                       device const size_t* shape    [[buffer(2)]],
+                       device const size_t* newShape [[buffer(3)]],
+                       device const size_t* strides  [[buffer(4)]],
+                       constant size_t& shapeSize    [[buffer(5)]],
+                       constant size_t& newShapeSize [[buffer(6)]],
+                       constant size_t& stridesSize  [[buffer(7)]],
+                       constant size_t& dim          [[buffer(8)]],
+                       constant size_t& start        [[buffer(9)]],
+                       constant size_t& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
+
+template [[ host_name("sliceSet_a_i16") ]]
+kernel void sliceSet_a(device const short* src       [[buffer(0)]],
+                       device       short* dst       [[buffer(1)]],
+                       device const size_t* shape    [[buffer(2)]],
+                       device const size_t* newShape [[buffer(3)]],
+                       device const size_t* strides  [[buffer(4)]],
+                       constant size_t& shapeSize    [[buffer(5)]],
+                       constant size_t& newShapeSize [[buffer(6)]],
+                       constant size_t& stridesSize  [[buffer(7)]],
+                       constant size_t& dim          [[buffer(8)]],
+                       constant size_t& start        [[buffer(9)]],
+                       constant size_t& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
+
+template [[ host_name("sliceSet_a_i8") ]]
+kernel void sliceSet_a(device const char* src        [[buffer(0)]],
+                       device       char* dst        [[buffer(1)]],
+                       device const size_t* shape    [[buffer(2)]],
+                       device const size_t* newShape [[buffer(3)]],
+                       device const size_t* strides  [[buffer(4)]],
+                       constant size_t& shapeSize    [[buffer(5)]],
+                       constant size_t& newShapeSize [[buffer(6)]],
+                       constant size_t& stridesSize  [[buffer(7)]],
+                       constant size_t& dim          [[buffer(8)]],
+                       constant size_t& start        [[buffer(9)]],
+                       constant size_t& step         [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
+
+template [[ host_name("sliceSet_a_ui8") ]]
+kernel void sliceSet_a(device const unsigned char* src  [[buffer(0)]],
+                       device       unsigned char* dst  [[buffer(1)]],
+                       device const size_t* shape       [[buffer(2)]],
+                       device const size_t* newShape    [[buffer(3)]],
+                       device const size_t* strides     [[buffer(4)]],
+                       constant size_t& shapeSize       [[buffer(5)]],
+                       constant size_t& newShapeSize    [[buffer(6)]],
+                       constant size_t& stridesSize     [[buffer(7)]],
+                       constant size_t& dim             [[buffer(8)]],
+                       constant size_t& start           [[buffer(9)]],
+                       constant size_t& step            [[buffer(10)]],
+                       uint index [[thread_position_in_grid]]);
 
 )";
 

@@ -124,6 +124,12 @@ public:
     void argmaxIndicesTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
                          const Shape& shape, const Shape& newShape, DataType dtype, DataType resultDtype) override;
 
+    void slice(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, const Shape& strides,
+               size_t dim, size_t start, size_t step, DataType dtype) override;
+
+    void sliceSet(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, const Shape& strides,
+                  size_t dim, size_t start, size_t step, DataType dtype) override;
+
     void commitAndWait() override;
 
 protected:
@@ -219,6 +225,8 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOMaxTo[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOSlice[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOSliceSet[aix::DataTypeCount];
     std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     std::unique_ptr<MTLBufferCache>  m_bufferCache;

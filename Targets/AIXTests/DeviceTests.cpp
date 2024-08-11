@@ -560,6 +560,102 @@ bool testMaxWithDim(Device* testDevice)
 }
 
 
+bool testSlice(Device* testDevice)
+{
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto dtype = static_cast<DataType>(i);
+        // Apple Metal Framework does not support kFloat64 data type.
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
+
+        aix::Device  refDevice;     // Reference/CPU device.
+
+        // TODO: Create a better test config.
+        auto shape = createRandomShape(2, 6);
+        ssize_t dim   = std::rand() % static_cast<ssize_t>(shape.size());
+        ssize_t start = std::rand() % static_cast<ssize_t>(shape.size()-1);
+        ssize_t end   = start + (std::rand() % static_cast<ssize_t>(shape.size() - start));
+        ssize_t step  = 1 + (std::rand() % static_cast<ssize_t>(shape.size()));
+
+        try
+        {
+            auto array = (1 + aix::randn(shape)).to(dtype);
+            auto cpuResult = array.slice(dim, start, end, step).value();
+            auto deviceResult = array.to(*testDevice).slice(dim, start, end, step).value();
+            testDevice->commitAndWait();
+
+            // Compare results with the true/reference results.
+            if (!verifyResults(cpuResult, deviceResult))
+            {
+                #ifdef DEBUG_LOG
+                std::cout << "----------------------" << std::endl;
+                std::cout << "Array" << std::endl << array.value() << std::endl;
+                std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+                std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+                #endif
+                return false;
+            }
+        }
+        catch(...)
+        {
+            // Just skip the test if the test config wss not setup proper.
+        }
+    }
+
+    return true;
+}
+
+
+bool testSliceSet(Device* testDevice)
+{
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto dtype = static_cast<DataType>(i);
+        // Apple Metal Framework does not support kFloat64 data type.
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
+
+        aix::Device  refDevice;     // Reference/CPU device.
+
+        // TODO: Create a better test config.
+        auto shape = createRandomShape(2, 6);
+        ssize_t dim   = std::rand() % static_cast<ssize_t>(shape.size());
+        ssize_t start = std::rand() % static_cast<ssize_t>(shape.size()-1);
+        ssize_t end   = start + (std::rand() % static_cast<ssize_t>(shape.size() - start));
+        ssize_t step  = 1 + (std::rand() % static_cast<ssize_t>(shape.size()));
+
+        Shape newShape = shape;
+        newShape[dim] = (end - start + step - 1) / step;  // This computes the size along the slicing dimension.
+
+        try
+        {
+            auto array = (1 + aix::randn(shape)).to(dtype);
+            auto tensor = (1 + aix::randn(newShape)).to(dtype);
+            auto cpuResult = array.value().sliceSet(tensor.value(), dim, start, end, step);
+            auto deviceResult = array.to(*testDevice).value().sliceSet(tensor.value(), dim, start, end, step);
+            testDevice->commitAndWait();
+
+            // Compare results with the true/reference results.
+            if (!verifyResults(cpuResult, deviceResult))
+            {
+                #ifdef DEBUG_LOG
+                std::cout << "----------------------" << std::endl;
+                std::cout << "Array" << std::endl << array.value() << std::endl;
+                std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+                std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+                #endif
+                return false;
+            }
+        }
+        catch(...)
+        {
+            // Just skip the test if the test config wss not setup proper.
+        }
+    }
+
+    return true;
+}
+
+
 bool testPow(Device* testDevice, size_t n)
 {
     for (size_t i=0; i<aix::DataTypeCount; ++i)
@@ -1262,6 +1358,44 @@ TEST_CASE("Device Tests - Max with dim")
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testMaxWithDim(&*device2));
+        }
+    }
+}
+
+
+TEST_CASE("Device Tests - Slice")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aix::createDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+
+        // Create a new device per test
+        for (size_t i=0; i<testSizes.size(); ++i)
+        {
+            auto device2 = aix::createDevice(deviceType);
+            CHECK(testSlice(&*device2));
+        }
+    }
+}
+
+
+TEST_CASE("Device Tests - SliceSet")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aix::createDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+
+        // Create a new device per test
+        for (size_t i=0; i<testSizes.size(); ++i)
+        {
+            auto device2 = aix::createDevice(deviceType);
+            CHECK(testSliceSet(&*device2));
         }
     }
 }
