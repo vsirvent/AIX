@@ -73,6 +73,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOMaxTo[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "maxTo_a_" + dtypeStr);
         m_compFuncPSOSlice[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "slice_a_" + dtypeStr);
         m_compFuncPSOSliceSet[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sliceSet_a_" + dtypeStr);
+        m_compFuncPSOTril[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "tril_a_" + dtypeStr);
     }
 
     m_cmdQueue = createCommandQueue();
@@ -117,6 +118,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOMaxTo[i]->release();
         m_compFuncPSOSlice[i]->release();
         m_compFuncPSOSliceSet[i]->release();
+        m_compFuncPSOTril[i]->release();
     }
 
     m_cmdQueue->release();
@@ -659,6 +661,45 @@ void DeviceMetal::sliceSet(void* src, void* dst, size_t size, const Shape& shape
     freeTemporaryBuffer(bufSrc);
     freeTemporaryBuffer(bufShape1);
     freeTemporaryBuffer(bufShape2);
+    freeTemporaryBuffer(bufStrides);
+    commitBatchQueue();
+}
+
+void DeviceMetal::tril(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype)
+{
+    validateDataType(dtype);
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (!isDeviceBuffer(dst))
+        throw std::invalid_argument("DeviceMetal::tril() result must have GPU memory.");
+
+    size_t shapeSize   = shape.size();
+    size_t stridesSize = strides.size();
+    assert(size > 0);
+
+    // NOTE: For a scalar tensor shape size could be zero.
+    auto bufShape   = shapeSize    != 0 ? getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t)) : nullptr;
+    auto bufStrides = stridesSize  != 0 ? getReadOnlyMTLBuffer(strides.data(),  stridesSize,  sizeof(size_t)) : nullptr;
+    auto bufDst     = m_allocMap[dst];
+    auto compFuncPSO = m_compFuncPSOTril[static_cast<size_t>(dtype)];
+
+    // Serialize resources and states to be used by the GPU.
+    m_compEncoder->setComputePipelineState(compFuncPSO);
+    m_compEncoder->setBuffer(bufDst,     0, 1);
+    m_compEncoder->setBuffer(bufShape,   0, 2);
+    m_compEncoder->setBuffer(bufStrides, 0, 3);
+    m_compEncoder->setBytes(&shapeSize,    sizeof(shapeSize),    4);
+    m_compEncoder->setBytes(&stridesSize,  sizeof(stridesSize),  5);
+    m_compEncoder->setBytes(&diagonal,     sizeof(diagonal),     6);
+    m_compEncoder->setBytes(&size,         sizeof(size),         7);
+
+    // Calculate maximum thread group dimensions
+    NS::UInteger w = std::min(size, compFuncPSO->maxTotalThreadsPerThreadgroup());
+
+    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+    m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
+
+    // Free operation is delayed until the commit is done.
+    freeTemporaryBuffer(bufShape);
     freeTemporaryBuffer(bufStrides);
     commitBatchQueue();
 }
