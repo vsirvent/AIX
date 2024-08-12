@@ -1592,3 +1592,158 @@ TEST_CASE("Tensor - Argmax with dim")
     }
 
 }
+
+
+TEST_CASE("Tensor - Select operator")
+{
+    auto ts  = aix::tensor(5.0);
+    auto t1  = aix::tensor({5.0}, Shape{1});
+    auto t11 = aix::tensor({5.0}, Shape{1,1});
+    auto t33 = aix::tensor({ 1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0 }, Shape{3,3});
+
+    SUBCASE("Shape{1} - [0]")
+    {
+        auto t = t1[0];
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, aix::tensor({5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1,1} - [0]")
+    {
+        auto t = t11[0];
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - [0]")
+    {
+        auto t = t33[0];
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - [1]")
+    {
+        auto t = t33[1];
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 4.0, 5.0, 6.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - [2]")
+    {
+        auto t = t33[2];
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 7.0, 8.0, 9.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - [-3]")
+    {
+        auto t = t33[0];
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - [-2]")
+    {
+        auto t = t33[1];
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 4.0, 5.0, 6.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - [-1]")
+    {
+        auto t = t33[2];
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 7.0, 8.0, 9.0 }, t.shape()));
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ ts[0]; }, std::invalid_argument);
+        CHECK_THROWS_AS({ t11[1]; }, std::invalid_argument);
+    }
+}
+
+
+TEST_CASE("Tensor - Select")
+{
+    auto ts  = aix::tensor(5.0);
+    auto t1  = aix::tensor({5.0}, Shape{1});
+    auto t11 = aix::tensor({5.0}, Shape{1,1});
+    auto t33 = aix::tensor({ 1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0 }, Shape{3,3});
+
+    // Skipping the dim=0 cases since they are already tested through the select operator tests.
+
+    SUBCASE("Shape{3,3} - dim=1 index=0")
+    {
+        auto t = t33.select(1,0);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 4.0, 7.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 index=1")
+    {
+        auto t = t33.select(1,1);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 5.0, 8.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 index=2")
+    {
+        auto t = t33.select(1,2);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 6.0, 9.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 index=-3")
+    {
+        auto t = t33.select(1,-3);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 4.0, 7.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 index=-2")
+    {
+        auto t = t33.select(1,-2);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 5.0, 8.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 index=-1")
+    {
+        auto t = t33.select(1,-1);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 6.0, 9.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=-1 index=-3")
+    {
+        auto t = t33.select(-1,-3);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 4.0, 7.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=-1 index=-2")
+    {
+        auto t = t33.select(-1,-2);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 5.0, 8.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=-1 index=-1")
+    {
+        auto t = t33.select(-1,-1);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 6.0, 9.0 }, t.shape()));
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ ts[0]; }, std::invalid_argument);
+        CHECK_THROWS_AS({ t11[1]; }, std::invalid_argument);
+    }
+}

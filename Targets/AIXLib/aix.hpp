@@ -1370,6 +1370,12 @@ public:
         return *this;
     }
 
+    // Select operator.
+    TensorValue operator[](ssize_t index) const
+    {
+        return select(0, index);
+    }
+
     // Access element at a specific index (non-const version).
     template<typename T>
     T & getValueAt(const Index & indices)     { return static_cast<T*>(m_data)[getIndex(indices)]; }
@@ -2004,6 +2010,17 @@ public:
         return result;
     }
 
+    TensorValue select(ssize_t dim, ssize_t index) const
+    {
+        if (m_shape.empty())
+        {
+            throw std::invalid_argument("select() cannot be applied to a scalar, zero-dimension, tensor.");
+        }
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        index = index < 0 ? static_cast<ssize_t>(m_shape[dim]) + index : index;
+        return slice(dim, index, index + 1, 1).squeeze(dim);
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
 
@@ -2585,6 +2602,12 @@ public:
         node->m_a->backward(seed.squeeze(node->m_dim0));
     }
 
+    // Select operator.
+    Tensor operator[](ssize_t index) const
+    {
+        return select(0, index);
+    }
+
     // Overload the + operator
     Tensor operator+(const Tensor & other) const
     {
@@ -2934,6 +2957,17 @@ public:
         auto elementCount = unbiased ? shape()[dim] - 1 : shape()[dim];
         auto var = (deviation * deviation).sum(dim, true) / float(elementCount);
         return keepdim ? var : var.squeeze(dim);
+    }
+
+    Tensor select(ssize_t dim, ssize_t index) const
+    {
+        if (shape().empty())
+        {
+            throw std::invalid_argument("select() cannot be applied to a scalar, zero-dimension, tensor.");
+        }
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+        index = index < 0 ? static_cast<ssize_t>(shape()[dim]) + index : index;
+        return slice(dim, index, index + 1, 1).squeeze(dim);
     }
 
     // Friend function to overload operator<<
