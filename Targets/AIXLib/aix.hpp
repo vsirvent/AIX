@@ -713,6 +713,23 @@ public:
         funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape, strides, dim, start, step);
     }
 
+    virtual void tril(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype)
+    {
+        static const auto funcTable = std::array
+        {
+            trilGeneric<double    >,
+            trilGeneric<float     >,
+            trilGeneric<float16_t >,
+            trilGeneric<bfloat16_t>,
+            trilGeneric<int64_t   >,
+            trilGeneric<int32_t   >,
+            trilGeneric<int16_t   >,
+            trilGeneric<int8_t    >,
+            trilGeneric<uint8_t   >,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](dst, size, shape, strides, diagonal);
+    }
 
     virtual void commitAndWait()
     {
@@ -1172,6 +1189,29 @@ protected:
             }
 
             tDst[srcIndex] = tSrc[index];
+        }
+    }
+
+    template <typename T>
+    static void trilGeneric(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal)
+    {
+        auto tDst = static_cast<T*>(dst);
+
+        size_t shapeSize = shape.size();
+        size_t rows = shape[shapeSize - 2];      // Rows in the last 2-dim tensor.
+        size_t cols = shape[shapeSize - 1];      // Columns in the last 2-dim tensor.
+
+        for (size_t i = 0; i < size; ++i)
+        {
+            // Calculate the row and column indices for the last 2-dim slice.
+            size_t row = (i / strides[shapeSize - 2]) % rows;
+            size_t col = (i / strides[shapeSize - 1]) % cols;
+
+            // Zero out the elements above the specified diagonal.
+            if (static_cast<ssize_t>(col) > static_cast<ssize_t>(row) + diagonal)
+            {
+                tDst[i] = 0;
+            }
         }
     }
 
@@ -2047,6 +2087,18 @@ public:
         return tensors;
     }
 
+    TensorValue tril(ssize_t diagonal=0) const
+    {
+        if (m_shape.size() < 2)
+        {
+            throw std::invalid_argument("Tensor must have at least two dimensions for tril operation.");
+        }
+
+        TensorValue result = *this;
+        device()->tril(result.data(), result.size(), m_shape, m_strides, diagonal, m_dType);
+        return result;
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
 
@@ -2628,6 +2680,13 @@ public:
         node->m_a->backward(seed.squeeze(node->m_dim0));
     }
 
+    static void trillBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        auto onesLikeSeed = TensorValue(1.0, seed.shape(), seed.device(), seed.dataType());
+        node->m_a->backward(seed * onesLikeSeed.tril(static_cast<ssize_t>(node->m_dim0)));      // m_dim0 = diagonal
+    }
+
     // Select operator.
     Tensor operator[](ssize_t index) const
     {
@@ -3020,6 +3079,16 @@ public:
             tensors.emplace_back(slice(dim, i, i + splitSize, 1));
         }
         return tensors;
+    }
+
+    Tensor tril(ssize_t diagonal=0) const
+    {
+        Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
+        result.m_data->m_value = m_data->m_value.tril(diagonal);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = diagonal;
+        result.m_data->m_backwardFunc = trillBackwardFunc;
+        return result;
     }
 
     // Friend function to overload operator<<
