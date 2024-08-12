@@ -1747,3 +1747,114 @@ TEST_CASE("Tensor - Select")
         CHECK_THROWS_AS({ t11[1]; }, std::invalid_argument);
     }
 }
+
+
+TEST_CASE("Tensor - Split")
+{
+    auto ts  = aix::tensor(5.0);
+    auto t1  = aix::tensor({5.0}, Shape{1});
+    auto t11 = aix::tensor({5.0}, Shape{1,1});
+    auto t33 = aix::tensor({ 1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0 }, Shape{3,3});
+
+    SUBCASE("Shape{3,3} - splitSize=1, dim=0")
+    {
+        auto tlist = t33.split(1, 0);   // Returns vector or tensors.
+        CHECK(tlist.size() == 3);
+        CHECK(tlist[0].shape() == Shape{1,3});
+        CHECK(tlist[1].shape() == Shape{1,3});
+        CHECK(tlist[2].shape() == Shape{1,3});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 2.0, 3.0 }, tlist[0].shape()));
+        CheckVectorApproxValues(tlist[1], aix::tensor({ 4.0, 5.0, 6.0 }, tlist[1].shape()));
+        CheckVectorApproxValues(tlist[2], aix::tensor({ 7.0, 8.0, 9.0 }, tlist[2].shape()));
+    }
+
+    SUBCASE("Shape{3,3} - splitSize=2, dim=0")
+    {
+        auto tlist = t33.split(2, 0);   // Returns vector or tensors.
+        CHECK(tlist.size() == 2);
+        CHECK(tlist[0].shape() == Shape{2,3});
+        CHECK(tlist[1].shape() == Shape{1,3});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 2.0, 3.0,
+                                                        4.0, 5.0, 6.0 }, tlist[0].shape()));
+        CheckVectorApproxValues(tlist[1], aix::tensor({ 7.0, 8.0, 9.0 }, tlist[1].shape()));
+    }
+
+    SUBCASE("Shape{3,3} - splitSize=3, dim=0")
+    {
+        auto tlist = t33.split(3, 0);   // Returns vector or tensors.
+        CHECK(tlist.size() == 1);
+        CHECK(tlist[0].shape() == Shape{3,3});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 2.0, 3.0,
+                                                        4.0, 5.0, 6.0,
+                                                        7.0, 8.0, 9.0 }, tlist[0].shape()));
+    }
+
+    SUBCASE("Shape{3,3} - splitSize=1, dim=-2")
+    {
+        auto tlist = t33.split(1, -2);   // Returns vector or tensors.
+        CHECK(tlist.size() == 3);
+        CHECK(tlist[0].shape() == Shape{1,3});
+        CHECK(tlist[1].shape() == Shape{1,3});
+        CHECK(tlist[2].shape() == Shape{1,3});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 2.0, 3.0 }, tlist[0].shape()));
+        CheckVectorApproxValues(tlist[1], aix::tensor({ 4.0, 5.0, 6.0 }, tlist[1].shape()));
+        CheckVectorApproxValues(tlist[2], aix::tensor({ 7.0, 8.0, 9.0 }, tlist[2].shape()));
+    }
+
+    SUBCASE("Shape{3,3} - splitSize=1, dim=1")
+    {
+        auto tlist = t33.split(1, 1);   // Returns vector or tensors.
+        CHECK(tlist.size() == 3);
+        CHECK(tlist[0].shape() == Shape{3,1});
+        CHECK(tlist[1].shape() == Shape{3,1});
+        CHECK(tlist[2].shape() == Shape{3,1});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 4.0, 7.0 }, tlist[0].shape()));
+        CheckVectorApproxValues(tlist[1], aix::tensor({ 2.0, 5.0, 8.0 }, tlist[1].shape()));
+        CheckVectorApproxValues(tlist[2], aix::tensor({ 3.0, 6.0, 9.0 }, tlist[2].shape()));
+    }
+
+    SUBCASE("Shape{3,3} - splitSize=2, dim=1")
+    {
+        auto tlist = t33.split(2, 1);   // Returns vector or tensors.
+        CHECK(tlist.size() == 2);
+        CHECK(tlist[0].shape() == Shape{3,2});
+        CHECK(tlist[1].shape() == Shape{3,1});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 2.0,
+                                                        4.0, 5.0,
+                                                        7.0, 8.0 }, tlist[0].shape()));
+        CheckVectorApproxValues(tlist[1], aix::tensor({ 3.0, 6.0, 9.0 }, tlist[1].shape()));
+    }
+
+    SUBCASE("Shape{3,3} - splitSize=3, dim=1")
+    {
+        auto tlist = t33.split(3, 1);   // Returns vector or tensors.
+        CHECK(tlist.size() == 1);
+        CHECK(tlist[0].shape() == Shape{3,3});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 2.0, 3.0,
+                                                        4.0, 5.0, 6.0,
+                                                        7.0, 8.0, 9.0 }, tlist[0].shape()));
+    }
+
+    SUBCASE("Shape{3,3} - splitSize=1, dim=-1")
+    {
+        auto tlist = t33.split(1, -1);   // Returns vector or tensors.
+        CHECK(tlist.size() == 3);
+        CHECK(tlist[0].shape() == Shape{3,1});
+        CHECK(tlist[1].shape() == Shape{3,1});
+        CHECK(tlist[2].shape() == Shape{3,1});
+        CheckVectorApproxValues(tlist[0], aix::tensor({ 1.0, 4.0, 7.0 }, tlist[0].shape()));
+        CheckVectorApproxValues(tlist[1], aix::tensor({ 2.0, 5.0, 8.0 }, tlist[1].shape()));
+        CheckVectorApproxValues(tlist[2], aix::tensor({ 3.0, 6.0, 9.0 }, tlist[2].shape()));
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ ts.split(0,0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t33.split(0,0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t33.split(-1,0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t33.split(1,2); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t33.split(1,-3); }, std::invalid_argument);
+    }
+}

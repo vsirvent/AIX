@@ -2021,6 +2021,32 @@ public:
         return slice(dim, index, index + 1, 1).squeeze(dim);
     }
 
+    std::vector<TensorValue> split(ssize_t splitSize, ssize_t dim=0) const
+    {
+        if (splitSize < 0)
+        {
+            throw std::invalid_argument("Split size must be a positive number.");
+        }
+
+        if (m_shape.empty())
+        {
+            throw std::invalid_argument("Split operation needs at least a 1-dim tensor.");
+        }
+
+        dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
+        if (dim < 0)
+        {
+            throw std::invalid_argument("Split dimension is out of range.");
+        }
+
+        std::vector<TensorValue> tensors;       // Stores splitted tensors.
+        for (size_t i=0; i<m_shape[dim]; i+=splitSize)
+        {
+            tensors.emplace_back(slice(dim, i, i + splitSize, 1));
+        }
+        return tensors;
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream& operator<<(std::ostream & os, const TensorValue & tensor);
 
@@ -2968,6 +2994,32 @@ public:
         dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
         index = index < 0 ? static_cast<ssize_t>(shape()[dim]) + index : index;
         return slice(dim, index, index + 1, 1).squeeze(dim);
+    }
+
+    std::vector<Tensor> split(ssize_t splitSize, ssize_t dim=0) const
+    {
+        if (splitSize < 0)
+        {
+            throw std::invalid_argument("Split size must be a positive number.");
+        }
+
+        if (shape().empty())
+        {
+            throw std::invalid_argument("Split operation needs at least a 1-dim tensor.");
+        }
+
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+        if (dim < 0)
+        {
+            throw std::invalid_argument("Split dimension is out of range.");
+        }
+
+        std::vector<Tensor> tensors;        // Stores splitted tensors.
+        for (size_t i = 0; i < shape()[dim]; i += splitSize)
+        {
+            tensors.emplace_back(slice(dim, i, i + splitSize, 1));
+        }
+        return tensors;
     }
 
     // Friend function to overload operator<<
