@@ -1858,3 +1858,219 @@ TEST_CASE("Tensor - Split")
         CHECK_THROWS_AS({ t33.split(1,-3); }, std::invalid_argument);
     }
 }
+
+
+TEST_CASE("Tensor - Cat")
+{
+    auto ts  = aix::tensor(5.0);
+    auto t1  = aix::tensor({5.0}, Shape{1});
+    auto t11 = aix::tensor({5.0}, Shape{1,1});
+    auto t33 = aix::tensor({ 1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0 }, Shape{3,3});
+    auto t222 = aix::tensor({ 1.0, 2.0,
+                              3.0, 4.0,
+                              5.0, 6.0,
+                              7.0, 8.0 }, Shape{2,2,2});
+
+    SUBCASE("Shape{1} - dim=0")
+    {
+        auto t = aix::cat({t1}, 0);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1} - dim=0 - 2x")
+    {
+        auto t = aix::cat({t1,t1}, 0);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({5.0, 5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1} - dim=-1 - 2x")
+    {
+        auto t = aix::cat({t1,t1}, -1);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({5.0, 5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1,1} - dim=0")
+    {
+        auto t = aix::cat({t11}, 0);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, aix::tensor({5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1,1} - dim=0 - 2x")
+    {
+        auto t = aix::cat({t11, t11}, 0);
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(t, aix::tensor({5.0,5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1,1} - dim=-2 - 2x")
+    {
+        auto t = aix::cat({t11, t11}, -2);
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(t, aix::tensor({5.0,5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1,1} - dim=1 - 2x")
+    {
+        auto t = aix::cat({t11, t11}, 1);
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(t, aix::tensor({5.0,5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1,1} - dim=-1 - 2x")
+    {
+        auto t = aix::cat({t11, t11}, -1);
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(t, aix::tensor({5.0,5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{1,1} - dim=-1 - 2x")
+    {
+        auto t = aix::cat({t11, t11}, -1);
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(t, aix::tensor({5.0,5.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0")
+    {
+        auto t = aix::cat({t33}, 0);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,3.0,
+                                                 4.0,5.0,6.0,
+                                                 7.0,8.0,9.0,}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - 2x")
+    {
+        auto t = aix::cat({t33, t33}, 0);
+        CHECK(t.shape() == Shape{6,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,3.0,
+                                                 4.0,5.0,6.0,
+                                                 7.0,8.0,9.0,
+                                                 1.0,2.0,3.0,
+                                                 4.0,5.0,6.0,
+                                                 7.0,8.0,9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - 2x")
+    {
+        auto t = aix::cat({t33, t33}, 1);
+        CHECK(t.shape() == Shape{3,6});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,3.0, 1.0,2.0,3.0,
+                                                 4.0,5.0,6.0, 4.0,5.0,6.0,
+                                                 7.0,8.0,9.0, 7.0,8.0,9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 - 2x")
+    {
+        auto t = aix::cat({t222,t222}, 0);
+        CHECK(t.shape() == Shape{4,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,
+                                                 3.0,4.0,
+                                                 5.0,6.0,
+                                                 7.0,8.0,
+                                                 1.0,2.0,
+                                                 3.0,4.0,
+                                                 5.0,6.0,
+                                                 7.0,8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-3 - 2x")
+    {
+        auto t = aix::cat({t222,t222}, -3);
+        CHECK(t.shape() == Shape{4,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,
+                                                 3.0,4.0,
+                                                 5.0,6.0,
+                                                 7.0,8.0,
+                                                 1.0,2.0,
+                                                 3.0,4.0,
+                                                 5.0,6.0,
+                                                 7.0,8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - 2x")
+    {
+        auto t = aix::cat({t222,t222}, 1);
+        CHECK(t.shape() == Shape{2,4,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,
+                                                 3.0,4.0,
+                                                 1.0,2.0,
+                                                 3.0,4.0,
+                                                 5.0,6.0,
+                                                 7.0,8.0,
+                                                 5.0,6.0,
+                                                 7.0,8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - 2x")
+    {
+        auto t = aix::cat({t222,t222}, 2);
+        CHECK(t.shape() == Shape{2,2,4});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,1.0,2.0,
+                                                 3.0,4.0,3.0,4.0,
+                                                 5.0,6.0,5.0,6.0,
+                                                 7.0,8.0,7.0,8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=-1 - 2x")
+    {
+        auto t = aix::cat({t222,t222}, -1);
+        CHECK(t.shape() == Shape{2,2,4});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0,2.0,1.0,2.0,
+                                                 3.0,4.0,3.0,4.0,
+                                                 5.0,6.0,5.0,6.0,
+                                                 7.0,8.0,7.0,8.0, }, t.shape()));
+    }
+
+    // Type promotion.
+
+    SUBCASE("{Int32, Int32} -> Int32")
+    {
+        auto t = aix::cat({t33.to(aix::DataType::kInt32), t33.to(aix::DataType::kInt32)}, 0);
+        CHECK(t.dataType() == aix::DataType::kInt32);
+    }
+
+    SUBCASE("{Int32, Float16} -> Float16")
+    {
+        auto t = aix::cat({t33.to(aix::DataType::kInt32), t33.to(aix::DataType::kInt32)}, 0);
+        CHECK(t.dataType() == aix::DataType::kInt32);
+    }
+
+    SUBCASE("{Float16, Float32} -> Float32")
+    {
+        auto t = aix::cat({t33.to(aix::DataType::kFloat16), t33.to(aix::DataType::kFloat32)}, 0);
+        CHECK(t.dataType() == aix::DataType::kFloat32);
+    }
+
+    // Require Gradient.
+
+    SUBCASE("{NotReq, NotReq} -> NotReq")
+    {
+        auto t = aix::cat({t33.requireGrad(false), t33.requireGrad(false)}, 0);
+        CHECK(t.isRequireGrad() == false);
+    }
+
+    SUBCASE("{NotReq, Req} -> NotReq")
+    {
+        auto t = aix::cat({t33.requireGrad(false), t33.requireGrad(true)}, 0);
+        CHECK(t.isRequireGrad() == true);
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ aix::cat({ts}, 0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::cat({ts,ts}, 0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::cat({t1,t1}, 1); }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::cat({t1,t1}, -2); }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::cat({t11,t11}, -3); }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::cat({t1,t33}, 0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::cat({t33,t11}, 1); }, std::invalid_argument);
+    }
+
+}

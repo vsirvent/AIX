@@ -1998,7 +1998,7 @@ public:
     }
 
     TensorValue sliceSet(const TensorValue& tensor, ssize_t dim=0, std::optional<ssize_t> startOpt = std::nullopt,
-                         std::optional<ssize_t> endOpt = std::nullopt, ssize_t step=1) const
+                         std::optional<ssize_t> endOpt = std::nullopt, ssize_t step=1, bool inPlace=false) const
     {
         if (m_shape.empty())
         {
@@ -2041,6 +2041,14 @@ public:
         if (tensor.shape() != newShape)
         {
             throw std::invalid_argument("The tensor's shape does not match the new shape of sliceSet().");
+        }
+
+        if (inPlace)
+        {
+            // Slice and set tensor's data to the result tensor.
+            device()->sliceSet(tensor.m_data, m_data, tensor.size(), m_shape, newShape, m_strides, dim, start, step,
+                               m_dType);
+            return *this;
         }
 
         TensorValue result(0, m_shape, device(), m_dType);  // Zero initialization is required.
@@ -2096,6 +2104,56 @@ public:
 
         TensorValue result = *this;
         device()->tril(result.data(), result.size(), m_shape, m_strides, diagonal, m_dType);
+        return result;
+    }
+
+    static TensorValue cat(const std::vector<TensorValue>& tensors, ssize_t dim)
+    {
+        if (tensors.empty())
+        {
+            throw std::invalid_argument("cat() operation needs at least one tensor.");
+        }
+
+        const auto& tensor = tensors[0];
+
+        if (tensor.shape().empty())
+        {
+            throw std::invalid_argument("Zero-dimensional tensor cannot be concatenated.");
+        }
+
+        if (tensors.size() == 1) return tensor;
+
+        DataType promotedDType = tensor.dataType();
+        for (size_t i=0; i<tensors.size()-1; ++i)
+        {
+            // Tensor shapes must be the same.
+            if (tensors[i].shape() != tensors[i+1].shape())
+            {
+                throw std::invalid_argument("Tensor shapes must be the same for the cat() operation.");
+            }
+            // Tensor devices must be the same.
+            if (tensors[i].device() != tensors[i+1].device())
+            {
+                throw std::invalid_argument("Tensor devices must be the same for the cat() operation.");
+            }
+            promotedDType = promoteDataType(promotedDType, tensors[i+1].dataType());
+        }
+
+        dim = dim < 0 ? static_cast<ssize_t>(tensor.shape().size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(tensor.shape().size()))
+        {
+            throw std::invalid_argument("Dimension is out of range for cat() operation.");
+        }
+
+        auto newShape = tensor.shape();
+        newShape[dim] *= tensors.size();
+        size_t dimSize = tensor.shape()[dim];
+
+        TensorValue result(newShape, tensor.device(), promotedDType);
+        for (size_t i=0; i<tensors.size(); ++i)
+        {
+            result.sliceSet(tensors[i].to(promotedDType), dim, i * dimSize, (i + 1) * dimSize, 1, true);
+        }
         return result;
     }
 
@@ -2370,6 +2428,7 @@ public:
     bool m_keepDim{false};
     std::optional<ssize_t> m_start;
     std::optional<ssize_t> m_end;
+    std::vector<std::shared_ptr<TensorNode>> m_aMulti;
     std::function<void(TensorNode * tensor, const TensorValue & seed)>  m_backwardFunc{nullptr};
 };
 
@@ -2685,6 +2744,25 @@ public:
         if (!node->m_a) return;
         auto onesLikeSeed = TensorValue(1.0, seed.shape(), seed.device(), seed.dataType());
         node->m_a->backward(seed * onesLikeSeed.tril(static_cast<ssize_t>(node->m_dim0)));      // m_dim0 = diagonal
+    }
+
+    static void catBackwardFunc(TensorNode* node, const TensorValue& seed)
+    {
+        size_t numTensors = node->m_aMulti.size();
+        if (numTensors == 0) return;
+
+        // The dimension along which tensors were concatenated.
+        auto dim = static_cast<ssize_t>(node->m_dim0);
+
+        // Get the shape of the original tensors.
+        size_t dimSize = node->m_aMulti[0]->m_value.shape()[dim];
+
+        // Iterate over each original tensor and propagate the gradient.
+        for (size_t i=0; i<numTensors; ++i)
+        {
+            // Propagate this sliced gradient to the corresponding original tensor.
+            node->m_aMulti[i]->backward(seed.slice(dim, i * dimSize, (i + 1) * dimSize, 1));
+        }
     }
 
     // Select operator.
@@ -3091,6 +3169,61 @@ public:
         return result;
     }
 
+    static Tensor cat(const std::vector<Tensor>& tensors, ssize_t dim)
+    {
+        if (tensors.empty())
+        {
+            throw std::invalid_argument("cat() operation needs at least one tensor.");
+        }
+
+        const auto& tensor = tensors[0];
+
+        if (tensor.shape().empty())
+        {
+            throw std::invalid_argument("Zero-dimensional tensor cannot be concatenated.");
+        }
+
+        if (tensors.size() == 1) return tensor;
+
+        bool requireGrad = tensor.isRequireGrad();
+        DataType promotedDType = tensor.dataType();
+        // Tensor shapes must be the same.
+        for (size_t i=0; i<tensors.size()-1; ++i)
+        {
+            if (tensors[i].shape() != tensors[i+1].shape())
+            {
+                throw std::invalid_argument("Tensor shapes must be the same for the cat() operation.");
+            }
+            if (tensors[i].device() != tensors[i+1].device())
+            {
+                throw std::invalid_argument("Tensor devices must be the same for the cat() operation.");
+            }
+            requireGrad |= tensors[i+1].isRequireGrad();
+            promotedDType = promoteDataType(promotedDType, tensors[i+1].dataType());
+        }
+
+        dim = dim < 0 ? static_cast<ssize_t>(tensor.shape().size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(tensor.shape().size()))
+        {
+            throw std::invalid_argument("Dimension is out of range for cat() operation.");
+        }
+
+        auto newShape = tensor.shape();
+        newShape[dim] *= tensors.size();
+        size_t dimSize = tensor.shape()[dim];
+
+        Tensor result(newShape, { .requireGrad=requireGrad, .dtype=promotedDType, .device=tensor.device() });
+        for (size_t i=0; i<tensors.size(); ++i)
+        {
+            result.value().sliceSet(tensors[i].to(promotedDType).value(), dim, i * dimSize, (i + 1) * dimSize, 1, true);
+            // Store original tensors for the back prop.
+            result.m_data->m_aMulti.emplace_back(tensors[i].m_data);
+        }
+        result.m_data->m_dim0 = dim;
+        result.m_data->m_backwardFunc = catBackwardFunc;
+        return result;
+    }
+
     // Friend function to overload operator<<
     inline friend std::ostream & operator<<(std::ostream& os, const Tensor& tensor);
 
@@ -3199,6 +3332,9 @@ inline Tensor argmax(const Tensor & A)      { return A.argmax(); }
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 inline Tensor squeeze(const Tensor & A, ssize_t dim)    { return A.squeeze(dim);    }
 inline Tensor unsqueeze(const Tensor & A, ssize_t dim)  { return A.unsqueeze(dim);  }
+inline Tensor cat(const std::vector<Tensor>& tensors, ssize_t dim)     {  return Tensor::cat(tensors, dim);  }
+inline Tensor hstack(const std::vector<Tensor>& tensors)    { return Tensor::cat(tensors, 1); }
+inline Tensor vstack(const std::vector<Tensor>& tensors)    { return Tensor::cat(tensors, 0); }
 inline Tensor var(const Tensor & A, bool unbiased=true)     { return A.var(unbiased); }
 inline Tensor var(const Tensor & A, ssize_t dim, bool unbiased=true, bool keepdim=false)
 {
