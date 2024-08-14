@@ -2537,8 +2537,8 @@ public:
     Tensor to(Device & newDevice)
     {
         if (&newDevice == m_data->device()) return *this;
-        TensorOptions opt{ .requireGrad=isRequireGrad(), .dtype=dataType(), .device=&newDevice };
-        Tensor result{m_data->m_value.data(), value().size(), dataType(), shape(), opt};
+        Tensor result{shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=&newDevice }};
+        result.m_data->m_value = m_data->m_value.to(&newDevice);
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = toDeviceBackwardFunc;
         return result;
@@ -2584,7 +2584,11 @@ public:
     static void toDeviceBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a) return;
-        // Ensure that the seed gradient is moved back to the device of the original tensor.
+        if (seed.device() != node->m_a->m_value.device())
+        {
+            // Synchronize seed to ensure the seed's data is available before copying it to a different device.
+            seed.device()->commitAndWait();
+        }
         node->m_a->backward(seed.to(node->m_a->m_value.device()));
     }
 
