@@ -2546,15 +2546,12 @@ public:
 
     Tensor to(DataType newDataType) const
     {
-        if (dataType() != newDataType)
-        {
-            Tensor result{value().data(), value().size(), value().dataType(), value().shape(),
-                          { .requireGrad=isRequireGrad(), .dtype=newDataType, .device=device()}};
-            result.m_data->m_a = m_data;
-            result.m_data->m_backwardFunc = toDataTypeBackwardFunc;
-            return result;
-        }
-        return *this;
+        if (dataType() == newDataType) return *this;
+        TensorOptions opt{ .requireGrad=isRequireGrad(), .dtype=newDataType, .device=device() };
+        Tensor result{value().data(), value().size(), value().dataType(), value().shape(), opt};
+        result.m_data->m_a = m_data;
+        result.m_data->m_backwardFunc = toDataTypeBackwardFunc;
+        return result;
     }
 
     static void defaultBackward(TensorNode * node, const TensorValue & seed)
@@ -3307,19 +3304,6 @@ inline Tensor tensor(const std::vector<float> & data, const TensorOptions & opt 
     return Tensor{data.data(), data.size(), getDataType<float>(), Shape{data.size()}, opt};
 }
 
-inline Tensor randn(const Shape & shape, const TensorOptions & opt = {})
-{
-    std::uniform_real_distribution<float> distr(-1, 1);
-
-    size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
-    std::vector<float> rndData(totalSize);
-
-    // Fill rndData with random numbers
-    std::generate(rndData.begin(), rndData.end(), [&distr]() -> float { return distr(randGen); });
-
-    return Tensor{rndData.data(), rndData.size(), getDataType<float>(), shape, opt};
-}
-
 inline Tensor ones(const Shape & shape, const TensorOptions & opt = {})
 {
     return Tensor{1, shape, opt};
@@ -3363,6 +3347,19 @@ inline Tensor var(const Tensor & A, bool unbiased=true)     { return A.var(unbia
 inline Tensor var(const Tensor & A, ssize_t dim, bool unbiased=true, bool keepdim=false)
 {
     return A.var(dim, unbiased, keepdim);
+}
+
+static Tensor randn(const Shape & shape, const TensorOptions & opt = {})
+{
+    std::uniform_real_distribution<float> distr(-1, 1);
+
+    size_t totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
+    std::vector<float> rndData(totalSize);
+
+    // Fill rndData with random numbers
+    std::generate(rndData.begin(), rndData.end(), [&distr]() -> float { return distr(randGen); });
+
+    return Tensor{rndData.data(), rndData.size(), getDataType<float>(), shape, opt};
 }
 
 
