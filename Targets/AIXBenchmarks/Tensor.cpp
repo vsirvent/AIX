@@ -762,3 +762,48 @@ private:
 
 using BenchmarkTensorSliceF323K = BenchmarkTensorSlice<aix::DataType::kFloat32, 3000>;
 BENCHMARK(BenchmarkTensorSliceF323K, "tensor_slice_f32_3k")
+
+// --------------------------------------------------------------------------------
+// CAT
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t elementCount, ssize_t dim>
+class BenchmarkTensorCat : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        for (size_t i=0; i<10; ++i)
+        {
+            m_tensors.emplace_back(aix::randn({elementCount, elementCount}, opt));
+        }
+        m_device->commitAndWait();
+    }
+
+    void run(const AIXBenchmarkConfigs& configs) final
+    {
+        for (size_t i=0; i<configs.iterationCount; ++i)
+        {
+            auto t = aix::cat(m_tensors, dim);
+            m_device->commitAndWait();
+        }
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    std::vector<aix::Tensor>  m_tensors;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkTensorCatF32V = BenchmarkTensorCat<aix::DataType::kFloat32, 500, 0>;
+BENCHMARK(BenchmarkTensorCatF32V, "tensor_cat_v_f32")
+
+using BenchmarkTensorCatF32H = BenchmarkTensorCat<aix::DataType::kFloat32, 500, 1>;
+BENCHMARK(BenchmarkTensorCatF32H, "tensor_cat_h_f32")
