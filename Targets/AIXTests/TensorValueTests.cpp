@@ -161,6 +161,9 @@ TEST_CASE("TensorValue - matmul()")
 
 TEST_CASE("TensorValue - transpose()")
 {
+    auto t322 = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0}, {3,2,2}, &testDevice);
+    auto t32 = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice);
+
     SUBCASE("Must fail if dimension size is higher")
     {
         TensorValue input1 = TensorValue({1.0,2.0,3.0,4.0}, {2,1,2}, &testDevice);
@@ -255,6 +258,28 @@ TEST_CASE("TensorValue - transpose()")
         CHECK(result2.shape() == Shape{2,2,3});
         CheckVectorApproxValues(result2, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0,
                                                       7.0,9.0,11.0,8.0,10.0,12.0}, {2,2,3}, &testDevice));
+    }
+
+    SUBCASE("2x3x2 transpose(-2,-1) -> 2x2x3")
+    {
+        auto A = t322.reshape({2,3,2});
+        auto result1 = A.transpose(-2, -1);
+        CHECK(result1.shape() == Shape{2,2,3});
+        CheckVectorApproxValues(result1, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0,
+                                                      7.0,9.0,11.0,8.0,10.0,12.0}, {2,2,3}, &testDevice));
+
+        auto result2 = A.transpose(-1, -2);
+        CHECK(result2.shape() == Shape{2,2,3});
+        CheckVectorApproxValues(result2, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0,
+                                                      7.0,9.0,11.0,8.0,10.0,12.0}, {2,2,3}, &testDevice));
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ t32.transpose(0, 3); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t32.transpose(4, 2); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t32.transpose(0, -4); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t32.transpose(-5, 2); }, std::invalid_argument);
     }
 }
 

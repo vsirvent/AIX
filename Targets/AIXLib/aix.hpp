@@ -1895,12 +1895,16 @@ public:
     }
 
     // Generalized transpose function.
-    TensorValue transpose(size_t dim0, size_t dim1) const
+    TensorValue transpose(ssize_t dim0, ssize_t dim1) const
     {
+        auto shapeSize = static_cast<ssize_t>(shape().size());
+        dim0 = dim0 < 0 ? shapeSize + dim0 : dim0;
+        dim1 = dim1 < 0 ? shapeSize + dim1 : dim1;
+
         // Check dimensions
-        if (dim0 >= m_shape.size() || dim1 >= m_shape.size())
+        if (dim0 < 0 || dim0 >= shapeSize || dim1 < 0 || dim1 >= shapeSize)
         {
-            throw std::invalid_argument("Invalid dimensions for transpose.");
+            throw std::invalid_argument("Dimension is out of range for transpose.");
         }
 
         Shape newShape = m_shape;
@@ -3066,7 +3070,7 @@ public:
         return result;
     }
 
-    Tensor transpose(const size_t dim0, size_t dim1) const
+    Tensor transpose(ssize_t dim0, ssize_t dim1) const
     {
         Tensor result(shape(), { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() });
         result.m_data->m_value = m_data->m_value.transpose(dim0, dim1);
