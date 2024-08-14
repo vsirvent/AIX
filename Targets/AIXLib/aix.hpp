@@ -2511,8 +2511,13 @@ public:
             throw std::invalid_argument("Reshape error: element count mismatch (" +
                                         std::to_string(value().size()) + " vs " + std::to_string(newSize) + ").");
         }
-        return Tensor{value().data(), value().size(), dataType(), newShape,
-                      { .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device()}};
+
+        const auto& tv = m_data->m_value;
+        TensorOptions opt{ .requireGrad=isRequireGrad(), .dtype=dataType(), .device=device() };
+        Tensor result{tv.data(), tv.size(), tv.dataType(), newShape, opt};
+        result.m_data->m_a = m_data;
+        result.m_data->m_backwardFunc = reshapeBackwardFunc;
+        return result;
     }
 
     Tensor broadcastTo(const Shape & newShape) const
@@ -2559,6 +2564,12 @@ public:
             assert(node->m_grad.dataType() == seed.dataType());
             node->m_grad += seed;
         }
+    }
+
+    static void reshapeBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        node->m_a->backward(seed.reshape(node->m_a->m_value.shape()));
     }
 
     static void broadcastBackwardFunc(TensorNode * node, const TensorValue & seed)

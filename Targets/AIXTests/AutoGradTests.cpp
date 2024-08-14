@@ -1983,3 +1983,58 @@ TEST_CASE("Auto Grad - Cat")
     }
 
 }
+
+
+TEST_CASE("Auto Grad - Reshape")
+{
+    auto ts  = aix::tensor(5.0).requireGrad(true);
+    auto t1  = aix::tensor({5.0}, Shape{1}).requireGrad(true);
+    auto t11 = aix::tensor({5.0}, Shape{1,1}).requireGrad(true);
+    auto t222 = aix::tensor({ 1.0, 2.0,
+                              3.0, 4.0,
+                              5.0, 6.0,
+                              7.0, 8.0 }, Shape{2,2,2}).requireGrad(true);
+    auto t412n = aix::tensor({ -1.0, -2.0,
+                               -3.0, -4.0,
+                               -5.0, -6.0,
+                               -7.0, -8.0 }, Shape{4,1,2}).requireGrad(true);
+
+    SUBCASE("Shape{}")
+    {
+        auto t = ts.reshape({});
+        t.backward(1, t.shape());
+        CheckVectorApproxValues(ts.grad(), aix::tensor({1.0}, ts.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1}")
+    {
+        auto t = t1.reshape({1});
+        t.backward(1, t.shape());
+        CheckVectorApproxValues(t1.grad(), aix::Tensor(1.0, t1.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1,1}")
+    {
+        auto t = t11.reshape({1,1});
+        t.backward(1, t.shape());
+        CheckVectorApproxValues(t11.grad(), aix::Tensor(1.0, t11.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} -> Shape{4,1,2}")
+    {
+        auto t = t222.reshape({4,1,2});
+        t.backward(1, t.shape());
+        CheckVectorApproxValues(t222.grad(), aix::Tensor(1.0, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} -> Shape{4,1,2} complex")
+    {
+        auto t = t222.reshape({4,1,2}) * t412n;
+        t.backward(1, t.shape());
+        CheckVectorApproxValues(t222.grad(), aix::tensor({-1.0, -2.0,
+                                                          -3.0, -4.0,
+                                                          -5.0, -6.0,
+                                                          -7.0, -8.0,}, t222.grad().shape()).value());
+    }
+
+}
