@@ -84,6 +84,11 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
 // Destructor
 DeviceMetal::~DeviceMetal()
 {
+    if (m_currentBatchSize > 0)
+    {
+        std::cerr << "WARNING: Queued tensor operations detected. Did you forget to call commitAndWait()?" << std::endl;
+    }
+
     m_bufferCache->clear();
 
     // Note: No need to release MTL Buffer objects in m_allocMap.
