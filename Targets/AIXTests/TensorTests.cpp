@@ -72,6 +72,18 @@ TEST_CASE("Tensor - zeros")
 }
 
 
+TEST_CASE("Tensor - Device Switch")
+{
+    auto x = aix::tensor({1.0, 2.0, 3.0}, {1, 3});
+
+    Device  newDevice;
+    auto newX = x.to(&newDevice);
+
+    CHECK(newX.device() == &newDevice);
+    CheckVectorApproxValues(x, aix::tensor({1.0, 2.0, 3.0}, x.shape(), { .device=&newDevice }));
+}
+
+
 TEST_CASE("Tensor - onesLike")
 {
     aix::Tensor src(1.5, {2, 3});

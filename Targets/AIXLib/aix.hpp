@@ -1450,19 +1450,10 @@ public:
     Device * device() const     { return m_device; }
 
     // Set the device
-    void device(Device * device)
+    TensorValue to(Device * device) const
     {
-        if (m_device == device) return;
-        // Move data to the new device. Create a new data with new device and copy the data. Deallocate the old data.
-        // Create a new array from the new device.
-        auto newData = device->allocate(m_size, m_dType);
-        // Copy old data to the new array.
-        device->copy(m_data, m_dType, newData, m_dType, m_size);
-        // Delete old data from old device.
-        m_device->deallocate(m_data);
-        // Set new data and the new device.
-        m_data = newData;
-        m_device = device;
+        if (m_device == device) return *this;
+        return {m_data, m_size, m_dType, m_shape, device, m_dType};
     }
 
     template<typename T>
@@ -2414,7 +2405,6 @@ public:
     }
 
     Device * device() const          { return m_value.device(); }
-    void device(Device * device)     { m_value.device(device); m_grad.device(device); }
 
     std::string  m_name;
     TensorValue  m_value;
@@ -2503,11 +2493,6 @@ public:
         return *this;
     }
 
-    // Set operation device for the tensor.
-    inline Tensor & to(std::unique_ptr<Device> & device)    { return to(*device); }
-    inline Tensor & to(Device * device)         { return to(*device); }
-    inline Tensor & to(Device & device)         { m_data->device(&device); return *this; }
-
     inline Device * device() const              { return m_data->device(); }
 
     inline void name(const std::string& name) const  { m_data->m_name = name; }
@@ -2537,6 +2522,19 @@ public:
         return result;
     }
 
+    // Set operation device for the tensor.
+    inline Tensor to(std::unique_ptr<Device> & device)    { return to(*device); }
+    inline Tensor to(Device * device)                     { return to(*device); }
+    Tensor to(Device & newDevice)
+    {
+        if (&newDevice == m_data->device()) return *this;
+        TensorOptions opt{ .requireGrad=isRequireGrad(), .dtype=dataType(), .device=&newDevice };
+        Tensor result{m_data->m_value.data(), value().size(), dataType(), shape(), opt};
+        result.m_data->m_a = m_data;
+        result.m_data->m_backwardFunc = toDeviceBackwardFunc;
+        return result;
+    }
+
     Tensor to(DataType newDataType) const
     {
         if (dataType() != newDataType)
@@ -2544,7 +2542,7 @@ public:
             Tensor result{value().data(), value().size(), value().dataType(), value().shape(),
                           { .requireGrad=isRequireGrad(), .dtype=newDataType, .device=device()}};
             result.m_data->m_a = m_data;
-            result.m_data->m_backwardFunc = toBackwardFunc;
+            result.m_data->m_backwardFunc = toDataTypeBackwardFunc;
             return result;
         }
         return *this;
@@ -2568,7 +2566,14 @@ public:
         node->m_a->backward(seed.reduceTo(node->m_a->m_value.shape()));
     }
 
-    static void toBackwardFunc(TensorNode * node, const TensorValue & seed)
+    static void toDeviceBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        // Ensure that the seed gradient is moved back to the device of the original tensor.
+        node->m_a->backward(seed.to(node->m_a->m_value.device()));
+    }
+
+    static void toDataTypeBackwardFunc(TensorNode * node, const TensorValue & seed)
     {
         if (!node->m_a) return;
         // Ensure that the seed gradient is converted back to the data type of the original tensor.
@@ -3515,7 +3520,8 @@ public:
     {
         for (auto & param : parameters())
         {
-            param.to(device);
+            param.value() = param.value().to(&device);
+            param.grad()  = param.grad().to(&device);
         }
     }
 

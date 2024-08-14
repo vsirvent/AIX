@@ -556,9 +556,9 @@ TEST_CASE("TensorValue - Device Switch")
     auto x = TensorValue({1.0, 2.0, 3.0}, {1, 3}, &testDevice);
 
     Device  newDevice;
-    x.device(&newDevice);
+    auto newX = x.to(&newDevice);
 
-    CHECK(x.device() == &newDevice);
+    CHECK(newX.device() == &newDevice);
     CheckVectorApproxValues(x, TensorValue({1.0, 2.0, 3.0}, x.shape(), &newDevice));
 }
 
