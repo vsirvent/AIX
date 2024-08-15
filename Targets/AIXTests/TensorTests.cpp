@@ -2267,5 +2267,204 @@ TEST_CASE("Tensor - Cat")
         CHECK_THROWS_AS({ aix::cat({t1,t33}, 0); }, std::invalid_argument);
         CHECK_THROWS_AS({ aix::cat({t33,t11}, 1); }, std::invalid_argument);
     }
+}
 
+
+TEST_CASE("Tensor - Arange")
+{
+    // Positive step.
+
+    SUBCASE("start=0, end=0, step=1")
+    {
+        auto t = aix::arange(0, 0, 1);
+        CHECK(t.shape() == Shape{0});
+    }
+
+    SUBCASE("start=0, end=0, step=0.5")
+    {
+        auto t = aix::arange(0, 0, 0.5);
+        CHECK(t.shape() == Shape{0});
+    }
+
+    SUBCASE("start=0, end=0.1, step=1")
+    {
+        auto t = aix::arange(0, 0.1, 1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({0.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=0.1, step=0.5")
+    {
+        auto t = aix::arange(0, 0.1, 0.5);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({0.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=1, step=1")
+    {
+        auto t = aix::arange(0, 1, 1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({0.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=1, step=0.5")
+    {
+        auto t = aix::arange(0, 1, 0.5);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({0.0, 0.5}, t.shape()));
+    }
+
+    SUBCASE("start=1, end=2, step=1")
+    {
+        auto t = aix::arange(1, 2, 1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({1.0}, t.shape()));
+    }
+
+    SUBCASE("start=1, end=2, step=0.5")
+    {
+        auto t = aix::arange(1, 2, 0.5);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({1.0, 1.5}, t.shape()));
+    }
+
+    SUBCASE("start=1, end=1.1, step=1")
+    {
+        auto t = aix::arange(1, 1.1, 1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({1.0}, t.shape()));
+    }
+
+    SUBCASE("start=1, end=1.1, step=0.5")
+    {
+        auto t = aix::arange(1, 1.1, 1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({1.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=2, step=1")
+    {
+        auto t = aix::arange(0, 2, 1);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({0.0, 1.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=2, step=0.5")
+    {
+        auto t = aix::arange(0, 2, 0.5);
+        CHECK(t.shape() == Shape{4});
+        CheckVectorApproxValues(t, aix::tensor({0.0, 0.5, 1.0, 1.5}, t.shape()));
+    }
+
+    SUBCASE("start=-2, end=0, step=1")
+    {
+        auto t = aix::arange(-2, 0, 0.5);
+        CHECK(t.shape() == Shape{4});
+        CheckVectorApproxValues(t, aix::tensor({-2.0, -1.5, -1.0, -0.5}, t.shape()));
+    }
+
+    // Negative step.
+
+    SUBCASE("start=0, end=0, step=-1")
+    {
+        auto t = aix::arange(0, 0, -1);
+        CHECK(t.shape() == Shape{0});
+    }
+
+    SUBCASE("start=0, end=0, step=-0.5")
+    {
+        auto t = aix::arange(0, 0, -0.5);
+        CHECK(t.shape() == Shape{0});
+    }
+
+    SUBCASE("start=0, end=-0.1, step=-1")
+    {
+        auto t = aix::arange(0, -0.1, -1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({0.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=-0.1, step=-0.5")
+    {
+        auto t = aix::arange(0, -0.1, -0.5);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({0.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=-1, step=-1")
+    {
+        auto t = aix::arange(0, -1, -1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({0.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=-1, step=-0.5")
+    {
+        auto t = aix::arange(0, -1, -0.5);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({0.0, -0.5}, t.shape()));
+    }
+
+    SUBCASE("start=1, end=-2, step=-1")
+    {
+        auto t = aix::arange(1, -2, -1);
+        CHECK(t.shape() == Shape{3});
+        CheckVectorApproxValues(t, aix::tensor({1.0, 0.0, -1.0}, t.shape()));
+    }
+
+    SUBCASE("start=1, end=-2, step=-0.5")
+    {
+        auto t = aix::arange(1, -2, -0.5);
+        CHECK(t.shape() == Shape{6});
+        CheckVectorApproxValues(t, aix::tensor({1.0, 0.5, 0.0, -0.5, -1.0, -1.5}, t.shape()));
+    }
+
+    SUBCASE("start=-1, end=-1.1, step=-1")
+    {
+        auto t = aix::arange(-1, -1.1, -1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({-1.0}, t.shape()));
+    }
+
+    SUBCASE("start=-1, end=-1.1, step=-0.5")
+    {
+        auto t = aix::arange(-1, -1.1, -0.5);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::tensor({-1.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=-2, step=-1")
+    {
+        auto t = aix::arange(0, -2, -1);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({0.0, -1.0}, t.shape()));
+    }
+
+    SUBCASE("start=0, end=-2, step=-0.5")
+    {
+        auto t = aix::arange(0, -2, -0.5);
+        CHECK(t.shape() == Shape{4});
+        CheckVectorApproxValues(t, aix::tensor({0.0, -0.5, -1.0, -1.5}, t.shape()));
+    }
+
+    SUBCASE("start=-1, end=-2, step=-0.5")
+    {
+        auto t = aix::arange(-1, -2, -0.5);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({-1.0, -1.5}, t.shape()));
+    }
+
+    SUBCASE("start=-2, end=-1, step=0.5")
+    {
+        auto t = aix::arange(-2, -1, 0.5);
+        CHECK(t.shape() == Shape{2});
+        CheckVectorApproxValues(t, aix::tensor({-2.0, -1.5}, t.shape()));
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ aix::arange(0, 0, 0);  }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::arange(-1, 1,-1);  }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::arange(1, -1, 1);  }, std::invalid_argument);
+    }
 }

@@ -2038,3 +2038,42 @@ TEST_CASE("Auto Grad - Reshape")
     }
 
 }
+
+
+TEST_CASE("Auto Grad - Arange")
+{
+    auto t1  = aix::tensor({5.0}, Shape{1}).requireGrad(true);
+    auto t4  = aix::tensor({ 1.0, 2.0, 3.0, 4.0 }).requireGrad(true);
+
+    SUBCASE("Shape{1}")
+    {
+        auto t = aix::arange(5, 6, 1, { .requireGrad=true });
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{1});
+        CheckVectorApproxValues(t.grad(), aix::tensor({1.0}, t.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{4}")
+    {
+        auto t = aix::arange(1, 5, 1, { .requireGrad=true });
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{4});
+        CheckVectorApproxValues(t.grad(), aix::Tensor(1.0, t.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1} - complex")
+    {
+        auto t = t1 * aix::arange(5, 6, 1, { .requireGrad=true });
+        t.backward(1, t.shape());
+        CHECK(t1.grad().shape() == Shape{1});
+        CheckVectorApproxValues(t1.grad(), aix::tensor({5.0}, t1.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{4} - complex")
+    {
+        auto t = t4 * aix::arange(1, 5, 1, { .requireGrad=true });
+        t.backward(1, t.shape());
+        CHECK(t4.grad().shape() == Shape{4});
+        CheckVectorApproxValues(t4.grad(), aix::tensor({1.0, 2.0, 3.0, 4.0}, t4.grad().shape()).value());
+    }
+}

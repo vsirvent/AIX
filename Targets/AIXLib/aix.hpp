@@ -3410,6 +3410,28 @@ static Tensor randn(const Shape & shape, const TensorOptions & opt = {})
     return Tensor{rndData.data(), rndData.size(), getDataType<float>(), shape, opt};
 }
 
+// Returns evenly spaced values within a given interval. The interval including start but excluding stop. [start, end)
+static Tensor arange(float start, float end, float step, const TensorOptions & opt = {})
+{
+    if (step == 0)
+    {
+        throw std::invalid_argument("Step must be non-zero.");
+    }
+
+    auto range = end - start;
+    if ((range > 0 && step < 0) || (range < 0 && step > 0))
+    {
+        throw std::invalid_argument("Range direction is inconsistent with step sign.");
+    }
+
+    auto size = static_cast<size_t>(std::ceil(range / step));
+    std::vector<float> data(size);
+    std::generate(data.begin(), data.end(), [step,x=start]() mutable -> float { float v=x; x += step; return v; });
+    return Tensor{data.data(), data.size(), getDataType<float>(), {size}, opt};
+}
+inline Tensor arange(float end, const TensorOptions & opt = {})               { return arange(0.0, end, 1.0, opt);   }
+inline Tensor arange(float start, float end, const TensorOptions & opt = {})  { return arange(start, end, 1.0, opt); }
+
 
 // Optimizers Namespace
 
