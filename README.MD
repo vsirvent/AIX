@@ -15,21 +15,11 @@ Key features include:
 - Auto data type conversion and promotion
 - Plug-and-play hardware acceleration
 - Extensible API for custom operations and layers
-
-### Examples
-
-Examples demonstrating AIX usage can be found in the `Targets/AIXExamples` folder.
-
-| Example          | Description                                     |
-|------------------|-------------------------------------------------|
-| XORApp           | Create a custom Module.                         |
-| XORLayerApp      | Use a module within another module.             |
-| XORMetalApp      | Use Metal acceleration on Apple Silicon.        |       
-| XORSequentialApp | Use the Sequential module.                      |
+- Save/Load model parameters
 
 ### Quick Start
 
-Below is an example to train a model for the XOR problem with Metal acceleration for Apple Silicon.
+Below is an example to train a model for the XOR problem with Metal acceleration for Apple Silicon. The binary size with an `all-in static build is around 630 KB, including hardware acceleration.`
 
 ```C++
 #include <aix.hpp>
@@ -98,6 +88,52 @@ int main()
     std::cout << predictions << std::endl;
     // ...
 }
+```
+
+# Examples
+
+Examples demonstrating AIX usage can be found in the `Targets/AIXExamples` folder.
+
+| Example          | Description                                     |
+|------------------|-------------------------------------------------|
+| XORApp           | Create a custom Module.                         |
+| XORLayerApp      | Use a module within another module.             |
+| XORMetalApp      | Use Metal acceleration on Apple Silicon.        |       
+| XORSequentialApp | Use the Sequential module.                      |
+
+
+# Features
+
+AIX currently supports the following features, with an optional hardware acceleration on Apple Silicon (CUDA is coming soon).
+
+#### Tensor Data Types:
+```
+Float64, Float32, Float16, BFloat16, Int64, Int32, Int16, Int8, UInt8
+```
+
+#### Tensor Operations:
+```
+add, sub, mul, div, sum, mean, matmul, transpose, sqrt, sin, cos, log, exp, pow, tanh, max, argmax, cat, hstack, vstack, tril, select, slice, split, squeeze, unsqueeze, var, arange, randn
+```
+
+#### Modules:
+```
+Linear, Sequential
+```
+
+#### Optimizers:
+```
+SGD, Adam
+```
+
+#### Activation Functions:
+```
+Tanh, GeLU, Sigmoid, Softmax, LogSoftmax
+```
+
+#### Loss Functions:
+```
+MSE, BinaryCrossEntropy
 ```
 
 # Guidance
