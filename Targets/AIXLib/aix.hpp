@@ -2520,6 +2520,12 @@ public:
         return result;
     }
 
+    // Returns a new Tensor with a new shape. This method accepts one inferred dimension.
+    Tensor reshape(const std::initializer_list<ssize_t>& newShape) const
+    {
+        return reshape(shapeWithInferredDimToShape(newShape));
+    }
+
     Tensor broadcastTo(const Shape & newShape) const
     {
         if (shape() == newShape) return *this;
@@ -3262,6 +3268,48 @@ protected:
                                      " calculation. Use .retainGrad() on the non-leaf tensor if needed, or access"
                                      " the leaf tensor instead.");
         }
+    }
+
+    Shape shapeWithInferredDimToShape(const std::initializer_list<ssize_t>& newShape) const
+    {
+        Shape currShape = shape();
+        Shape resultShape(newShape.size());
+        ssize_t inferredDimIndex = -1;
+        size_t inferredDimCount  = 0;
+        size_t invalidDimCount   = 0;
+        ssize_t inferredDimSize  = std::accumulate(currShape.begin(), currShape.end(), 1, std::multiplies<>());
+
+        ssize_t i = 0;
+        for (const auto dim : newShape)
+        {
+            if (dim == -1)
+            {
+                ++inferredDimCount;
+                inferredDimIndex = i;
+            }
+            else
+            {
+                inferredDimSize /= dim;
+                resultShape[i] = dim;
+            }
+            if (dim == 0 || dim < -1) ++invalidDimCount;
+            ++i;
+        }
+
+        if (invalidDimCount > 0)
+        {
+            throw std::invalid_argument("Shape contains invalid dimension.");
+        }
+
+        if (inferredDimCount > 1)
+        {
+            throw std::invalid_argument("Only one dimension can be inferred.");
+        }
+
+        if (inferredDimIndex >= 0)
+            resultShape[inferredDimIndex] = inferredDimSize;
+
+        return resultShape;
     }
 
     std::shared_ptr<TensorNode>  m_data{nullptr};

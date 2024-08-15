@@ -667,6 +667,189 @@ TEST_CASE("Tensor - Reshape")
 }
 
 
+TEST_CASE("Tensor - Reshape with an inferred dimension")
+{
+    auto ts  = aix::tensor(5.0);
+    auto t1  = aix::tensor({5.0}, Shape{1});
+    auto t11 = aix::tensor({5.0}, Shape{1,1});
+    auto t33 = aix::tensor({ 1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0 }, Shape{3,3});
+    auto t222 = aix::tensor({ 1.0, 2.0,
+                              3.0, 4.0,
+                              5.0, 6.0,
+                              7.0, 8.0 }, Shape{2,2,2});
+
+    SUBCASE("{} - {}")
+    {
+        auto t = ts.reshape({});
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("{} -> {-1}")
+    {
+        auto t = ts.reshape({-1});
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("{} -> {1,-1}")
+    {
+        auto t = ts.reshape({1,-1});
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("{1} -> {-1}")
+    {
+        auto t = t1.reshape({-1});
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("{1,1} -> {1,-1}")
+    {
+        auto t = t11.reshape({1,-1});
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("{1,1} -> {-1,1}")
+    {
+        auto t = t11.reshape({-1,1});
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("{3,3} -> {-1,1}")
+    {
+        auto t = t33.reshape({-1,9});
+        CHECK(t.shape() == Shape{1,9});
+        CheckVectorApproxValues(t, t33);
+    }
+
+    SUBCASE("{3,3} -> {1,-1}")
+    {
+        auto t = t33.reshape({9,-1});
+        CHECK(t.shape() == Shape{9,1});
+        CheckVectorApproxValues(t, t33);
+    }
+
+    SUBCASE("{3,3} -> {3,-1}")
+    {
+        auto t = t33.reshape({3,-1});
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, t33);
+    }
+
+    SUBCASE("{3,3} -> {-1,3}")
+    {
+        auto t = t33.reshape({-1,3});
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, t33);
+    }
+
+    SUBCASE("{2,2,2} -> {-1,8}")
+    {
+        auto t = t222.reshape({-1,8});
+        CHECK(t.shape() == Shape{1,8});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {-1,1,8}")
+    {
+        auto t = t222.reshape({-1,1,8});
+        CHECK(t.shape() == Shape{1,1,8});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {8,-1}")
+    {
+        auto t = t222.reshape({8,-1});
+        CHECK(t.shape() == Shape{8,1});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {8,1,-1}")
+    {
+        auto t = t222.reshape({8,1,-1});
+        CHECK(t.shape() == Shape{8,1,1});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {1,-1,1,1}")
+    {
+        auto t = t222.reshape({1,-1,1,1});
+        CHECK(t.shape() == Shape{1,8,1,1});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {-1,2,2}")
+    {
+        auto t = t222.reshape({-1,2,2});
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {2,-1,2}")
+    {
+        auto t = t222.reshape({2,-1,2});
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {2,2,-1}")
+    {
+        auto t = t222.reshape({2,2,-1});
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {4,2,-1}")
+    {
+        auto t = t222.reshape({4,2,-1});
+        CHECK(t.shape() == Shape{4,2,1});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {2,4,-1}")
+    {
+        auto t = t222.reshape({2,4,-1});
+        CHECK(t.shape() == Shape{2,4,1});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {2,2,2}")
+    {
+        auto t = t222.reshape({2,2,2});
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {1,2,4}")
+    {
+        auto t = t222.reshape({1,2,4});
+        CHECK(t.shape() == Shape{1,2,4});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("{2,2,2} -> {8}")
+    {
+        auto t = t222.reshape({8});
+        CHECK(t.shape() == Shape{8});
+        CheckVectorApproxValues(t, t222);
+    }
+
+    SUBCASE("Invalid use cases")
+    {
+        DOCTEST_CHECK_THROWS_AS(ts.reshape({-2}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t33.reshape({-1,-1}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t33.reshape({-2,9}), std::invalid_argument);
+    }
+}
+
+
 TEST_CASE("Tensor - broadcastTo")
 {
     // NOTE: Since TensorValue tests cover the broadcast tests, Tensor does not need exhaustive broadcastTo tests.

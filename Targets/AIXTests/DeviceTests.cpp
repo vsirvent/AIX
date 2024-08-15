@@ -2094,7 +2094,7 @@ TEST_CASE("Device Tests - long command batch queue")
         auto device = aix::createDevice(deviceType);
         if (!device) continue;      // Skip if the device is not available.
 
-        size_t size = 1024 * 1024;
+        ssize_t size = 1024 * 1024;
         std::vector<float> data(size, 1);
         auto x = aix::tensor(data, { .dtype=aix::DataType::kFloat32, .device=device.get() }).reshape({1, size});
         auto y = aix::tensor(data, { .dtype=aix::DataType::kFloat32, .device=device.get() }).reshape({1, size});
