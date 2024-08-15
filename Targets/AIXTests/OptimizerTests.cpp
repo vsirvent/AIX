@@ -19,10 +19,10 @@ using namespace aix;
 
 TEST_CASE("Simple optimizer test")
 {
-    auto x = tensor(2, { .requireGrad=true });
-    auto y = tensor(3, { .requireGrad=true });
-    auto t = tensor(4, { .requireGrad=true });
-    auto u = tensor(5, { .requireGrad=true });
+    auto x = tensor(2, { .m_requireGrad=true });
+    auto y = tensor(3, { .m_requireGrad=true });
+    auto t = tensor(4, { .m_requireGrad=true });
+    auto u = tensor(5, { .m_requireGrad=true });
 
     // Create an instance of the SGD optimizer with a specified learning rate.
     optim::SGD optimizer({x, y, t, u}, 0.001f);
@@ -52,10 +52,10 @@ TEST_CASE("Simple optimizer test")
 
 TEST_CASE("Adam optimizer test")
 {
-    auto x = tensor(2, { .requireGrad=true });
-    auto y = tensor(3, { .requireGrad=true });
-    auto t = tensor(4, { .requireGrad=true });
-    auto u = tensor(5, { .requireGrad=true });
+    auto x = tensor(2, { .m_requireGrad=true });
+    auto y = tensor(3, { .m_requireGrad=true });
+    auto t = tensor(4, { .m_requireGrad=true });
+    auto u = tensor(5, { .m_requireGrad=true });
 
     // Create an instance of the Adam optimizer with a specified learning rate.
     optim::Adam optimizer({x, y, t, u}, 0.01f);

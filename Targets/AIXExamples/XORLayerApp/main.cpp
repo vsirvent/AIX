@@ -24,8 +24,8 @@ public:
     // Constructor
     Linear(size_t numInputs, size_t numOutputs)
     {
-        m_w1 = aix::randn({numInputs, numOutputs}, { .requireGrad=true });   // A tensor filled with random numbers in [-1, 1].
-        m_b1 = aix::randn({1,         numOutputs}, { .requireGrad=true });
+        m_w1 = aix::randn({numInputs, numOutputs}, aix::requireGrad(true));   // A tensor filled with random numbers in [-1, 1].
+        m_b1 = aix::randn({1,         numOutputs}, aix::requireGrad(true));
 
         // Register learnable parameters.
         registerParameter(m_w1);

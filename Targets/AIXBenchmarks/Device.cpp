@@ -24,7 +24,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
@@ -66,7 +66,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
@@ -108,7 +108,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
@@ -150,7 +150,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
@@ -192,7 +192,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -233,7 +233,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dstDataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dstDataType, .m_device=m_device.get() };
         m_result = aix::Tensor(aix::Shape{elementCount}, opt);  // No fill
         m_device->commitAndWait();
     }
@@ -274,7 +274,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -315,7 +315,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -356,7 +356,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -397,7 +397,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -438,7 +438,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -479,7 +479,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -520,7 +520,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -561,7 +561,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
         m_device->commitAndWait();
@@ -602,7 +602,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_exp = 2 + aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
@@ -644,7 +644,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t1 = aix::randn({M, M}, opt);
         m_t2 = aix::randn({M, M}, opt);
         m_result = aix::Tensor(aix::Shape{M, M}, opt);
@@ -687,7 +687,7 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        aix::TensorOptions opt = { .dtype=dataType, .device=m_device.get() };
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({M, M}, opt);
         m_result = aix::Tensor(aix::Shape{M, M}, opt);
         m_device->commitAndWait();
@@ -729,8 +729,8 @@ public:
     void setup(const AIXBenchmarkConfigs& configs) final
     {
         m_device = aix::createDevice(configs.deviceType);
-        m_src = aix::Tensor(aix::Shape{elementCount}, { .dtype=srcDataType, .device=m_device.get() });  // No fill
-        m_dst = aix::Tensor(aix::Shape{elementCount}, { .dtype=dstDataType, .device=m_device.get() });  // No fill
+        m_src = aix::Tensor(aix::Shape{elementCount}, { .m_dtype=srcDataType, .m_device=m_device.get() });  // No fill
+        m_dst = aix::Tensor(aix::Shape{elementCount}, { .m_dtype=dstDataType, .m_device=m_device.get() });  // No fill
         m_device->commitAndWait();
     }
 

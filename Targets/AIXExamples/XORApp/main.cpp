@@ -21,10 +21,10 @@ public:
     NeuralNet(size_t numInputs, size_t numOutputs)
     {
         constexpr size_t hlSize = 4;      // Hidden layer size.
-        m_w1 = aix::randn({numInputs,  hlSize},     { .requireGrad=true });
-        m_b1 = aix::randn({1,          hlSize},     { .requireGrad=true });
-        m_w2 = aix::randn({hlSize,     numOutputs}, { .requireGrad=true });
-        m_b2 = aix::randn({1,          numOutputs}, { .requireGrad=true });
+        m_w1 = aix::randn({numInputs,  hlSize},     aix::requireGrad(true));
+        m_b1 = aix::randn({1,          hlSize},     aix::requireGrad(true));
+        m_w2 = aix::randn({hlSize,     numOutputs}, aix::requireGrad(true));
+        m_b2 = aix::randn({1,          numOutputs}, aix::requireGrad(true));
 
         // Register learnable parameters.
         registerParameter(m_w1);

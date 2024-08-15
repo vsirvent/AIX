@@ -1850,7 +1850,7 @@ TEST_CASE("TensorValue - argmaxIndices")
         auto a = TensorValue(1.0, {}, &testDevice);
         auto amax = a.argmaxIndices();
         CHECK(amax.shape() == Shape{});
-        CheckVectorApproxValues(amax, Tensor(1.0, amax.shape(), { .dtype=DataType::kInt32 }).value());
+        CheckVectorApproxValues(amax, Tensor(1.0, amax.shape(), { .m_dtype=DataType::kInt32 }).value());
     }
 
     SUBCASE("1 Tensor")
@@ -1858,7 +1858,7 @@ TEST_CASE("TensorValue - argmaxIndices")
         auto a = TensorValue({1.0}, {1}, &testDevice);
         auto amax = a.argmaxIndices();
         CHECK(amax.shape() == Shape{1});
-        CheckVectorApproxValues(amax, tensor({1.0}, amax.shape(), { .dtype=DataType::kInt32 }).value());
+        CheckVectorApproxValues(amax, tensor({1.0}, amax.shape(), { .m_dtype=DataType::kInt32 }).value());
     }
 
     SUBCASE("2x2 Tensor - first max")
@@ -1866,7 +1866,7 @@ TEST_CASE("TensorValue - argmaxIndices")
         auto a = TensorValue({4.0, 2.0, 3.0, 1.0}, {2,2}, &testDevice);
         auto amax = a.argmaxIndices();
         CHECK(amax.shape() == Shape{2,2});
-        CheckVectorApproxValues(amax, tensor({1.0, 0.0, 0.0, 0.0}, amax.shape(), { .dtype=DataType::kInt32 }).value());
+        CheckVectorApproxValues(amax, tensor({1.0, 0.0, 0.0, 0.0}, amax.shape(), { .m_dtype=DataType::kInt32 }).value());
     }
 
     SUBCASE("2x2 Tensor - last max")
@@ -1874,7 +1874,7 @@ TEST_CASE("TensorValue - argmaxIndices")
         auto a = TensorValue({1.0, 2.0, 3.0, 4.0}, {2,2}, &testDevice);
         auto amax = a.argmaxIndices();
         CHECK(amax.shape() == Shape{2,2});
-        CheckVectorApproxValues(amax, tensor({0.0, 0.0, 0.0, 1.0}, amax.shape(), { .dtype=DataType::kInt32 }).value());
+        CheckVectorApproxValues(amax, tensor({0.0, 0.0, 0.0, 1.0}, amax.shape(), { .m_dtype=DataType::kInt32 }).value());
     }
 
     SUBCASE("2x2 Tensor - first found max")
@@ -1882,7 +1882,7 @@ TEST_CASE("TensorValue - argmaxIndices")
         auto a = TensorValue({1.0, 4.0, 4.0, 4.0}, {2,2}, &testDevice);
         auto amax = a.argmaxIndices();
         CHECK(amax.shape() == Shape{2,2});
-        CheckVectorApproxValues(amax, tensor({0.0, 1.0, 0.0, 0.0}, amax.shape(), { .dtype=DataType::kInt32 }).value());
+        CheckVectorApproxValues(amax, tensor({0.0, 1.0, 0.0, 0.0}, amax.shape(), { .m_dtype=DataType::kInt32 }).value());
     }
 }
 
