@@ -3401,6 +3401,7 @@ inline Tensor sum(const Tensor & A, ssize_t dim, bool keepDim=false)    { return
 inline Tensor mean(const Tensor & A, ssize_t dim, bool keepDim=false)   { return A.mean(dim, keepDim);  }
 inline Tensor pow(const Tensor & A, const Tensor & exp)     { return A.pow(exp); }
 inline Tensor max(const Tensor & A)         { return A.max();    }
+inline Tensor max(const Tensor & A, ssize_t dim, bool keepDim=false)   { return A.max(dim, keepDim); }
 inline Tensor argmax(const Tensor & A)      { return A.argmax(); }
 inline Tensor matmul(const Tensor & A, const Tensor & B)    { return A.matmul(B); }
 inline Tensor squeeze(const Tensor & A, ssize_t dim)    { return A.squeeze(dim);    }
