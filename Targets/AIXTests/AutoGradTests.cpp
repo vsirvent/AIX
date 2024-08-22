@@ -30,10 +30,10 @@ struct TestModel : public aix::nn::Module
         m_t = tensor(tData, shape, { .m_requireGrad=true });
         m_u = tensor(uData, shape, { .m_requireGrad=true });
 
-        registerParameter(m_x);
-        registerParameter(m_y);
-        registerParameter(m_t);
-        registerParameter(m_u);
+        registerParameter("m_x", m_x);
+        registerParameter("m_y", m_y);
+        registerParameter("m_t", m_t);
+        registerParameter("m_u", m_u);
     }
 
     Tensor forward([[maybe_unused]] Tensor x) const final

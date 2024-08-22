@@ -34,10 +34,10 @@ TEST_CASE("Model Forward Test - XOR")
             m_w2 = tensor({0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10}, {10, 1}, { .m_requireGrad=true });
             m_b2 = tensor({0.01, 0.02, 0.03, 0.04}, {numSamples, numOutputs}, { .m_requireGrad=true });
 
-            registerParameter(m_w1);
-            registerParameter(m_b1);
-            registerParameter(m_w2);
-            registerParameter(m_b2);
+            registerParameter("m_w1", m_w1);
+            registerParameter("m_b1", m_b1);
+            registerParameter("m_w2", m_w2);
+            registerParameter("m_b2", m_b2);
         }
 
         // Forward

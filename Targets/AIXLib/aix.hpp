@@ -3461,8 +3461,18 @@ class Optimizer
 public:
     // Constructor
     Optimizer() = default;
+
     // Constructor
-    explicit Optimizer(const std::vector<Tensor> & parameters) : m_parameters(parameters) { }
+    explicit Optimizer(const std::vector<std::pair<std::string, Tensor>> & parameters) : m_parameters(parameters) { }
+
+    // Constructor
+    explicit Optimizer(const std::vector<Tensor> & parameters)
+    {
+        for (auto& param : parameters)
+        {
+            m_parameters.emplace_back("", param);
+        }
+    }
 
     // Destructor
     virtual ~Optimizer() = default;
@@ -3471,7 +3481,7 @@ public:
 
     virtual void zeroGrad()
     {
-        for (auto & param : m_parameters)
+        for (auto & [name, param] : m_parameters)
         {
             param.zeroGrad();
         }
@@ -3488,7 +3498,7 @@ public:
     }
 
 protected:
-    std::vector<Tensor> m_parameters;
+    std::vector<std::pair<std::string, Tensor>> m_parameters;
     DataType m_calculationDType{DataType::kFloat32};
 };
 
@@ -3497,12 +3507,15 @@ class SGD : public Optimizer
 {
 public:
     SGD() = default;
-    explicit SGD(const std::vector<Tensor> & parameters, float lr = 0.01f)
+
+    explicit SGD(const std::vector<std::pair<std::string, Tensor>> & parameters, float lr = 0.01f)
         : Optimizer(parameters), m_lr(lr) { }
+
+    explicit SGD(const std::vector<Tensor> & parameters, float lr = 0.01f) : Optimizer(parameters), m_lr(lr) { }
 
     void step() final
     {
-        for (auto & param : m_parameters)
+        for (auto & [name, param] : m_parameters)
         {
             if (param.isRequireGrad())
             {
@@ -3520,15 +3533,19 @@ class Adam : public Optimizer
 {
 public:
     Adam() = default;
+
+    explicit Adam(const std::vector<std::pair<std::string, Tensor>> & parameters, float lr = 0.001f, float beta1 = 0.9f,
+                  float beta2 = 0.999f, float epsilon = 1e-8f)
+        : Optimizer(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
+    {
+        initializeParameters();
+    }
+
     explicit Adam(const std::vector<Tensor> & parameters, float lr = 0.001f, float beta1 = 0.9f,
                   float beta2 = 0.999f, float epsilon = 1e-8f)
         : Optimizer(parameters), m_lr(lr), m_beta1(beta1), m_beta2(beta2), m_epsilon(epsilon)
     {
-        for (const auto & param : m_parameters)
-        {
-            m_m.emplace_back(0, param.shape(), param.value().device(), m_calculationDType);
-            m_v.emplace_back(0, param.shape(), param.value().device(), m_calculationDType);
-        }
+        initializeParameters();
     }
 
     void step() final
@@ -3536,10 +3553,12 @@ public:
         ++m_timestep;
         for (size_t i = 0; i < m_parameters.size(); ++i)
         {
-            if (m_parameters[i].isRequireGrad())
+            auto& parameter = m_parameters[i].second;
+
+            if (parameter.isRequireGrad())
             {
                 // Convert the parameter's data type to the optimizer's internal calculation type.
-                auto gradFloat = m_parameters[i].grad().to(m_calculationDType);
+                auto gradFloat = parameter.grad().to(m_calculationDType);
 
                 // Update biased first moment estimate.
                 m_m[i] = m_beta1 * m_m[i] + float(1.0 - m_beta1) * gradFloat;
@@ -3554,12 +3573,21 @@ public:
                 TensorValue vHat = m_v[i] / float(1.0 - std::pow(m_beta2, m_timestep));
 
                 // Update parameter.
-                m_parameters[i].value() -= (m_lr * mHat / (vHat.sqrt() + m_epsilon)).to(m_parameters[i].dataType());
+                parameter.value() -= (m_lr * mHat / (vHat.sqrt() + m_epsilon)).to(parameter.dataType());
             }
         }
     }
 
 private:
+    void initializeParameters()
+    {
+        for (const auto & [name, param] : m_parameters)
+        {
+            m_m.emplace_back(0, param.shape(), param.value().device(), m_calculationDType);
+            m_v.emplace_back(0, param.shape(), param.value().device(), m_calculationDType);
+        }
+    }
+
     float m_lr{0.001f};         // Learning rate.
     float m_beta1{0.9f};        // Exponential decay rate for the first moment estimates.
     float m_beta2{0.999f};      // Exponential decay rate for the second moment estimates.
@@ -3585,20 +3613,20 @@ public:
 
     virtual Tensor forward(Tensor x) const = 0;
 
-    void registerParameter(Tensor & tensor)
+    void registerParameter(const std::string& paramName, Tensor & tensor)
     {
-        m_parameters.emplace_back(tensor);
+        m_parameters.emplace_back(paramName, tensor);
     }
 
     void registerModule(const Module & module)
     {
-        for (const auto & param : module.parameters())
+        for (const auto& [paramName, param] : module.parameters())
         {
-            m_parameters.emplace_back(param);
+            m_parameters.emplace_back(paramName, param);
         }
     }
 
-    std::vector<Tensor> parameters() const
+    std::vector<std::pair<std::string,Tensor>> parameters() const
     {
         return m_parameters;
     }
@@ -3607,7 +3635,7 @@ public:
     size_t learnableParameters() const
     {
         size_t totalParams = 0;
-        for (const auto & param: m_parameters)
+        for (const auto& [paramName, param]: m_parameters)
         {
             if (param.isRequireGrad())
             {
@@ -3621,7 +3649,7 @@ public:
     void to(Device * device) const                    { to(*device); }
     void to(Device & device) const
     {
-        for (auto & param : parameters())
+        for (auto& [paramName, param] : parameters())
         {
             param.value() = param.value().to(&device);
             param.grad()  = param.grad().to(&device);
@@ -3630,7 +3658,7 @@ public:
 
     void to(DataType newDtype) const
     {
-        for (auto & param : parameters())
+        for (auto& [paramName, param] : parameters())
         {
             if (param.isRequireGrad())
             {
@@ -3641,7 +3669,7 @@ public:
     }
 
 private:
-    std::vector<Tensor> m_parameters;
+    std::vector<std::pair<std::string, Tensor>> m_parameters;
 };
 
 
@@ -3677,22 +3705,22 @@ public:
     // Constructor
     Linear(size_t numInputs, size_t numOutputs)
     {
-        m_w1 = randn({numInputs, numOutputs}, { .m_requireGrad=true });
-        m_b1 = randn({1,         numOutputs}, { .m_requireGrad=true });
+        m_w = randn({numInputs, numOutputs}, { .m_requireGrad=true });
+        m_b = randn({1,         numOutputs}, { .m_requireGrad=true });
 
         // Register learnable parameters.
-        registerParameter(m_w1);
-        registerParameter(m_b1);
+        registerParameter("w", m_w);
+        registerParameter("b", m_b);
     }
 
     // Forward
     Tensor forward(Tensor x) const override
     {
-        return matmul(x, m_w1) + m_b1;
+        return matmul(x, m_w) + m_b;
     }
 
-    Tensor  m_w1;
-    Tensor  m_b1;
+    Tensor  m_w;
+    Tensor  m_b;
 };
 
 
@@ -3790,7 +3818,7 @@ inline void save(const nn::Module & module, const std::string & filename)
     }
 
     const auto params = module.parameters();
-    for (auto param : params)
+    for (const auto& [paramName, param] : params)
     {
         const auto & value = param.value();
         size_t size = value.size();
@@ -3810,8 +3838,8 @@ inline void load(nn::Module & module, const std::string & filename)
         throw std::ios_base::failure("Failed to open model parameter file for reading.");
     }
 
-    const auto params = module.parameters();    // Get model parameters
-    for (auto param : params)
+    auto params = module.parameters();    // Get model parameters.
+    for (auto& [paramName, param] : params)
     {
         size_t size;
         ifs.read(reinterpret_cast<char*>(&size), sizeof(size));         // Read size of parameter

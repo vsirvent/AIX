@@ -24,22 +24,22 @@ public:
     // Constructor
     Linear(size_t numInputs, size_t numOutputs)
     {
-        m_w1 = aix::randn({numInputs, numOutputs}, aix::requireGrad(true));   // A tensor filled with random numbers in [-1, 1].
-        m_b1 = aix::randn({1,         numOutputs}, aix::requireGrad(true));
+        m_w = aix::randn({numInputs, numOutputs}, aix::requireGrad(true));   // A tensor filled with random numbers in [-1, 1].
+        m_b = aix::randn({1,         numOutputs}, aix::requireGrad(true));
 
         // Register learnable parameters.
-        registerParameter(m_w1);
-        registerParameter(m_b1);
+        registerParameter("w", m_w);
+        registerParameter("b", m_b);
     }
 
     // Forward
     aix::Tensor forward(aix::Tensor x) const override
     {
-        return aix::matmul(x, m_w1) + m_b1;
+        return aix::matmul(x, m_w) + m_b;
     }
 
-    aix::Tensor  m_w1;
-    aix::Tensor  m_b1;
+    aix::Tensor  m_w;
+    aix::Tensor  m_b;
 };
 
 
