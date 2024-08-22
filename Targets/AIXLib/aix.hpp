@@ -3704,6 +3704,9 @@ class Linear : public Module
 {
 public:
     // Constructor
+    Linear() = default;
+
+    // Constructor
     Linear(size_t numInputs, size_t numOutputs)
     {
         m_w = randn({numInputs, numOutputs}, { .m_requireGrad=true });
