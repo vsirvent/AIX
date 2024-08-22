@@ -27,10 +27,10 @@ public:
         m_b2 = aix::randn({1,          numOutputs}, aix::requireGrad(true));
 
         // Register learnable parameters.
-        registerParameter(m_w1);
-        registerParameter(m_b1);
-        registerParameter(m_w2);
-        registerParameter(m_b2);
+        registerParameter("w1", m_w1);
+        registerParameter("b1", m_b1);
+        registerParameter("w2", m_w2);
+        registerParameter("b2", m_b2);
     }
 
     // Forward
@@ -41,6 +41,7 @@ public:
         return x;
     }
 
+private:
     aix::Tensor m_w1, m_b1;
     aix::Tensor m_w2, m_b2;
 };
