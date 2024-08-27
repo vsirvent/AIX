@@ -17,6 +17,8 @@ Key features include:
 - Extensible API for custom operations and layers
 - Save/Load model parameters
 
+AIX is a research project and a relatively new framework. Its initial release is forthcoming. Please anticipate changes to the framework and be aware that early versions may not perform at the level of PyTorch.
+
 ### Quick Start
 
 Below is an example to train a model for the XOR problem with Metal acceleration for Apple Silicon. The binary size with an `all-in static build is around 630 KB, including hardware acceleration.`
@@ -101,10 +103,14 @@ Examples demonstrating AIX usage can be found in the `Targets/AIXExamples` folde
 | XORMetalApp      | Use Metal acceleration on Apple Silicon.        |       
 | XORSequentialApp | Use the Sequential module.                      |
 
+Another example project that uses AIX as an external/third-party library:
+
+[LLM](https://github.com/godrays/llm) - GPT2 inference implementation utilizing OpenAI weights with parameters of 124M, 355M, 774M, and 1.5B.
+
 
 # Features
 
-AIX currently supports the following features, with an optional hardware acceleration on Apple Silicon (CUDA is coming soon).
+AIX currently supports the following features, with an optional hardware acceleration on Apple Silicon.
 
 #### Tensor Data Types:
 ```
