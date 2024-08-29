@@ -2468,3 +2468,350 @@ TEST_CASE("Tensor - Arange")
         CHECK_THROWS_AS({ aix::arange(1, -1, 1);  }, std::invalid_argument);
     }
 }
+
+
+TEST_CASE("Tensor - indexSelect")
+{
+    auto ts  = aix::tensor(5.0);
+    auto t1  = aix::tensor({5.0}, Shape{1});
+    auto t11 = aix::tensor({5.0}, Shape{1,1});
+    auto t33 = aix::tensor({ 1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0 }, Shape{3,3});
+    auto t222 = aix::tensor({ 1.0, 2.0,
+                              3.0, 4.0,
+                              5.0, 6.0,
+                              7.0, 8.0 }, Shape{2,2,2});
+
+    auto is  = aix::tensor(0.0, aix::dtype(aix::DataType::kInt32));
+    auto i1  = aix::tensor({0.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+    auto i2  = aix::tensor({0.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+    auto i11 = aix::tensor({0.0}, Shape{1,1}, aix::dtype(aix::DataType::kInt32));
+
+    SUBCASE("Shape{} - dim=0 - index{}")
+    {
+        auto t = ts.indexSelect(0, is);
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, aix::Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("Shape{1} - dim=0 - index{}")
+    {
+        auto t = t1.indexSelect(0, is);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("Shape{} - dim=0 - index{1}")
+    {
+        auto t = ts.indexSelect(0, i1);
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(t, aix::Tensor(5.0, t.shape()));
+    }
+
+    SUBCASE("Shape{1} - dim=0 - index{1}")
+    {
+        auto t = t1.indexSelect(0, i1);
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(t, aix::Tensor(5.0, t.shape()));
+    }
+
+    // dim 0
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0}")
+    {
+        auto indices  = aix::tensor({0.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::tensor({1.0, 2.0, 3.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::tensor({4.0, 5.0, 6.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2}")
+    {
+        auto indices  = aix::tensor({2.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{1,3});
+        CheckVectorApproxValues(t, aix::tensor({7.0, 8.0, 9.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0,1}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {1,2}")
+    {
+        auto indices  = aix::tensor({1.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 4.0, 5.0, 6.0,
+                                                 7.0, 8.0, 9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0,2}")
+    {
+        auto indices  = aix::tensor({0.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 7.0, 8.0, 9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2,0}")
+    {
+        auto indices  = aix::tensor({2.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 7.0, 8.0, 9.0,
+                                                 1.0, 2.0, 3.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 4.0, 5.0, 6.0,
+                                                 4.0, 5.0, 6.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0,1,2}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0, 2.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0,
+                                                 7.0, 8.0, 9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2,1,0}")
+    {
+        auto indices  = aix::tensor({2.0, 1.0, 0.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 7.0, 8.0, 9.0,
+                                                 4.0, 5.0, 6.0,
+                                                 1.0, 2.0, 3.0, }, t.shape()));
+    }
+
+    // dim 1
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0}")
+    {
+        auto indices  = aix::tensor({0.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::tensor({1.0, 4.0, 7.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::tensor({2.0, 5.0, 8.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {2}")
+    {
+        auto indices  = aix::tensor({2.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,1});
+        CheckVectorApproxValues(t, aix::tensor({3.0, 6.0, 9.0}, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0,1}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 4.0, 5.0,
+                                                 7.0, 8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {1,2}")
+    {
+        auto indices  = aix::tensor({1.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 3.0,
+                                                 5.0, 6.0,
+                                                 8.0, 9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0,2}")
+    {
+        auto indices  = aix::tensor({0.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 3.0,
+                                                 4.0, 6.0,
+                                                 7.0, 9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2,0}")
+    {
+        auto indices  = aix::tensor({2.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 1.0,
+                                                 6.0, 4.0,
+                                                 9.0, 7.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 2.0,
+                                                 5.0, 5.0,
+                                                 8.0, 8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0,1,2}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0, 2.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0,
+                                                 7.0, 8.0, 9.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {2,1,0}")
+    {
+        auto indices  = aix::tensor({2.0, 1.0, 0.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 2.0, 1.0,
+                                                 6.0, 5.0, 4.0,
+                                                 9.0, 8.0, 7.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{1,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 5.0, 6.0,
+                                                 7.0, 8.0 }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{2,1,2});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 4.0,
+                                                 7.0, 8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(2, indices);
+        CHECK(t.shape() == Shape{2,2,1});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 4.0,
+                                                 6.0, 8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 - index = {1,0}")
+    {
+        auto indices  = aix::tensor({1.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 5.0, 6.0,
+                                                 7.0, 8.0,
+                                                 1.0, 2.0,
+                                                 3.0, 4.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - index = {1,0}")
+    {
+        auto indices  = aix::tensor({1.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 4.0,
+                                                 1.0, 2.0,
+                                                 7.0, 8.0,
+                                                 5.0, 6.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - index = {1,0}")
+    {
+        auto indices  = aix::tensor({1.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(2, indices);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 1.0,
+                                                 4.0, 3.0,
+                                                 6.0, 5.0,
+                                                 8.0, 7.0, }, t.shape()));
+    }
+
+    //
+
+    SUBCASE("Shape{2,2,2} - dim=0 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(0, indices);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 5.0, 6.0,
+                                                 7.0, 8.0,
+                                                 5.0, 6.0,
+                                                 7.0, 8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(1, indices);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 3.0, 4.0,
+                                                 3.0, 4.0,
+                                                 7.0, 8.0,
+                                                 7.0, 8.0, }, t.shape()));
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(2, indices);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 2.0, 2.0,
+                                                 4.0, 4.0,
+                                                 6.0, 6.0,
+                                                 8.0, 8.0, }, t.shape()));
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ ts.indexSelect(0, i11); }, std::invalid_argument);
+        CHECK_THROWS_AS({ ts.indexSelect(1, i1);  }, std::invalid_argument);
+        // Only kInt32 type should be allowed as an index tensor.
+        for (size_t i=0; i<aix::DataTypeCount; ++i)
+        {
+            auto dtype = static_cast<aix::DataType>(i);
+            if (dtype != aix::DataType::kInt32)
+            {
+                CHECK_THROWS_AS({ t33.indexSelect(0, i1.to(dtype)); }, std::invalid_argument);
+            }
+        }
+        CHECK_THROWS_AS({ t33.indexSelect(3, i1);  }, std::invalid_argument);
+        CHECK_THROWS_AS({ t33.indexSelect(-3, i1); }, std::invalid_argument);
+    }
+}

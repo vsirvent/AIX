@@ -731,6 +731,25 @@ public:
         funcTable[static_cast<size_t>(dtype)](dst, size, shape, strides, diagonal);
     }
 
+    virtual void indexSelect(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
+                             const Shape& shape, size_t dim, DataType dtype)
+    {
+        static const auto funcTable = std::array
+        {
+            indexSelectGeneric<double    , int32_t>,
+            indexSelectGeneric<float     , int32_t>,
+            indexSelectGeneric<float16_t , int32_t>,
+            indexSelectGeneric<bfloat16_t, int32_t>,
+            indexSelectGeneric<int64_t   , int32_t>,
+            indexSelectGeneric<int32_t   , int32_t>,
+            indexSelectGeneric<int16_t   , int32_t>,
+            indexSelectGeneric<int8_t    , int32_t>,
+            indexSelectGeneric<uint8_t   , int32_t>,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](src, dst, size, indices, indicesSize, shape, dim);
+    }
+
     virtual void commitAndWait()
     {
     }
@@ -1189,6 +1208,40 @@ protected:
             }
 
             tDst[srcIndex] = tSrc[index];
+        }
+    }
+
+    template <typename T, typename T2>
+    static void indexSelectGeneric(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
+                                   const Shape& shape, size_t dim)
+    {
+        auto tSrc = static_cast<const T*>(src);
+        auto tDst = static_cast<T*>(dst);
+        auto tIndices = static_cast<const T2*>(indices);
+
+        // Calculate the number of elements in one slice after the specified dimension.
+        size_t sliceSize = 1;
+        for (size_t i = dim + 1; i < shape.size(); ++i)
+        {
+            sliceSize *= shape[i];
+        }
+
+        // Calculate the size of one entire slice for the dimension in question.
+        size_t dimSize = !shape.empty() ? shape[dim] * sliceSize : 0;
+
+        for (size_t index=0; index<size; ++index)
+        {
+            // Calculate the outer loop index, index position, and element within the slice.
+            size_t elementWithinSlice = index % sliceSize;
+            size_t idx = (index / sliceSize) % indicesSize;
+            size_t outer = index / (indicesSize * sliceSize);
+
+            size_t srcIndex = tIndices[idx] * sliceSize + elementWithinSlice;
+            size_t srcOffset = outer * dimSize + srcIndex;
+            size_t dstOffset = outer * indicesSize * sliceSize + idx * sliceSize + elementWithinSlice;
+
+            // Perform the copy operation.
+            tDst[dstOffset] = tSrc[srcOffset];
         }
     }
 
@@ -2064,6 +2117,39 @@ public:
         return slice(dim, index, index + 1, 1).squeeze(dim);
     }
 
+    TensorValue indexSelect(ssize_t dim, const TensorValue& indices) const
+    {
+        if (indices.shape().size() > 1)
+        {
+            throw std::invalid_argument("Indices supposed to be a vector.");
+        }
+        if (indices.dataType() != aix::DataType::kInt32)
+        {
+            throw std::invalid_argument("Indices tensor's data type must be int32");
+        }
+
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+
+        if ((!shape().empty() && (dim < 0 || static_cast<size_t>(dim) >= shape().size())) ||
+            (shape().empty() && dim != 0))
+        {
+            throw std::invalid_argument("Dimension is out of range for indexSelect operation.");
+        }
+
+        auto newShape = shape();
+        if (!newShape.empty())
+        {
+            newShape[dim] = !indices.shape().empty() ? indices.shape()[0] : 1;
+        }
+
+        assert(checkMinMaxValueOverflow(0, (!shape().empty() ? shape()[dim] : 0), indices));
+
+        TensorValue result(newShape, device(), dataType());
+        device()->indexSelect(data(), result.data(), result.size(), indices.data(), indices.size(),
+                              shape(), dim, dataType());
+        return result;
+    }
+
     std::vector<TensorValue> split(ssize_t splitSize, ssize_t dim=0) const
     {
         if (splitSize < 0)
@@ -2251,6 +2337,18 @@ private:
         }
 
         return {lhs.shape(), lhs.device(), promotedDType};
+    }
+
+    static bool checkMinMaxValueOverflow(float minValue, float maxValue, const aix::TensorValue& tensor)
+    {
+        assert(tensor.dataType() == aix::DataType::kInt32);     // Currently supports only int32 data type.
+        tensor.device()->commitAndWait();
+        for (size_t i=0; i < tensor.size(); ++i)
+        {
+            if (tensor.data<int32_t>()[i] < minValue) return false;
+            if (tensor.data<int32_t>()[i] > maxValue) return false;
+        }
+        return true;
     }
 
     // Print Tensor data
@@ -2781,6 +2879,12 @@ public:
         node->m_a->backward(seed * onesLikeSeed.tril(static_cast<ssize_t>(node->m_dim0)));      // m_dim0 = diagonal
     }
 
+    static void indexSelectBackwardFunc(TensorNode * node, const TensorValue &)
+    {
+        if (!node->m_a) return;
+        throw std::runtime_error("indexSelect backward func is not implemented.");
+    }
+
     static void catBackwardFunc(TensorNode* node, const TensorValue& seed)
     {
         size_t numTensors = node->m_aMulti.size();
@@ -3210,6 +3314,35 @@ public:
         result.m_data->m_a = m_data;
         result.m_data->m_dim0 = diagonal;
         result.m_data->m_backwardFunc = trillBackwardFunc;
+        return result;
+    }
+
+    Tensor indexSelect(ssize_t dim, const Tensor& indices) const
+    {
+        if (indices.shape().size() > 1)
+        {
+            throw std::invalid_argument("Indices supposed to be a vector.");
+        }
+
+        dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
+
+        if ((!shape().empty() && (dim < 0 || static_cast<size_t>(dim) >= shape().size())) ||
+            (shape().empty() && dim != 0))
+        {
+            throw std::invalid_argument("Dimension is out of range for indexSelect operation.");
+        }
+
+        auto newShape = shape();
+        if (!newShape.empty())
+        {
+            newShape[dim] = !indices.shape().empty() ? indices.shape()[0] : 1;
+        }
+
+        Tensor result(newShape, { .m_requireGrad=isRequireGrad(), .m_dtype=dataType(), .m_device=device() });
+        result.m_data->m_value = m_data->m_value.indexSelect(dim, indices.value());
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = dim;
+        result.m_data->m_backwardFunc = indexSelectBackwardFunc;
         return result;
     }
 
