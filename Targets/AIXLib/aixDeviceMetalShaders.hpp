@@ -925,6 +925,28 @@ kernel void tril_a(device T* dst             [[buffer(1)]],
 }
 
 
+// IndexSelect - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2, typename T3>
+kernel void indexSelect_a(const device T* src       [[buffer(0)]],
+                          device T* dst             [[buffer(1)]],
+                          const device T2* indices  [[buffer(2)]],
+                          constant T3& indicesSize  [[buffer(3)]],
+                          constant T3& dimSize      [[buffer(4)]],
+                          constant T3& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]])
+{
+    size_t elementWithinSlice = index % sliceSize;
+    size_t idx = (index / sliceSize) % indicesSize;
+    size_t outer = index / (indicesSize * sliceSize);
+    size_t srcIndex  = indices[idx] * sliceSize + elementWithinSlice;
+    size_t srcOffset = outer * dimSize + srcIndex;
+    size_t dstOffset = outer * indicesSize * sliceSize + idx * sliceSize + elementWithinSlice;
+
+    dst[dstOffset] = src[srcOffset];
+}
+
+
 // nullKernel
 // -----------------------------------------------------------------
 kernel void nullKernel(uint index [[thread_position_in_grid]])
@@ -3064,6 +3086,79 @@ kernel void tril_a(device unsigned char* dst        [[buffer(1)]],
                    constant int64_t& diagonal       [[buffer(6)]],
                    constant size_t& size            [[buffer(7)]],
                    uint index [[thread_position_in_grid]]);
+
+
+template [[ host_name("indexSelect_a_f32") ]]
+kernel void indexSelect_a(const device float* src       [[buffer(0)]],
+                          device float* dst             [[buffer(1)]],
+                          const device int* indices     [[buffer(2)]],
+                          constant size_t& indicesSize  [[buffer(3)]],
+                          constant size_t& dimSize      [[buffer(4)]],
+                          constant size_t& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
+
+template [[ host_name("indexSelect_a_f16") ]]
+kernel void indexSelect_a(const device half* src        [[buffer(0)]],
+                          device half* dst              [[buffer(1)]],
+                          const device int* indices     [[buffer(2)]],
+                          constant size_t& indicesSize  [[buffer(3)]],
+                          constant size_t& dimSize      [[buffer(4)]],
+                          constant size_t& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
+
+template [[ host_name("indexSelect_a_bf16") ]]
+kernel void indexSelect_a(const device bfloat* src      [[buffer(0)]],
+                          device bfloat* dst            [[buffer(1)]],
+                          const device int* indices     [[buffer(2)]],
+                          constant size_t& indicesSize  [[buffer(3)]],
+                          constant size_t& dimSize      [[buffer(4)]],
+                          constant size_t& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
+
+template [[ host_name("indexSelect_a_i64") ]]
+kernel void indexSelect_a(const device long* src        [[buffer(0)]],
+                          device long* dst              [[buffer(1)]],
+                          const device int* indices     [[buffer(2)]],
+                          constant size_t& indicesSize  [[buffer(3)]],
+                          constant size_t& dimSize      [[buffer(4)]],
+                          constant size_t& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
+
+template [[ host_name("indexSelect_a_i32") ]]
+kernel void indexSelect_a(const device int* src         [[buffer(0)]],
+                          device int* dst               [[buffer(1)]],
+                          const device int* indices     [[buffer(2)]],
+                          constant size_t& indicesSize  [[buffer(3)]],
+                          constant size_t& dimSize      [[buffer(4)]],
+                          constant size_t& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
+
+template [[ host_name("indexSelect_a_i16") ]]
+kernel void indexSelect_a(const device short* src       [[buffer(0)]],
+                          device short* dst             [[buffer(1)]],
+                          const device int* indices     [[buffer(2)]],
+                          constant size_t& indicesSize  [[buffer(3)]],
+                          constant size_t& dimSize      [[buffer(4)]],
+                          constant size_t& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
+
+template [[ host_name("indexSelect_a_i8") ]]
+kernel void indexSelect_a(const device char* src        [[buffer(0)]],
+                          device char* dst              [[buffer(1)]],
+                          const device int* indices     [[buffer(2)]],
+                          constant size_t& indicesSize  [[buffer(3)]],
+                          constant size_t& dimSize      [[buffer(4)]],
+                          constant size_t& sliceSize    [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
+
+template [[ host_name("indexSelect_a_ui8") ]]
+kernel void indexSelect_a(const device unsigned char* src   [[buffer(0)]],
+                          device unsigned char* dst         [[buffer(1)]],
+                          const device int* indices         [[buffer(2)]],
+                          constant size_t& indicesSize      [[buffer(3)]],
+                          constant size_t& dimSize          [[buffer(4)]],
+                          constant size_t& sliceSize        [[buffer(5)]],
+                          uint index [[thread_position_in_grid]]);
 
 )";
 

@@ -132,6 +132,9 @@ public:
 
     void tril(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype) override;
 
+    void indexSelect(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
+                     const Shape& shape, size_t dim, DataType dtype) override;
+
     void commitAndWait() override;
 
 protected:
@@ -230,6 +233,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOSlice[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOSliceSet[aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOTril[aix::DataTypeCount];
+    MTL::ComputePipelineState*   m_compFuncPSOIndexSelect[aix::DataTypeCount];
     std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     std::unique_ptr<MTLBufferCache>  m_bufferCache;

@@ -74,6 +74,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOSlice[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "slice_a_" + dtypeStr);
         m_compFuncPSOSliceSet[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sliceSet_a_" + dtypeStr);
         m_compFuncPSOTril[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "tril_a_" + dtypeStr);
+        m_compFuncPSOIndexSelect[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "indexSelect_a_" + dtypeStr);
     }
 
     m_cmdQueue = createCommandQueue();
@@ -124,6 +125,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOSlice[i]->release();
         m_compFuncPSOSliceSet[i]->release();
         m_compFuncPSOTril[i]->release();
+        m_compFuncPSOIndexSelect[i]->release();
     }
 
     m_cmdQueue->release();
@@ -706,6 +708,44 @@ void DeviceMetal::tril(void* dst, size_t size, const Shape& shape, const Shape& 
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(bufShape);
     freeTemporaryBuffer(bufStrides);
+    commitBatchQueue();
+}
+
+void DeviceMetal::indexSelect(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
+                              const Shape& shape, size_t dim, DataType dtype)
+{
+    validateDataType(dtype);
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (!isDeviceBuffer(dst))
+        throw std::invalid_argument("DeviceMetal::indexSelect() result must have GPU memory.");
+
+    // Calculate the number of elements in one slice after the specified dimension.
+    size_t sliceSize = 1;
+    for (size_t i = dim + 1; i < shape.size(); ++i)
+    {
+        sliceSize *= shape[i];
+    }
+    size_t dimSize = !shape.empty() ? shape[dim] * sliceSize : 0;   // Size of one entire slice for the dimension.
+    size_t srcBufSize   = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
+
+    auto bufSrc      = getReadOnlyMTLBuffer(src, srcBufSize, dataTypeSize(dtype));
+    auto bufIndices  = getReadOnlyMTLBuffer(indices, indicesSize, dataTypeSize(aix::DataType::kInt32));
+    auto bufDst      = m_allocMap[dst];
+    auto compFuncPSO = m_compFuncPSOIndexSelect[static_cast<size_t>(dtype)];
+
+    // Serialize resources and states to be used by the GPU.
+    m_compEncoder->setComputePipelineState(compFuncPSO);
+    m_compEncoder->setBuffer(bufSrc,     0, 0);
+    m_compEncoder->setBuffer(bufDst,     0, 1);
+    m_compEncoder->setBuffer(bufIndices, 0, 2);
+    m_compEncoder->setBytes(&indicesSize, sizeof(size_t), 3);
+    m_compEncoder->setBytes(&dimSize,     sizeof(size_t), 4);
+    m_compEncoder->setBytes(&sliceSize,   sizeof(size_t), 5);
+
+    NS::UInteger w = std::min(size, compFuncPSO->maxTotalThreadsPerThreadgroup());
+
+    m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
+
     commitBatchQueue();
 }
 
