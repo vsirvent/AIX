@@ -114,12 +114,16 @@ AIX currently supports the following features, with an optional hardware acceler
 
 #### Tensor Data Types:
 ```
-Float64, Float32, Float16, BFloat16, Int64, Int32, Int16, Int8, UInt8
+Float64, Float32, Float16, BFloat16, 
+Int64, Int32, Int16, Int8, UInt8
 ```
 
 #### Tensor Operations:
 ```
-add, sub, mul, div, sum, mean, matmul, transpose, sqrt, sin, cos, log, exp, pow, tanh, max, argmax, cat, hstack, vstack, tril, select, slice, split, squeeze, unsqueeze, var, arange, randn
+add, sub, mul, div, sum, mean, matmul, transpose, 
+sqrt, sin, cos, log, exp, pow, tanh, max, argmax, 
+cat, hstack, vstack, tril, select, slice, split, 
+index select, squeeze, unsqueeze, var, arange, randn
 ```
 
 #### Modules:
@@ -261,7 +265,7 @@ If you find the library useful in your research, please consider citing it and u
 @software{AIX2024,
    author = {Arkin Terli},
    title = {{AIX}: Single-header Machine Learning Library},
-   url = {https://gitlab.com/arkin/aix},
+   url = {https://github.com/godrays/aix},
    version = {0.0.0},
    year = {2024},
 }
