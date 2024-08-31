@@ -14,6 +14,7 @@
 #include "aix.hpp"
 // External includes
 // System includes
+#include <mach/vm_page_size.h>
 
 
 // Forward declarations

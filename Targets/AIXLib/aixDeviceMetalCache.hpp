@@ -58,7 +58,7 @@ public:
         auto it = m_cacheMap.lower_bound(size);
 
         // Make sure we use most of the available memory.
-        while (!buffer && it != m_cacheMap.end() && it->first < std::min(2 * size, size + 2 * ALLOCATION_BYTE_ALIGNMENT_SIZE))
+        while (!buffer && it != m_cacheMap.end() && it->first < std::min(size << 1, size + (vm_page_size << 1)))
         {
             // Collect from the cache.
             buffer = it->second->buffer;
