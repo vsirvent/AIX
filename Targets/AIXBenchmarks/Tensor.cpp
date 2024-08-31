@@ -807,3 +807,45 @@ BENCHMARK(BenchmarkTensorCatF32V, "tensor_cat_v_f32")
 
 using BenchmarkTensorCatF32H = BenchmarkTensorCat<aix::DataType::kFloat32, 500, 1>;
 BENCHMARK(BenchmarkTensorCatF32H, "tensor_cat_h_f32")
+
+// --------------------------------------------------------------------------------
+// INDEX SELECT
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t elementCount, ssize_t dim>
+class BenchmarkTensorIndexSelect : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        assert(dim < 3);
+        auto shape = aix::Shape{elementCount, elementCount, elementCount};
+        m_indices = aix::arange(0, shape[dim], { .m_dtype=aix::DataType::kInt32, .m_device=m_device.get()});
+        m_tensor  = aix::randn(shape, { .m_dtype=dataType, .m_device=m_device.get() }).to(dataType);
+        m_device->commitAndWait();
+    }
+
+    void run(const AIXBenchmarkConfigs& configs) final
+    {
+        for (size_t i=0; i<configs.iterationCount; ++i)
+        {
+            auto selected = m_tensor.indexSelect(dim, m_indices);
+            m_device->commitAndWait();
+        }
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    aix::Tensor  m_tensor;
+    aix::Tensor  m_indices;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkTensorIndexSelectF322001 = BenchmarkTensorIndexSelect<aix::DataType::kFloat32, 200, 1>;
+BENCHMARK(BenchmarkTensorIndexSelectF322001, "tensor_isel_f32_200_1")
