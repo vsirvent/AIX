@@ -3886,12 +3886,18 @@ public:
 class Softmax : public Module
 {
 public:
-    // Forward
+    // Constructor.
+    explicit Softmax(ssize_t dim=0, bool keepDim=false) : m_dim{dim}, m_keepDim{keepDim} { }
+
     Tensor forward(Tensor x) const override
     {
-        auto expX = x.exp();
-        return expX / expX.sum();
+        x = (x - x.max(m_dim, m_keepDim)).exp();
+        return x / x.sum(m_dim, m_keepDim);
     }
+
+private:
+    ssize_t m_dim{0};
+    bool m_keepDim{false};
 };
 
 
