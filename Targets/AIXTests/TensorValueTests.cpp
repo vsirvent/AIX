@@ -424,9 +424,23 @@ TEST_CASE("TensorValue - Fill")
 
 TEST_CASE("TensorValue - Sum")
 {
-    auto x = TensorValue({-1.0, 2.2, 0.0, 4.8}, {2, 2}, &testDevice);
+    auto ts  = TensorValue(5.0, {}, &testDevice);
+    auto t22 = TensorValue({-1.0, 2.2, 0.0, 4.8}, {2, 2}, &testDevice);
 
-    CheckVectorApproxValues(x.sum(), TensorValue(6.0, &testDevice));
+    SUBCASE("Shape{2,2}")
+    {
+        CheckVectorApproxValues(t22.sum(), TensorValue(6.0, &testDevice));
+    }
+
+    SUBCASE("Shape{} - dim=0")
+    {
+        CheckVectorApproxValues(ts.sum(0), TensorValue(5.0, &testDevice));
+    }
+
+    SUBCASE("Shape{} - dim=1")
+    {
+        CheckVectorApproxValues(ts.sum(1), TensorValue(5.0, &testDevice));
+    }
 }
 
 

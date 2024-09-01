@@ -1816,6 +1816,8 @@ public:
 
     TensorValue sum(ssize_t dim, bool keepDim=false) const
     {
+        if (m_shape.empty()) return *this;      // Return itself if it's a scalar tensor.
+
         dim = dim < 0 ? static_cast<ssize_t>(m_shape.size()) + dim : dim;
         if (dim < 0 || dim >= static_cast<ssize_t>(m_shape.size()))
         {
