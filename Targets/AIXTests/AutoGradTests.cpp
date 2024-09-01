@@ -2077,3 +2077,450 @@ TEST_CASE("Auto Grad - Arange")
         CheckVectorApproxValues(t4.grad(), aix::tensor({1.0, 2.0, 3.0, 4.0}, t4.grad().shape()).value());
     }
 }
+
+
+TEST_CASE("Auto Grad - indexSelect")
+{
+    auto ts  = aix::tensor(5.0).requireGrad(true);
+    auto t1  = aix::tensor({5.0}, Shape{1}).requireGrad(true);
+    auto t33 = aix::tensor({ 1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0 }, Shape{3,3}).requireGrad(true);
+    auto t222 = aix::tensor({ 1.0, 2.0,
+                              3.0, 4.0,
+                              5.0, 6.0,
+                              7.0, 8.0 }, Shape{2,2,2}).requireGrad(true);
+
+    auto is  = aix::tensor(0.0, aix::dtype(aix::DataType::kInt32));
+    auto i1  = aix::tensor({0.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+
+    SUBCASE("Shape{} - dim=0 - index{}")
+    {
+        auto t = ts.indexSelect(0, is);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{});
+        CheckVectorApproxValues(ts.grad(), aix::Tensor(1.0, ts.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1} - dim=0 - index{}")
+    {
+        auto t = t1.indexSelect(0, is);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{1});
+        CheckVectorApproxValues(t1.grad(), aix::Tensor(1.0, t1.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{} - dim=0 - index{1}")
+    {
+        auto t = ts.indexSelect(0, i1);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{});
+        CheckVectorApproxValues(ts.grad(), aix::Tensor(1.0, ts.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1} - dim=0 - index{1}")
+    {
+        auto t = t1.indexSelect(0, i1);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{1});
+        CheckVectorApproxValues(t1.grad(), aix::Tensor(1.0, t1.grad().shape()).value());
+    }
+
+    // dim 0
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0}")
+    {
+        auto indices  = aix::tensor({0.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{1,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         0.0, 0.0, 0.0,
+                                                         0.0, 0.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{1,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 0.0, 0.0,
+                                                         1.0, 1.0, 1.0,
+                                                         0.0, 0.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2}")
+    {
+        auto indices  = aix::tensor({2.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{1,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 0.0, 0.0,
+                                                         0.0, 0.0, 0.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0,1}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,
+                                                         0.0, 0.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {1,2}")
+    {
+        auto indices  = aix::tensor({1.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 0.0, 0.0,
+                                                         1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0,2}")
+    {
+        auto indices  = aix::tensor({0.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         0.0, 0.0, 0.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2,0}")
+    {
+        auto indices  = aix::tensor({2.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         0.0, 0.0, 0.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 0.0, 0.0,
+                                                         2.0, 2.0, 2.0,
+                                                         0.0, 0.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {0,1,2}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0, 2.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2,1,0}")
+    {
+        auto indices  = aix::tensor({2.0, 1.0, 0.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    // dim 1
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0}")
+    {
+        auto indices  = aix::tensor({0.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,1});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 0.0, 0.0,
+                                                         1.0, 0.0, 0.0,
+                                                         1.0, 0.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,1});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 1.0, 0.0,
+                                                         0.0, 1.0, 0.0,
+                                                         0.0, 1.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {2}")
+    {
+        auto indices  = aix::tensor({2.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,1});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 0.0, 1.0,
+                                                         0.0, 0.0, 1.0,
+                                                         0.0, 0.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0,1}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,2});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 0.0,
+                                                         1.0, 1.0, 0.0,
+                                                         1.0, 1.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {1,2}")
+    {
+        auto indices  = aix::tensor({1.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,2});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 1.0, 1.0,
+                                                         0.0, 1.0, 1.0,
+                                                         0.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0,2}")
+    {
+        auto indices  = aix::tensor({0.0, 2.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,2});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 0.0, 1.0,
+                                                         1.0, 0.0, 1.0,
+                                                         1.0, 0.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2,0}")
+    {
+        auto indices  = aix::tensor({2.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,2});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 0.0, 1.0,
+                                                         1.0, 0.0, 1.0,
+                                                         1.0, 0.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,2});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({0.0, 2.0, 0.0,
+                                                         0.0, 2.0, 0.0,
+                                                         0.0, 2.0, 0.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {0,1,2}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0, 2.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {2,1,0}")
+    {
+        auto indices  = aix::tensor({2.0, 1.0, 0.0}, Shape{3}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,
+                                                         1.0, 1.0, 1.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=0 - index = {2,1,0,2,0}")
+    {
+        auto indices  = aix::tensor({2.0, 1.0, 0.0, 2.0, 0.0}, Shape{5}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{5,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({2.0, 2.0, 2.0,
+                                                         1.0, 1.0, 1.0,
+                                                         2.0, 2.0, 2.0,}, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - dim=1 - index = {2,1,0,2,0}")
+    {
+        auto indices  = aix::tensor({2.0, 1.0, 0.0, 2.0, 0.0}, Shape{5}, aix::dtype(aix::DataType::kInt32));
+        auto t = t33.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{3,5});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({2.0, 1.0, 2.0,
+                                                         2.0, 1.0, 2.0,
+                                                         2.0, 1.0, 2.0,}, t33.grad().shape()).value());
+    }
+
+    //
+
+    SUBCASE("Shape{2,2,2} - dim=0 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{1,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({0.0, 0.0,
+                                                          0.0, 0.0,
+                                                          1.0, 1.0,
+                                                          1.0, 1.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,1,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({0.0, 0.0,
+                                                          1.0, 1.0,
+                                                          0.0, 0.0,
+                                                          1.0, 1.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - index = {1}")
+    {
+        auto indices  = aix::tensor({1.0}, Shape{1}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(2, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,1});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({0.0, 1.0,
+                                                          0.0, 1.0,
+                                                          0.0, 1.0,
+                                                          0.0, 1.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=0 - index = {1,0}")
+    {
+        auto indices  = aix::tensor({1.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({1.0, 1.0,
+                                                          1.0, 1.0,
+                                                          1.0, 1.0,
+                                                          1.0, 1.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - index = {1,0}")
+    {
+        auto indices  = aix::tensor({1.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({1.0, 1.0,
+                                                          1.0, 1.0,
+                                                          1.0, 1.0,
+                                                          1.0, 1.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - index = {1,0}")
+    {
+        auto indices  = aix::tensor({1.0, 0.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(2, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({1.0, 1.0,
+                                                          1.0, 1.0,
+                                                          1.0, 1.0,
+                                                          1.0, 1.0,}, t222.grad().shape()).value());
+    }
+
+    //
+
+    SUBCASE("Shape{2,2,2} - dim=0 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({0.0, 0.0,
+                                                          0.0, 0.0,
+                                                          2.0, 2.0,
+                                                          2.0, 2.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({0.0, 0.0,
+                                                          2.0, 2.0,
+                                                          0.0, 0.0,
+                                                          2.0, 2.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - index = {1,1}")
+    {
+        auto indices  = aix::tensor({1.0, 1.0}, Shape{2}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(2, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({0.0, 2.0,
+                                                          0.0, 2.0,
+                                                          0.0, 2.0,
+                                                          0.0, 2.0,}, t222.grad().shape()).value());
+    }
+
+    //
+
+    SUBCASE("Shape{2,2,2} - dim=0 - index = {0,1,1,0,1}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0, 1.0, 0.0, 1.0}, Shape{5}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(0, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{5,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({2.0, 2.0,
+                                                          2.0, 2.0,
+                                                          3.0, 3.0,
+                                                          3.0, 3.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=1 - index = {0,1,1,0,1}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0, 1.0, 0.0, 1.0}, Shape{5}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(1, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,5,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({2.0, 2.0,
+                                                          3.0, 3.0,
+                                                          2.0, 2.0,
+                                                          3.0, 3.0,}, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - dim=2 - index = {0,1,1,0,1}")
+    {
+        auto indices  = aix::tensor({0.0, 1.0, 1.0, 0.0, 1.0}, Shape{5}, aix::dtype(aix::DataType::kInt32));
+        auto t = t222.indexSelect(2, indices);
+        t.backward(1, t.shape());
+        CHECK(t.grad().shape() == Shape{2,2,5});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({2.0, 3.0,
+                                                          2.0, 3.0,
+                                                          2.0, 3.0,
+                                                          2.0, 3.0,}, t222.grad().shape()).value());
+    }
+
+}
