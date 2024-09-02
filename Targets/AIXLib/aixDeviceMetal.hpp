@@ -136,6 +136,9 @@ public:
     void indexSelect(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
                      const Shape& shape, size_t dim, DataType dtype) override;
 
+    void indexAdd(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
+                  const Shape& shape, size_t dim, DataType dtype) override;
+
     void commitAndWait() override;
 
 protected:
@@ -235,6 +238,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOSliceSet[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOTril[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOIndexSelect[aix::DataTypeCount]{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOIndexAdd[aix::DataTypeCount]{nullptr};
     std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
     std::unique_ptr<MTLBufferCache>  m_bufferCache;
