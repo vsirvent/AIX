@@ -731,6 +731,51 @@ bool testIndexSelect(Device* testDevice)
 }
 
 
+bool testIndexAdd(Device* testDevice)
+{
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto dtype = static_cast<DataType>(i);
+        // Apple Metal Framework does not support kFloat64 data type.
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
+
+        aix::Device  refDevice;     // Reference/CPU device.
+
+        auto shape = createRandomShape(1, 6);
+        auto dim = std::rand() % static_cast<ssize_t>(shape.size());
+        auto shapeDimSize = shape[dim];
+        auto indicesCount = 1 + std::rand() % 10;
+        auto indices = (((1.0 + aix::randn({static_cast<size_t>(indicesCount)})) * shapeDimSize / 2.0)
+                       .to(aix::DataType::kInt32));
+        auto newShape = shape;
+        if (!newShape.empty())
+        {
+            newShape[dim] = !indices.shape().empty() ? indices.shape()[0] : 1;
+        }
+        auto sources = aix::Tensor(1.0, newShape, { .m_dtype=dtype }).value();
+        auto array = (1 + aix::randn(shape)).to(dtype).value();
+        auto cpuResult = array.indexAdd(dim, indices.value(), sources);
+        auto deviceResult = array.to(testDevice).indexAdd(dim, indices.value().to(testDevice), sources.to(testDevice));
+        testDevice->commitAndWait();
+
+        // Compare results with the true/reference results.
+        if (!verifyResults(cpuResult, deviceResult))
+        {
+            #ifdef DEBUG_LOG
+            std::cout << "----------------------" << std::endl;
+            std::cout << "Array" << std::endl << array.value() << std::endl;
+            std::cout << "Indices" << std::endl << indices.value() << std::endl;
+            std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+            std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+            #endif
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
 bool testPow(Device* testDevice, size_t n)
 {
     for (size_t i=0; i<aix::DataTypeCount; ++i)
@@ -1736,6 +1781,25 @@ TEST_CASE("Device Tests - indexSelect")
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testIndexSelect(&*device2));
+        }
+    }
+}
+
+
+TEST_CASE("Device Tests - indexAdd")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aix::createDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+
+        // Create a new device per test.
+        for (size_t i=0; i<testSizes.size(); ++i)
+        {
+            auto device2 = aix::createDevice(deviceType);
+            CHECK(testIndexAdd(&*device2));
         }
     }
 }
