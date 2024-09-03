@@ -1264,39 +1264,39 @@ protected:
         }
     }
 
-template <typename T, typename T2>
-static void indexAddGeneric(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
-                            const Shape& shape, size_t dim)
-{
-    auto tSrc = static_cast<const T*>(src);
-    auto tDst = static_cast<T*>(dst);
-    auto tIndices = static_cast<const T2*>(indices);
-
-    // Calculate the number of elements in one slice after the specified dimension.
-    size_t sliceSize = 1;
-    for (size_t i = dim + 1; i < shape.size(); ++i)
+    template <typename T, typename T2>
+    static void indexAddGeneric(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
+                                const Shape& shape, size_t dim)
     {
-        sliceSize *= shape[i];
+        auto tSrc = static_cast<const T*>(src);
+        auto tDst = static_cast<T*>(dst);
+        auto tIndices = static_cast<const T2*>(indices);
+
+        // Calculate the number of elements in one slice after the specified dimension.
+        size_t sliceSize = 1;
+        for (size_t i = dim + 1; i < shape.size(); ++i)
+        {
+            sliceSize *= shape[i];
+        }
+
+        // Calculate the size of one entire slice for the dimension in question.
+        size_t dimSize = !shape.empty() ? shape[dim] * sliceSize : 0;
+
+        for (size_t index = 0; index < size; ++index)
+        {
+            // Calculate the outer loop index, index position, and element within the slice.
+            size_t elementWithinSlice = index % sliceSize;
+            size_t idx = (index / sliceSize) % indicesSize;
+            size_t outer = index / (indicesSize * sliceSize);
+
+            size_t dstIndex = tIndices[idx] * sliceSize + elementWithinSlice;
+            size_t dstOffset = outer * dimSize + dstIndex;
+            size_t srcOffset = outer * indicesSize * sliceSize + idx * sliceSize + elementWithinSlice;
+
+            // Perform the addition operation.
+            tDst[dstOffset] += tSrc[srcOffset];
+        }
     }
-
-    // Calculate the size of one entire slice for the dimension in question.
-    size_t dimSize = !shape.empty() ? shape[dim] * sliceSize : 0;
-
-    for (size_t index = 0; index < size; ++index)
-    {
-        // Calculate the outer loop index, index position, and element within the slice.
-        size_t elementWithinSlice = index % sliceSize;
-        size_t idx = (index / sliceSize) % indicesSize;
-        size_t outer = index / (indicesSize * sliceSize);
-
-        size_t dstIndex = tIndices[idx] * sliceSize + elementWithinSlice;
-        size_t dstOffset = outer * dimSize + dstIndex;
-        size_t srcOffset = outer * indicesSize * sliceSize + idx * sliceSize + elementWithinSlice;
-
-        // Perform the addition operation.
-        tDst[dstOffset] += tSrc[srcOffset];
-    }
-}
 
     template <typename T>
     static void trilGeneric(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal)
