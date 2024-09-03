@@ -731,6 +731,24 @@ public:
         funcTable[static_cast<size_t>(dtype)](dst, size, shape, strides, diagonal);
     }
 
+    virtual void triu(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype)
+    {
+        static const auto funcTable = std::array
+        {
+            triuGeneric<double    >,
+            triuGeneric<float     >,
+            triuGeneric<float16_t >,
+            triuGeneric<bfloat16_t>,
+            triuGeneric<int64_t   >,
+            triuGeneric<int32_t   >,
+            triuGeneric<int16_t   >,
+            triuGeneric<int8_t    >,
+            triuGeneric<uint8_t   >,
+        };
+        // Call the appropriate function from the table.
+        funcTable[static_cast<size_t>(dtype)](dst, size, shape, strides, diagonal);
+    }
+
     virtual void indexSelect(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
                              const Shape& shape, size_t dim, DataType dtype)
     {
@@ -1315,6 +1333,29 @@ protected:
 
             // Zero out the elements above the specified diagonal.
             if (static_cast<ssize_t>(col) > static_cast<ssize_t>(row) + diagonal)
+            {
+                tDst[i] = 0;
+            }
+        }
+    }
+
+    template <typename T>
+    static void triuGeneric(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal)
+    {
+        auto tDst = static_cast<T*>(dst);
+
+        size_t shapeSize = shape.size();
+        size_t rows = shape[shapeSize - 2];      // Rows in the last 2-dim tensor.
+        size_t cols = shape[shapeSize - 1];      // Columns in the last 2-dim tensor.
+
+        for (size_t i = 0; i < size; ++i)
+        {
+            // Calculate the row and column indices for the last 2-dim slice.
+            size_t row = (i / strides[shapeSize - 2]) % rows;
+            size_t col = (i / strides[shapeSize - 1]) % cols;
+
+            // Zero out the elements above the specified diagonal.
+            if (static_cast<ssize_t>(col) < static_cast<ssize_t>(row) + diagonal)
             {
                 tDst[i] = 0;
             }
@@ -2296,6 +2337,18 @@ public:
         return result;
     }
 
+    TensorValue triu(ssize_t diagonal=0) const
+    {
+        if (m_shape.size() < 2)
+        {
+            throw std::invalid_argument("Tensor must have at least two dimensions for triu operation.");
+        }
+
+        TensorValue result = *this;
+        device()->triu(result.data(), result.size(), m_shape, m_strides, diagonal, m_dType);
+        return result;
+    }
+
     static TensorValue cat(const std::vector<TensorValue>& tensors, ssize_t dim)
     {
         if (tensors.empty())
@@ -2988,6 +3041,13 @@ public:
         node->m_a->backward(seed * onesLikeSeed.tril(static_cast<ssize_t>(node->m_dim0)));      // m_dim0 = diagonal
     }
 
+    static void triuBackwardFunc(TensorNode * node, const TensorValue & seed)
+    {
+        if (!node->m_a) return;
+        auto onesLikeSeed = TensorValue(1.0, seed.shape(), seed.device(), seed.dataType());
+        node->m_a->backward(seed * onesLikeSeed.triu(static_cast<ssize_t>(node->m_dim0)));      // m_dim0 = diagonal
+    }
+
     static void indexSelectBackwardFunc(TensorNode * node, const TensorValue& seed)
     {
         if (!node->m_a) return;
@@ -3424,6 +3484,16 @@ public:
         result.m_data->m_a = m_data;
         result.m_data->m_dim0 = diagonal;
         result.m_data->m_backwardFunc = trillBackwardFunc;
+        return result;
+    }
+
+    Tensor triu(ssize_t diagonal=0) const
+    {
+        Tensor result(shape(), { .m_requireGrad=isRequireGrad(), .m_dtype=dataType(), .m_device=device() });
+        result.m_data->m_value = m_data->m_value.triu(diagonal);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dim0 = diagonal;
+        result.m_data->m_backwardFunc = triuBackwardFunc;
         return result;
     }
 
