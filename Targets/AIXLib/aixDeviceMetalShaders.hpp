@@ -925,6 +925,36 @@ kernel void tril_a(device T* dst             [[buffer(1)]],
 }
 
 
+// Triu - Naive Implementation
+// -----------------------------------------------------------------
+template<typename T, typename T2, typename T3>
+kernel void triu_a(device T* dst             [[buffer(1)]],
+                   device const T2* shape    [[buffer(2)]],
+                   device const T2* strides  [[buffer(3)]],
+                   constant T2& shapeSize    [[buffer(4)]],
+                   constant T2& stridesSize  [[buffer(5)]],
+                   constant T3& diagonal     [[buffer(6)]],
+                   constant T2& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]])
+{
+    size_t rows = shape[shapeSize - 2];      // Rows in the last 2-dim tensor.
+    size_t cols = shape[shapeSize - 1];      // Columns in the last 2-dim tensor.
+
+    for (size_t i = 0; i < size; ++i)
+    {
+        // Calculate the row and column indices for the last 2-dim slice.
+        size_t row = (i / strides[shapeSize - 2]) % rows;
+        size_t col = (i / strides[shapeSize - 1]) % cols;
+
+        // Zero out the elements above the specified diagonal.
+        if (static_cast<int64_t>(col) < static_cast<int64_t>(row) + diagonal)
+        {
+            dst[i] = 0;
+        }
+    }
+}
+
+
 // IndexSelect - Naive Implementation
 // -----------------------------------------------------------------
 template<typename T, typename T2, typename T3>
@@ -3100,6 +3130,89 @@ kernel void tril_a(device char* dst              [[buffer(1)]],
 
 template [[ host_name("tril_a_ui8") ]]
 kernel void tril_a(device unsigned char* dst        [[buffer(1)]],
+                   device const size_t* shape       [[buffer(2)]],
+                   device const size_t* strides     [[buffer(3)]],
+                   constant size_t& shapeSize       [[buffer(4)]],
+                   constant size_t& stridesSize     [[buffer(5)]],
+                   constant int64_t& diagonal       [[buffer(6)]],
+                   constant size_t& size            [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+
+// Triu
+// -----------------------------------------------------------------
+template [[ host_name("triu_a_f32") ]]
+kernel void triu_a(device float* dst             [[buffer(1)]],
+                   device const size_t* shape    [[buffer(2)]],
+                   device const size_t* strides  [[buffer(3)]],
+                   constant size_t& shapeSize    [[buffer(4)]],
+                   constant size_t& stridesSize  [[buffer(5)]],
+                   constant int64_t& diagonal    [[buffer(6)]],
+                   constant size_t& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+template [[ host_name("triu_a_f16") ]]
+kernel void triu_a(device half* dst              [[buffer(1)]],
+                   device const size_t* shape    [[buffer(2)]],
+                   device const size_t* strides  [[buffer(3)]],
+                   constant size_t& shapeSize    [[buffer(4)]],
+                   constant size_t& stridesSize  [[buffer(5)]],
+                   constant int64_t& diagonal    [[buffer(6)]],
+                   constant size_t& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+template [[ host_name("triu_a_bf16") ]]
+kernel void triu_a(device bfloat* dst            [[buffer(1)]],
+                   device const size_t* shape    [[buffer(2)]],
+                   device const size_t* strides  [[buffer(3)]],
+                   constant size_t& shapeSize    [[buffer(4)]],
+                   constant size_t& stridesSize  [[buffer(5)]],
+                   constant int64_t& diagonal    [[buffer(6)]],
+                   constant size_t& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+template [[ host_name("triu_a_i64") ]]
+kernel void triu_a(device long* dst              [[buffer(1)]],
+                   device const size_t* shape    [[buffer(2)]],
+                   device const size_t* strides  [[buffer(3)]],
+                   constant size_t& shapeSize    [[buffer(4)]],
+                   constant size_t& stridesSize  [[buffer(5)]],
+                   constant int64_t& diagonal    [[buffer(6)]],
+                   constant size_t& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+template [[ host_name("triu_a_i32") ]]
+kernel void triu_a(device int* dst               [[buffer(1)]],
+                   device const size_t* shape    [[buffer(2)]],
+                   device const size_t* strides  [[buffer(3)]],
+                   constant size_t& shapeSize    [[buffer(4)]],
+                   constant size_t& stridesSize  [[buffer(5)]],
+                   constant int64_t& diagonal    [[buffer(6)]],
+                   constant size_t& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+template [[ host_name("triu_a_i16") ]]
+kernel void triu_a(device short* dst             [[buffer(1)]],
+                   device const size_t* shape    [[buffer(2)]],
+                   device const size_t* strides  [[buffer(3)]],
+                   constant size_t& shapeSize    [[buffer(4)]],
+                   constant size_t& stridesSize  [[buffer(5)]],
+                   constant int64_t& diagonal    [[buffer(6)]],
+                   constant size_t& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+template [[ host_name("triu_a_i8") ]]
+kernel void triu_a(device char* dst              [[buffer(1)]],
+                   device const size_t* shape    [[buffer(2)]],
+                   device const size_t* strides  [[buffer(3)]],
+                   constant size_t& shapeSize    [[buffer(4)]],
+                   constant size_t& stridesSize  [[buffer(5)]],
+                   constant int64_t& diagonal    [[buffer(6)]],
+                   constant size_t& size         [[buffer(7)]],
+                   uint index [[thread_position_in_grid]]);
+
+template [[ host_name("triu_a_ui8") ]]
+kernel void triu_a(device unsigned char* dst        [[buffer(1)]],
                    device const size_t* shape       [[buffer(2)]],
                    device const size_t* strides     [[buffer(3)]],
                    constant size_t& shapeSize       [[buffer(4)]],
