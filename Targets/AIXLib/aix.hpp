@@ -2365,13 +2365,23 @@ public:
 
         if (tensors.size() == 1) return tensor;
 
+        dim = dim < 0 ? static_cast<ssize_t>(tensor.shape().size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(tensor.shape().size()))
+        {
+            throw std::invalid_argument("Dimension is out of range for cat() operation.");
+        }
+
         DataType promotedDType = tensor.dataType();
         for (size_t i=0; i<tensors.size()-1; ++i)
         {
-            // Tensor shapes must be the same.
-            if (tensors[i].shape() != tensors[i+1].shape())
+            auto shape1 = tensors[i].shape();
+            auto shape2 = tensors[i+1].shape();
+            shape1[dim] = shape2[dim] = 0;      // Neutralize dimension sizes for comparison.
+
+            if (shape1 != shape2)
             {
-                throw std::invalid_argument("Tensor shapes must be the same for the cat() operation.");
+                throw std::invalid_argument("Dimension sizes of tensors must match except in dimension " +
+                                            std::to_string(dim) + " for the cat() operation.");
             }
             // Tensor devices must be the same.
             if (tensors[i].device() != tensors[i+1].device())
@@ -2381,20 +2391,16 @@ public:
             promotedDType = promoteDataType(promotedDType, tensors[i+1].dataType());
         }
 
-        dim = dim < 0 ? static_cast<ssize_t>(tensor.shape().size()) + dim : dim;
-        if (dim < 0 || dim >= static_cast<ssize_t>(tensor.shape().size()))
-        {
-            throw std::invalid_argument("Dimension is out of range for cat() operation.");
-        }
-
         auto newShape = tensor.shape();
-        newShape[dim] *= tensors.size();
-        size_t dimSize = tensor.shape()[dim];
+        for (size_t i=1; i<tensors.size(); ++i)
+            newShape[dim] += tensors[i].shape()[dim];
 
+        size_t dimSize = 0;
         TensorValue result(newShape, tensor.device(), promotedDType);
         for (size_t i=0; i<tensors.size(); ++i)
         {
-            result.sliceSet(tensors[i].to(promotedDType), dim, i * dimSize, (i + 1) * dimSize, 1, true);
+            result.sliceSet(tensors[i].to(promotedDType), dim, dimSize, dimSize + tensors[i].shape()[dim], 1, true);
+            dimSize += tensors[i].shape()[dim];
         }
         return result;
     }
@@ -3543,14 +3549,25 @@ public:
 
         if (tensors.size() == 1) return tensor;
 
+        dim = dim < 0 ? static_cast<ssize_t>(tensor.shape().size()) + dim : dim;
+        if (dim < 0 || dim >= static_cast<ssize_t>(tensor.shape().size()))
+        {
+            throw std::invalid_argument("Dimension is out of range for cat() operation.");
+        }
+
         bool requireGrad = tensor.isRequireGrad();
         DataType promotedDType = tensor.dataType();
         // Tensor shapes must be the same.
         for (size_t i=0; i<tensors.size()-1; ++i)
         {
-            if (tensors[i].shape() != tensors[i+1].shape())
+            auto shape1 = tensors[i].shape();
+            auto shape2 = tensors[i+1].shape();
+            shape1[dim] = shape2[dim] = 0;      // Neutralize dimension sizes for comparison.
+
+            if (shape1 != shape2)
             {
-                throw std::invalid_argument("Tensor shapes must be the same for the cat() operation.");
+                throw std::invalid_argument("Dimension sizes of tensors must match except in dimension " +
+                                            std::to_string(dim) + " for the cat() operation.");
             }
             if (tensors[i].device() != tensors[i+1].device())
             {
@@ -3560,22 +3577,18 @@ public:
             promotedDType = promoteDataType(promotedDType, tensors[i+1].dataType());
         }
 
-        dim = dim < 0 ? static_cast<ssize_t>(tensor.shape().size()) + dim : dim;
-        if (dim < 0 || dim >= static_cast<ssize_t>(tensor.shape().size()))
-        {
-            throw std::invalid_argument("Dimension is out of range for cat() operation.");
-        }
-
         auto newShape = tensor.shape();
-        newShape[dim] *= tensors.size();
-        size_t dimSize = tensor.shape()[dim];
+        for (size_t i=1; i<tensors.size(); ++i)
+            newShape[dim] += tensors[i].shape()[dim];
 
+        size_t dimSize = 0;
         Tensor result(newShape, { .m_requireGrad=requireGrad, .m_dtype=promotedDType, .m_device=tensor.device() });
         for (size_t i=0; i<tensors.size(); ++i)
         {
-            result.value().sliceSet(tensors[i].to(promotedDType).value(), dim, i * dimSize, (i + 1) * dimSize, 1, true);
+            result.value().sliceSet(tensors[i].to(promotedDType).value(), dim, dimSize, dimSize + tensors[i].shape()[dim], 1, true);
             // Store original tensors for the back prop.
             result.m_data->m_aMulti.emplace_back(tensors[i].m_data);
+            dimSize += tensors[i].shape()[dim];
         }
         result.m_data->m_dim0 = dim;
         result.m_data->m_backwardFunc = catBackwardFunc;

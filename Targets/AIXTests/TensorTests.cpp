@@ -2223,6 +2223,16 @@ TEST_CASE("Tensor - Cat")
                                                  7.0,8.0,7.0,8.0, }, t.shape()));
     }
 
+    SUBCASE("Irregular sizes - {{9}, {1}, {4}}")
+    {
+        auto r1 = aix::arange(0.0, 9.0, 1.0);
+        auto r2 = aix::tensor({9.0}, Shape{1});
+        auto r3 = aix::arange(10.0, 14.0, 1.0);
+        auto t = aix::cat({r1, r2, r3}, 0);
+        CHECK(t.shape() == Shape{14});
+        CheckVectorApproxValues(t, aix::arange(0.0, 14.0, 1.0).reshape(t.shape()));
+    }
+
     // Type promotion.
 
     SUBCASE("{Int32, Int32} -> Int32")
@@ -2265,6 +2275,7 @@ TEST_CASE("Tensor - Cat")
         CHECK_THROWS_AS({ aix::cat({t1,t1}, -2); }, std::invalid_argument);
         CHECK_THROWS_AS({ aix::cat({t11,t11}, -3); }, std::invalid_argument);
         CHECK_THROWS_AS({ aix::cat({t1,t33}, 0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ aix::cat({t33,t11}, 0); }, std::invalid_argument);
         CHECK_THROWS_AS({ aix::cat({t33,t11}, 1); }, std::invalid_argument);
     }
 }
