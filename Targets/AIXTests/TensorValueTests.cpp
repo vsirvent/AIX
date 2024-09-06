@@ -2788,6 +2788,305 @@ TEST_CASE("TensorValue - Tril")
 }
 
 
+TEST_CASE("TensorValue - Triu")
+{
+    auto ts  = aix::TensorValue(5.0, &testDevice);
+    auto t1  = aix::TensorValue({5.0}, Shape{1}, &testDevice);
+    auto t11 = aix::TensorValue({5.0}, Shape{1,1}, &testDevice);
+    auto t23 = aix::TensorValue({ 1.0, 2.0, 3.0,
+                                  4.0, 5.0, 6.0 }, Shape{2,3}, &testDevice);
+    auto t32 = aix::TensorValue({ 1.0, 2.0,
+                                  3.0, 4.0,
+                                  5.0, 6.0 }, Shape{3,2}, &testDevice);
+    auto t33 = aix::TensorValue({ 1.0, 2.0, 3.0,
+                                  4.0, 5.0, 6.0,
+                                  7.0, 8.0, 9.0 }, Shape{3,3}, &testDevice);
+    auto t222 = aix::TensorValue({ 1.0, 2.0,
+                                   3.0, 4.0,
+                                   5.0, 6.0,
+                                   7.0, 8.0 }, Shape{2,2,2}, &testDevice);
+
+    SUBCASE("Shape{1,1} - diagonal=default")
+    {
+        auto t = t11.triu();
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, aix::tensor({ 5.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{1,1} - diagonal=0")
+    {
+        auto t = t11.triu(0);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, aix::tensor({ 5.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{1,1} - diagonal=1")
+    {
+        auto t = t11.triu(1);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{1,1} - diagonal=-1")
+    {
+        auto t = t11.triu(-1);
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(t, aix::tensor({ 5.0 }, t.shape()).value());
+    }
+
+    // ----
+
+    SUBCASE("Shape{2,3} - diagonal=0")
+    {
+        auto t = t23.triu(0);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 0.0, 5.0, 6.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,3} - diagonal=1")
+    {
+        auto t = t23.triu(1);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 2.0, 3.0,
+                                                 0.0, 0.0, 6.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,3} - diagonal=2")
+    {
+        auto t = t23.triu(2);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 0.0, 3.0,
+                                                 0.0, 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,3} - diagonal=-1")
+    {
+        auto t = t23.triu(-1);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,3} - diagonal=-2")
+    {
+        auto t = t23.triu(-2);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,3} - diagonal=-3")
+    {
+        auto t = t23.triu(-3);
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0 }, t.shape()).value());
+    }
+
+    // ----
+
+    SUBCASE("Shape{3,2} - diagonal=0")
+    {
+        auto t = t32.triu(0);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 0.0, 4.0,
+                                                 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,2} - diagonal=1")
+    {
+        auto t = t32.triu(1);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 2.0,
+                                                 0.0, 0.0,
+                                                 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,2} - diagonal=2")
+    {
+        auto t = t32.triu(2);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 0.0,
+                                                 0.0, 0.0,
+                                                 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,2} - diagonal=-1")
+    {
+        auto t = t32.triu(-1);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 3.0, 4.0,
+                                                 0.0, 6.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,2} - diagonal=-2")
+    {
+        auto t = t32.triu(-2);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 3.0, 4.0,
+                                                 5.0, 6.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,2} - diagonal=-3")
+    {
+        auto t = t32.triu(-3);
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 3.0, 4.0,
+                                                 5.0, 6.0 }, t.shape()).value());
+    }
+
+    // ---
+
+    SUBCASE("Shape{3,3} - diagonal=0")
+    {
+        auto t = t33.triu(0);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 0.0, 5.0, 6.0,
+                                                 0.0, 0.0, 9.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=1")
+    {
+        auto t = t33.triu(1);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 2.0, 3.0,
+                                                 0.0, 0.0, 6.0,
+                                                 0.0, 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=2")
+    {
+        auto t = t33.triu(2);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 0.0, 3.0,
+                                                 0.0, 0.0, 0.0,
+                                                 0.0, 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=3")
+    {
+        auto t = t33.triu(3);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 0.0, 0.0,
+                                                 0.0, 0.0, 0.0,
+                                                 0.0, 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=-1")
+    {
+        auto t = t33.triu(-1);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0,
+                                                 0.0, 8.0, 9.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=-2")
+    {
+        auto t = t33.triu(-2);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0,
+                                                 7.0, 8.0, 9.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=-3")
+    {
+        auto t = t33.triu(-3);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0,
+                                                 7.0, 8.0, 9.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=-4")
+    {
+        auto t = t33.triu(-4);
+        CHECK(t.shape() == Shape{3,3});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0, 3.0,
+                                                 4.0, 5.0, 6.0,
+                                                 7.0, 8.0, 9.0 }, t.shape()).value());
+    }
+
+    // ---
+
+    SUBCASE("Shape{2,2,2} - diagonal=0")
+    {
+        auto t = t222.triu(0);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 0.0, 4.0,
+                                                 5.0, 6.0,
+                                                 0.0, 8.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - diagonal=1")
+    {
+        auto t = t222.triu(1);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 2.0,
+                                                 0.0, 0.0,
+                                                 0.0, 6.0,
+                                                 0.0, 0.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - diagonal=2")
+    {
+        auto t = t222.triu(2);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 0.0, 0.0,
+                                                 0.0, 0.0,
+                                                 0.0, 0.0,
+                                                 0.0, 0.0 }, t.shape()).value());
+    }
+
+
+    SUBCASE("Shape{2,2,2} - diagonal=-1")
+    {
+        auto t = t222.triu(-1);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 3.0, 4.0,
+                                                 5.0, 6.0,
+                                                 7.0, 8.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - diagonal=-2")
+    {
+        auto t = t222.triu(-2);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 3.0, 4.0,
+                                                 5.0, 6.0,
+                                                 7.0, 8.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - diagonal=-3")
+    {
+        auto t = t222.triu(-3);
+        CHECK(t.shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t, aix::tensor({ 1.0, 2.0,
+                                                 3.0, 4.0,
+                                                 5.0, 6.0,
+                                                 7.0, 8.0 }, t.shape()).value());
+    }
+
+    SUBCASE("Invalid use cases.")
+    {
+        CHECK_THROWS_AS({ ts.triu();  }, std::invalid_argument);
+        CHECK_THROWS_AS({ ts.triu(0); }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.triu();  }, std::invalid_argument);
+        CHECK_THROWS_AS({ t1.triu(0); }, std::invalid_argument);
+    }
+}
+
+
 TEST_CASE("TensorValue - Cat")
 {
     auto ts  = aix::TensorValue(5.0, &testDevice);
