@@ -120,9 +120,9 @@ Int64, Int32, Int16, Int8, UInt8
 
 #### Tensor Operations:
 ```
-add, sub, mul, div, sum, mean, matmul, transpose, 
-sqrt, sin, cos, log, exp, pow, tanh, max, argmax, 
-cat, hstack, vstack, tril, select, slice, split, 
+add, sub, mul, div, sum, mean, matmul, transpose,
+sqrt, sin, cos, log, exp, pow, tanh, max, argmax,
+cat, hstack, vstack, tril, triu, select, slice, split,
 index select, squeeze, unsqueeze, var, arange, randn
 ```
 
