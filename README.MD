@@ -143,7 +143,7 @@ Tanh, GeLU, Sigmoid, Softmax, LogSoftmax
 
 #### Loss Functions:
 ```
-MSE, BinaryCrossEntropy
+MSE, BinaryCrossEntropy, CrossEntropy
 ```
 
 # Guidance

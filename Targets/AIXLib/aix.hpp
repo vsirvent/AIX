@@ -4140,6 +4140,17 @@ public:
     }
 };
 
+
+class CrossEntropyLoss
+{
+public:
+    // Prediction values must be in [0..1] range. Targets must be (one-shot).
+    Tensor operator()(const Tensor & predictions, const Tensor & targets)
+    {
+        return -mean(targets * log(predictions));
+    }
+};
+
 }   // nn namespace
 
 
