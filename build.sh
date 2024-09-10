@@ -14,7 +14,7 @@ function showHelp()
     echo "    $0 release product-rel"
     echo ""
     echo "Options:"
-    echo "    build_type       Valid build types: release, debug, ccov, asan, tsan"
+    echo "    build_type       Valid build types: release, debug, prof, ccov, asan, tsan"
     echo "    install_dir      Product installation directory name."
     echo "    build_options    CMake build options. Can be multiple. i.e. -DAIX_BUILD_STATIC=ON"
     echo ""
@@ -22,7 +22,7 @@ function showHelp()
 
 function checkBuildType()
 {
-    arr=("release" "debug" "ccov" "asan" "tsan")
+    arr=("release" "debug" "prof" "ccov" "asan" "tsan")
     build_type="$(tr [A-Z] [a-z] <<< "$1")"   # to lower-case.
     # if build type is not valid then exit.
     if [[ ! " ${arr[*]} " == *" ${build_type} "* ]]; then
