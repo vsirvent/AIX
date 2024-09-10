@@ -1800,6 +1800,165 @@ TEST_CASE("Auto Grad - tril")
 }
 
 
+TEST_CASE("Auto Grad - triu")
+{
+    auto ts  = aix::tensor(5.0).requireGrad(true);
+    auto t1  = aix::tensor({5.0}, aix::Shape{1}).requireGrad(true);
+    auto t11  = aix::tensor({5.0}, aix::Shape{1,1}).requireGrad(true);
+    auto t33  = aix::tensor({1.0, 2.0, 3.0,
+                             4.0, 5.0, 6.0,
+                             7.0, 8.0, 9.0}, aix::Shape{3,3}).requireGrad(true);
+    auto t222  = aix::tensor({1.0, 2.0,
+                              3.0, 4.0,
+                              5.0, 6.0,
+                              7.0, 8.0}, aix::Shape{2,2,2}).requireGrad(true);
+
+    // Default parameters
+
+    SUBCASE("Shape{1,1} - diagonal=default")
+    {
+        auto t = t11.triu() * t11;
+        t.backward(1, t.shape());
+        CHECK(t11.grad().shape() == Shape{1,1});
+        CheckVectorApproxValues(t11.grad(), aix::Tensor(10.0, t11.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=default")
+    {
+        auto t = t33.triu() * t33;
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({
+                                                           2.0,  4.0,  6.0,
+                                                           0.0, 10.0, 12.0,
+                                                           0.0,  0.0, 18.0 }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1,1} - diagonal=1")
+    {
+        auto t = t11.triu(1) * t11;
+        t.backward(1, t.shape());
+        CHECK(t11.grad().shape() == Shape{1,1});
+        CheckVectorApproxValues(t11.grad(), aix::Tensor(0.0, t11.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{1,1} - diagonal=-1")
+    {
+        auto t = t11.triu(-1) * t11;
+        t.backward(1, t.shape());
+        CHECK(t11.grad().shape() == Shape{1,1});
+        CheckVectorApproxValues(t11.grad(), aix::Tensor(10.0, t11.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=0")
+    {
+        auto t = t33.triu(0) * t33;
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({  2.0,  4.0,  6.0,
+                                                           0.0, 10.0, 12.0,
+                                                           0.0,  0.0, 18.0 }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=1")
+    {
+        auto t = t33.triu(1) * t33;
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0,  4.0,  6.0,
+                                                          0.0,  0.0, 12.0,
+                                                          0.0,  0.0,  0.0 }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=2")
+    {
+        auto t = t33.triu(2) * t33;
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 0.0,  0.0,  6.0,
+                                                          0.0,  0.0,  0.0,
+                                                          0.0,  0.0,  0.0 }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=-1")
+    {
+        auto t = t33.triu(-1) * t33;
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 2.0,  4.0,  6.0,
+                                                          8.0, 10.0, 12.0,
+                                                          0.0, 16.0, 18.0 }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=-2")
+    {
+        auto t = t33.triu(-2) * t33;
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 2.0,  4.0,  6.0,
+                                                          8.0, 10.0, 12.0,
+                                                         14.0, 16.0, 18.0 }, t33.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{3,3} - diagonal=-3")
+    {
+        auto t = t33.triu(-3) * t33;
+        t.backward(1, t.shape());
+        CHECK(t33.grad().shape() == Shape{3,3});
+        CheckVectorApproxValues(t33.grad(), aix::tensor({ 2.0,  4.0,  6.0,
+                                                          8.0, 10.0, 12.0,
+                                                         14.0, 16.0, 18.0 }, t33.grad().shape()).value());
+    }
+
+    // ---
+
+    SUBCASE("Shape{2,2,2} - diagonal=0")
+    {
+        auto t = t222.triu(0) * t222;
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({  2.0,  4.0,
+                                                            0.0,  8.0,
+                                                           10.0, 12.0,
+                                                            0.0, 16.0, }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - diagonal=1")
+    {
+        auto t = t222.triu(1) * t222;
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({  0.0,  4.0,
+                                                            0.0,  0.0,
+                                                            0.0, 12.0,
+                                                            0.0,  0.0, }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - diagonal=-1")
+    {
+        auto t = t222.triu(-1) * t222;
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({  2.0,  4.0,
+                                                            6.0,  8.0,
+                                                           10.0, 12.0,
+                                                           14.0, 16.0, }, t222.grad().shape()).value());
+    }
+
+    SUBCASE("Shape{2,2,2} - diagonal=-2")
+    {
+        auto t = t222.triu(-2) * t222;
+        t.backward(1, t.shape());
+        CHECK(t222.grad().shape() == Shape{2,2,2});
+        CheckVectorApproxValues(t222.grad(), aix::tensor({  2.0,  4.0,
+                                                            6.0,  8.0,
+                                                           10.0, 12.0,
+                                                           14.0, 16.0, }, t222.grad().shape()).value());
+    }
+
+}
+
+
 TEST_CASE("Auto Grad - Cat")
 {
     auto ts  = aix::tensor(5.0).requireGrad(true);
