@@ -3175,29 +3175,25 @@ public:
     Tensor operator+(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), { .m_requireGrad=isRequireGrad(), .m_dtype=promotedFloatType, .m_device=device() });
-        return *this + tensor;
+        return *this + Tensor(scalar, shape(), { .m_dtype=promotedFloatType, .m_device=device() });
     }
 
     Tensor operator-(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), { .m_requireGrad=isRequireGrad(), .m_dtype=promotedFloatType, .m_device=device() });
-        return *this - tensor;
+        return *this - Tensor(scalar, shape(), { .m_dtype=promotedFloatType, .m_device=device() });
     }
 
     Tensor operator*(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), { .m_requireGrad=isRequireGrad(), .m_dtype=promotedFloatType, .m_device=device() });
-        return *this * tensor;
+        return *this * Tensor(scalar, shape(), { .m_dtype=promotedFloatType, .m_device=device() });
     }
 
     Tensor operator/(const float & scalar) const
     {
         auto promotedFloatType = promoteDataTypeToFloat(dataType());
-        Tensor tensor(scalar, shape(), { .m_requireGrad=isRequireGrad(), .m_dtype=promotedFloatType, .m_device=device() });
-        return *this / tensor;
+        return *this / Tensor(scalar, shape(), { .m_dtype=promotedFloatType, .m_device=device() });
     }
 
     friend Tensor operator+(float scalar, const Tensor & rhsTensor)
