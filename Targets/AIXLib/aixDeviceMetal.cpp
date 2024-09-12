@@ -29,6 +29,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
     m_pool = NS::AutoreleasePool::alloc()->init();
     m_mtlDevice = createMTLDevice(deviceIndex);
     m_maxWorkingSetSize = static_cast<size_t>(static_cast<double>(m_mtlDevice->recommendedMaxWorkingSetSize()) * 0.7);
+    m_allocator = std::make_unique<MetalAllocator>(m_mtlDevice, ALLOCATOR_ALIGNMENT_SIZE);
     m_bufferCache = std::make_unique<MTLBufferCache>();
     auto defaultLibrary = createLibrary(shaders::aixDeviceMetalShaders);
     auto nullKernelName = "nullKernel";
@@ -911,7 +912,7 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
         commit();
     }
 
-    // Allocate from the MTL buffer cache if possible.
+    // Try to reuse a buffer from the MTL buffer cache if possible.
     auto buffer = m_bufferCache->reuse(asize);
     if (buffer)
     {
@@ -919,10 +920,24 @@ MTL::Buffer* DeviceMetal::newBuffer(size_t size)
     }
 
     // Allocate MTL buffer.
-    buffer = m_mtlDevice->newBuffer(asize, MTL::ResourceStorageModeShared);
+    buffer = m_allocator->alloc(asize);
     if (!buffer)
     {
-        throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
+        m_bufferCache->clear();
+        std::cout << "Buffer's cache was cleared to create memory. "
+                     "Consider increasing memory size to improve performance." << std::endl;
+        buffer = m_allocator->alloc(asize);
+        if (!buffer)
+        {
+            // Release empty heaps to satisfy the allocation request if possible.
+            m_allocator->clearEmptyHeaps();
+            std::cout << "Allocator's cache was cleared to create memory. "
+                         "Consider increasing memory size to improve performance." << std::endl;
+            if (!buffer)
+            {
+                throw std::runtime_error("GPU memory allocation has failed for size: " + std::to_string(size) + " bytes.");
+            }
+        }
     }
     assert(buffer);
     return buffer;

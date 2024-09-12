@@ -19,6 +19,7 @@
 // System includes
 #include <map>
 #include <mutex>
+#include <set>
 
 
 namespace aix::metal
@@ -186,5 +187,138 @@ private:
     size_t m_cacheSize{0};
     std::mutex m_syncObj;
 };
+
+
+class MetalAllocator
+{
+public:
+    // Constructor.
+    explicit MetalAllocator(MTL::Device* device, size_t alignSize=256,
+                            size_t smallHeapSize=2*1024*1024,       // 2mb
+                            size_t largeHeapSize=20*1024*1024)      // 20mb
+        : m_device{device}, m_alignSize{alignSize}, m_smallHeapSize{smallHeapSize}, m_largeHeapSize{largeHeapSize} {}
+
+    // Destructor.
+    virtual ~MetalAllocator()
+    {
+        std::lock_guard<std::mutex> lock(m_syncObj);
+        // Safely release heaps.
+        for (auto heap : m_smallPool) heap->release();
+        for (auto heap : m_largePool) heap->release();
+    }
+
+    // Allocate memory.
+    MTL::Buffer* alloc(size_t size)
+    {
+        std::lock_guard<std::mutex>  lock(m_syncObj);
+        size = roundSize(size, m_alignSize);
+        std::set<MTL::Heap*>& pool = (size < m_smallHeapSize / 2) ? m_smallPool : m_largePool;
+        auto heap = findBestFitHeap(pool, size);
+        if (!heap)
+        {
+            heap = allocNewHeap(size);
+            assert(heap->usedSize() == 0);
+            pool.insert(heap);
+        }
+        return heap->newBuffer(size, MTL::ResourceStorageModeShared);
+    }
+
+    void dealloc(MTL::Buffer* buffer)
+    {
+        std::lock_guard<std::mutex>  lock(m_syncObj);
+        assert(buffer);
+        buffer->release();
+    }
+
+    void clearEmptyHeaps()
+    {
+        std::lock_guard<std::mutex> lock(m_syncObj);
+
+        // Safely remove heap from m_smallPool.
+        for (auto it = m_smallPool.begin(); it != m_smallPool.end(); )
+        {
+            auto& heap = *it;
+            if (heap->usedSize() == 0)
+            {
+                heap->release();
+                it = m_smallPool.erase(it);     // Erase and get the next valid iterator.
+            }
+            else
+            {
+                ++it;       // Move to the next element if no erase occurs.
+            }
+        }
+
+        // Safely remove heaps from m_largePool.
+        for (auto it = m_largePool.begin(); it != m_largePool.end(); )
+        {
+            auto& heap = *it;
+            if (heap->usedSize() == 0)
+            {
+                heap->release();
+                it = m_largePool.erase(it);     // Erase and get the next valid iterator.
+            }
+            else
+            {
+                ++it;       // Move to the next element if no erase occurs.
+            }
+        }
+    }
+
+private:
+    // Round the size to avoid fragmentation.
+    static size_t roundSize(size_t size, size_t round)
+    {
+        return (size < round) ? round : (size + (round-1)) / round * round;
+    }
+
+    // Find the best fit heap from the pool.
+    MTL::Heap* findBestFitHeap(std::set<MTL::Heap*>& pool, size_t size) const
+    {
+        for (auto heap : pool)
+        {
+            if (heap->maxAvailableSize(m_alignSize) >= size) return heap;
+        }
+        return nullptr;
+    }
+
+    // Allocate a new Metal heap.
+    MTL::Heap* allocNewHeap(size_t size)
+    {
+        size_t heapSize = 0;
+        if (size < m_smallHeapSize / 2)
+        {
+            heapSize = m_smallHeapSize;
+        }
+        else if (size < m_largeHeapSize / 2)
+        {
+            heapSize = m_largeHeapSize;
+        }
+        else
+        {
+            heapSize = roundSize(size, m_smallHeapSize);
+        }
+
+        // Create the heap descriptor.
+        auto heapDesc = MTL::HeapDescriptor::alloc()->init();
+        heapDesc->setSize(heapSize);
+        heapDesc->setType(MTL::HeapType::HeapTypeAutomatic);
+        heapDesc->setStorageMode(MTL::StorageModeShared);
+        heapDesc->setHazardTrackingMode(MTL::HazardTrackingModeTracked);
+        heapDesc->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
+        auto heap = m_device->newHeap(heapDesc);    // Create a heap.
+        heapDesc->release();                        // Release the heap descriptor.
+        return heap;
+    }
+
+    MTL::Device* m_device{nullptr};
+    size_t m_alignSize{256};
+    size_t m_smallHeapSize{2*1024*1024};        //  2mb
+    size_t m_largeHeapSize{20*1024*1024};       // 20mb
+    std::set<MTL::Heap*> m_smallPool;
+    std::set<MTL::Heap*> m_largePool;
+    std::mutex m_syncObj;
+};
+
 
 }   // namespace aix

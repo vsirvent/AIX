@@ -39,6 +39,7 @@ namespace MTL
 namespace aix::metal
 {
 
+#define ALLOCATOR_ALIGNMENT_SIZE            256
 #define MAX_CMD_BATCH_SIZE                  1000
 #define MAX_THREADS_PER_THREADGROUP         1024
 #define ALLOCATION_BYTE_ALIGNMENT_SIZE      32      // Should be power of two and min 32 bytes.
@@ -46,6 +47,7 @@ namespace aix::metal
 #define BATCH_PROCESS_SIZE_PER_THREAD       1       // i.e. each GPU thread will access/process 16 of float4 per dispatch.
 #define TOTAL_COMPONENT_COUNT               (BATCH_PROCESS_SIZE_PER_THREAD * VECTOR_TYPE_COMPONENT_COUNT)
 
+class MetalAllocator;
 class MTLBufferCache;
 
 class DeviceMetal : public aix::Device
@@ -244,6 +246,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOIndexAdd[aix::DataTypeCount]{nullptr};
     std::vector<std::pair<MTL::Buffer*, void*>>    m_tempBuffers;
     std::unordered_map<const void*, MTL::Buffer*>  m_allocMap;
+    std::unique_ptr<MetalAllocator>  m_allocator;
     std::unique_ptr<MTLBufferCache>  m_bufferCache;
     size_t   m_currentBatchSize{0};
     size_t   m_maxBatchSize{0};
