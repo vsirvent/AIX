@@ -1605,6 +1605,8 @@ public:
         if (m_device == device) return *this;
         return {m_data, m_size, m_dType, m_shape, device, m_dType};
     }
+    inline TensorValue to(std::unique_ptr<Device>& device) const    { return to(device.get()); }
+    inline TensorValue to(std::shared_ptr<Device>& device) const    { return to(device.get()); }
 
     template<typename T>
     T item() const
@@ -2707,6 +2709,8 @@ struct TensorOptions
     inline TensorOptions requireGrad(bool state)    { m_requireGrad = state; return *this; }
     inline TensorOptions dtype(DataType dataType)   { m_dtype = dataType;    return *this; }
     inline TensorOptions device(Device* device)     { m_device = device;     return *this; }
+    inline TensorOptions device(std::unique_ptr<aix::Device>& device)  { m_device = device.get(); return *this; }
+    inline TensorOptions device(std::shared_ptr<aix::Device>& device)  { m_device = device.get(); return *this; }
 
     bool m_requireGrad{false};
     aix::DataType m_dtype{aix::DataType::kFloat32};
@@ -2715,6 +2719,8 @@ struct TensorOptions
 inline TensorOptions requireGrad(bool state)    { return { .m_requireGrad=state }; }
 inline TensorOptions dtype(DataType dataType)   { return { .m_dtype=dataType    }; }
 inline TensorOptions device(Device* device)     { return { .m_device=device     }; }
+inline TensorOptions device(std::unique_ptr<aix::Device>& device)     { return { .m_device = device.get() }; }
+inline TensorOptions device(std::shared_ptr<aix::Device>& device)     { return { .m_device = device.get() }; }
 
 
 class Tensor
@@ -2821,9 +2827,10 @@ public:
     }
 
     // Set operation device for the tensor.
-    inline Tensor to(std::unique_ptr<Device> & device)    { return to(*device); }
-    inline Tensor to(Device * device)                     { return to(*device); }
-    Tensor to(Device & newDevice)
+    inline Tensor to(std::unique_ptr<Device>& device) const    { return to(*device); }
+    inline Tensor to(std::shared_ptr<Device>& device) const    { return to(*device); }
+    inline Tensor to(Device* device) const                     { return to(*device); }
+    Tensor to(Device& newDevice) const
     {
         if (&newDevice == m_data->device()) return *this;
         Tensor result{shape(), { .m_requireGrad=isRequireGrad(), .m_dtype=dataType(), .m_device=&newDevice }};
