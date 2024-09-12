@@ -1545,7 +1545,7 @@ public:
     {
         if (this != &other)
         {
-            m_device->deallocate(m_data);   // Free existing resource
+            if (m_device) m_device->deallocate(m_data);   // Free existing resource
             m_dType   = other.m_dType;
             m_data    = other.m_data;
             m_size    = other.m_size;
@@ -2651,15 +2651,13 @@ class TensorNode
 public:
     // Constructor
     explicit TensorNode(TensorValue value, bool requireGrad = false) :
-        m_value{std::move(value)}, m_grad{m_value.shape(), m_value.device(), m_value.size(), m_value.strides(), m_value.dataType()},
-        m_requireGrad{requireGrad}
+        m_value{std::move(value)}, m_requireGrad{requireGrad}
     {
     }
 
     // Constructor
     explicit TensorNode(const Shape & shape, Device * device, bool requireGrad = false, DataType dType = DataType::kFloat32) :
-        m_value{shape, device, dType}, m_grad{shape, device, m_value.size(), m_value.strides(), dType},
-        m_requireGrad{requireGrad}
+        m_value{shape, device, dType}, m_requireGrad{requireGrad}
     {
     }
 
@@ -2668,16 +2666,24 @@ public:
     {
         if (m_retainGrad)
         {
-            m_grad += seed;
+            grad() += seed;
         }
         m_backwardFunc(this, seed);
+    }
+
+    TensorValue& grad()
+    {
+        if (m_grad.size() == 0)
+        {
+            m_grad = TensorValue{m_value.shape(), m_value.device(), m_value.size(), m_value.strides(), m_value.dataType()};
+        }
+        return m_grad;
     }
 
     Device * device() const          { return m_value.device(); }
 
     std::string  m_name;
     TensorValue  m_value;
-    TensorValue  m_grad;
     bool  m_requireGrad;
     bool  m_retainGrad{false};
     std::shared_ptr<TensorNode>  m_a{nullptr};
@@ -2690,6 +2696,9 @@ public:
     std::optional<ssize_t> m_end;
     std::vector<std::shared_ptr<TensorNode>> m_aMulti;
     std::function<void(TensorNode * tensor, const TensorValue & seed)>  m_backwardFunc{nullptr};
+
+private:
+    TensorValue  m_grad;
 };
 
 
@@ -2740,7 +2749,7 @@ public:
     }
 
     // Perform backpropagation to calculate gradients recursively.
-    void backward(float value=1)  { m_data->backward(TensorValue{value, m_data->m_a->m_grad.shape(), device(), dataType()}); }
+    void backward(float value=1)  { m_data->backward(TensorValue{value, m_data->m_a->m_value.shape(), device(), dataType()}); }
     void backward(float value, const Shape & gradShape)  { m_data->backward(TensorValue{value, gradShape, device(), dataType()}); }
 
     // Getters and setters for the tensor's value.
@@ -2753,18 +2762,18 @@ public:
     inline const TensorValue & grad() const
     {
         validateRetainGradientState();
-        return m_data->m_grad;
+        return m_data->grad();
     }
 
     inline TensorValue & grad()
     {
         validateRetainGradientState();
-        return m_data->m_grad;
+        return m_data->grad();
     }
 
-    inline void zeroGrad()                      { m_data->m_grad.fill(0); }
+    inline void zeroGrad()                      { m_data->grad().fill(0); }
     inline bool isRequireGrad() const           { return m_data->m_requireGrad; }
-    inline void retainGrad() const              { m_data->m_retainGrad = true; m_data->m_grad.fill(0); }
+    inline void retainGrad() const              { m_data->m_retainGrad = true; m_data->grad().fill(0); }
     inline const Tensor& requireGrad(bool state) const
     {
         m_data->m_requireGrad = m_data->m_retainGrad = state;
@@ -2838,8 +2847,8 @@ public:
     {
         if (node->m_requireGrad && !node->m_retainGrad)
         {
-            assert(node->m_grad.dataType() == seed.dataType());
-            node->m_grad += seed;
+            assert(node->grad().dataType() == seed.dataType());
+            node->grad() += seed;
         }
     }
 
