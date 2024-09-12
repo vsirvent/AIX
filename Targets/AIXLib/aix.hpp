@@ -787,6 +787,10 @@ public:
         funcTable[static_cast<size_t>(dtype)](src, dst, size, indices, indicesSize, shape, dim);
     }
 
+    virtual void emptyCache()
+    {
+    }
+
     virtual void commitAndWait()
     {
     }

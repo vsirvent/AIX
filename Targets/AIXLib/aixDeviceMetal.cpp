@@ -839,6 +839,12 @@ void DeviceMetal::indexAdd(const void* src, void* dst, size_t size, const void* 
     commitBatchQueue();
 }
 
+void DeviceMetal::emptyCache()
+{
+    m_bufferCache->clear();
+    m_allocator->clearEmptyHeaps();
+}
+
 void DeviceMetal::commit()
 {
     if (m_currentBatchSize == 0) return;

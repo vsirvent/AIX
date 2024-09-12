@@ -143,6 +143,8 @@ public:
     void indexAdd(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
                   const Shape& shape, size_t dim, DataType dtype) override;
 
+    void emptyCache() override;
+
     void commitAndWait() override;
 
 protected:
