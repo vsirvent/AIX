@@ -90,7 +90,7 @@ DeviceMetal::~DeviceMetal()
 {
     if (m_currentBatchSize > 0)
     {
-        std::cerr << "WARNING: Queued tensor operations detected. Did you forget to call commitAndWait()?" << std::endl;
+        std::cerr << "WARNING: Queued tensor operations detected. Did you forget to call synchronize()?" << std::endl;
     }
 
     m_bufferCache->clear();
@@ -371,7 +371,7 @@ void DeviceMetal::argmax(const void* a, size_t size, void* result, DataType dtyp
         throw std::invalid_argument("Device::argmax supports only int32 data type for its result.");
     }
 
-    commitAndWait();
+    synchronize();
     Device::argmax(a, size, result, dtype, resultDtype);
 }
 
@@ -382,7 +382,7 @@ void DeviceMetal::argmaxIndices(const void* a, size_t size, void* result, DataTy
         throw std::invalid_argument("Device::argmaxIndices supports only int32 data type for its result.");
     }
 
-    commitAndWait();
+    synchronize();
     Device::argmaxIndices(a, size, result, dtype, resultDtype);
 }
 
@@ -505,7 +505,7 @@ void DeviceMetal::copy(const void* src, DataType srcDType, void* dst, DataType d
 void DeviceMetal::copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
 {
     copy(src, srcDType, dst, dstDType, size);
-    commitAndWait();
+    synchronize();
 }
 
 void DeviceMetal::broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)
@@ -522,7 +522,7 @@ void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape&
     //       Since reduceTo uses atomic<T>, we can only allow certain formats for acceleration for now.
     if (!(dtype == DataType::kFloat32 || dtype == DataType::kInt32))
     {
-        commitAndWait();
+        synchronize();
         Device::reduceTo(src, dst, size, shape, newShape, dtype);
         return;
     }
@@ -539,7 +539,7 @@ void DeviceMetal::maxTo(const void* src, void* dst, size_t size, const Shape& sh
     // NOTE: Only certain data types are supported due to limitation of Metal Framework atomics.
     if (!(dtype == DataType::kFloat32 || dtype == DataType::kInt32))
     {
-        commitAndWait();
+        synchronize();
         Device::maxTo(src, dst, size, shape, newShape, dtype);
         return;
     }
@@ -552,7 +552,7 @@ void DeviceMetal::argmaxTo(const void* src, void* dst, size_t srcSize, size_t ds
                            const Shape& newShape, const Shape& strides, size_t dim, DataType dtype, DataType resultDtype)
 {
     validateDataType(dtype);
-    commitAndWait();
+    synchronize();
     Device::argmaxTo(src, dst, srcSize, dstSize, shape, newShape, strides, dim, dtype, resultDtype);
 }
 
@@ -560,7 +560,7 @@ void DeviceMetal::argmaxIndicesTo(const void* src, void* dst, size_t srcSize, si
                                   const Shape& shape, const Shape& newShape, DataType dtype, DataType resultDtype)
 {
     validateDataType(dtype);
-    commitAndWait();
+    synchronize();
     Device::argmaxIndicesTo(src, dst, srcSize, dstSize, shape, newShape, dtype, resultDtype);
 }
 
@@ -800,7 +800,7 @@ void DeviceMetal::indexAdd(const void* src, void* dst, size_t size, const void* 
     // NOTE: Only certain data types are supported due to limitation of Metal Framework atomics.
     if (!(dtype == DataType::kFloat32 || dtype == DataType::kInt32))
     {
-        commitAndWait();
+        synchronize();
         Device::indexAdd(src, dst, size, indices, indicesSize, shape, dim, dtype);
         return;
     }
@@ -892,7 +892,7 @@ void DeviceMetal::commit()
     m_currentWorkingSetSize = 0;
 }
 
-void DeviceMetal::commitAndWait()
+void DeviceMetal::synchronize()
 {
     commit();
     m_committedCmdBuffer->waitUntilCompleted();

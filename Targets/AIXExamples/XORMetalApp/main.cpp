@@ -77,7 +77,7 @@ int main()
 
         loss = loss.to(aix::DataType::kFloat32);
 
-        device->commitAndWait();    // Finalize compute batch.
+        device->synchronize();    // Finalize compute batch.
 
         // Log loss value.
         if (epoch % kLogInterval == 0 || loss.value().item<float>() <= kLossThreshold)
@@ -95,7 +95,7 @@ int main()
 
     // Final predictions after training the neural network model.
     auto finalPredictions = model.forward(inputs);
-    device->commitAndWait();
+    device->synchronize();
 
     std::cout << "Final Predictions: " << std::endl;
     std::cout << finalPredictions << std::endl;

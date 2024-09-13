@@ -28,7 +28,7 @@ public:
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -38,6 +38,7 @@ public:
             m_device->add(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -70,7 +71,7 @@ public:
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -80,6 +81,7 @@ public:
             m_device->sub(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -112,7 +114,7 @@ public:
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -122,6 +124,7 @@ public:
             m_device->mul(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -154,7 +157,7 @@ public:
         m_t1 = aix::randn({1, elementCount}, opt);
         m_t2 = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -164,6 +167,7 @@ public:
             m_device->div(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -195,7 +199,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -205,6 +209,7 @@ public:
             m_device->unary(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -235,7 +240,7 @@ public:
         m_device = aix::createDevice(configs.deviceType);
         aix::TensorOptions opt = { .m_dtype=dstDataType, .m_device=m_device.get() };
         m_result = aix::Tensor(aix::Shape{elementCount}, opt);  // No fill
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -246,6 +251,7 @@ public:
             m_device->fill(&scalar, srcDataType, elementCount, m_result.value().data(), m_result.dataType());
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -277,7 +283,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -287,6 +293,7 @@ public:
             m_device->sum(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -318,7 +325,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -328,6 +335,7 @@ public:
             m_device->max(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -359,7 +367,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -369,6 +377,7 @@ public:
             m_device->sqrt(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -400,7 +409,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -410,6 +419,7 @@ public:
             m_device->sin(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -441,7 +451,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -451,6 +461,7 @@ public:
             m_device->cos(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -482,7 +493,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -492,6 +503,7 @@ public:
             m_device->tanh(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -523,7 +535,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -533,6 +545,7 @@ public:
             m_device->log(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -564,7 +577,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -574,6 +587,7 @@ public:
             m_device->exp(m_t.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -606,7 +620,7 @@ public:
         m_t = aix::randn({1, elementCount}, opt);
         m_exp = 2 + aix::randn({1, elementCount}, opt);
         m_result = aix::Tensor(aix::Shape{1, elementCount}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -616,6 +630,7 @@ public:
             m_device->pow(m_t.value().data(), m_exp.value().data(), elementCount, m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -648,7 +663,7 @@ public:
         m_t1 = aix::randn({M, M}, opt);
         m_t2 = aix::randn({M, M}, opt);
         m_result = aix::Tensor(aix::Shape{M, M}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -659,6 +674,7 @@ public:
                              m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -690,7 +706,7 @@ public:
         aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
         m_t = aix::randn({M, M}, opt);
         m_result = aix::Tensor(aix::Shape{M, M}, opt);
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -701,6 +717,7 @@ public:
                                 m_result.value().size(), m_result.value().data(), dataType);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
@@ -731,7 +748,7 @@ public:
         m_device = aix::createDevice(configs.deviceType);
         m_src = aix::Tensor(aix::Shape{elementCount}, { .m_dtype=srcDataType, .m_device=m_device.get() });  // No fill
         m_dst = aix::Tensor(aix::Shape{elementCount}, { .m_dtype=dstDataType, .m_device=m_device.get() });  // No fill
-        m_device->commitAndWait();
+        m_device->synchronize();
     }
 
     void run(const AIXBenchmarkConfigs& configs) final
@@ -741,6 +758,7 @@ public:
             m_device->copy(m_src.value().data(), srcDataType, m_dst.value().data(), dstDataType, elementCount);
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final

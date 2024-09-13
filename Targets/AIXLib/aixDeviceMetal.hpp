@@ -145,7 +145,7 @@ public:
 
     void emptyCache() override;
 
-    void commitAndWait() override;
+    void synchronize() override;
 
 protected:
     void commit();

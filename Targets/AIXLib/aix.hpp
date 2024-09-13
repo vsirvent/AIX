@@ -566,7 +566,7 @@ public:
     virtual void copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
     {
         copy(src, srcDType, dst, dstDType, size);
-        commitAndWait();    // This call has no effect, but it shows the difference between copy and copyImmediate.
+        synchronize();    // This call has no effect, but it shows the difference between copy and copyImmediate.
     }
 
     virtual void broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
@@ -791,7 +791,7 @@ public:
     {
     }
 
-    virtual void commitAndWait()
+    virtual void synchronize()
     {
     }
 
@@ -2515,7 +2515,7 @@ private:
     static bool checkMinMaxValueOverflow(float minValue, float maxValue, const aix::TensorValue& tensor)
     {
         assert(tensor.dataType() == aix::DataType::kInt32);     // Currently supports only int32 data type.
-        tensor.device()->commitAndWait();
+        tensor.device()->synchronize();
         for (size_t i=0; i < tensor.size(); ++i)
         {
             if (tensor.data<int32_t>()[i] < minValue) return false;
@@ -2884,7 +2884,7 @@ public:
         if (seed.device() != node->m_a->m_value.device())
         {
             // Synchronize seed to ensure the seed's data is available before copying it to a different device.
-            seed.device()->commitAndWait();
+            seed.device()->synchronize();
         }
         node->m_a->backward(seed.to(node->m_a->m_value.device()));
     }

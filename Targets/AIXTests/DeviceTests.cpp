@@ -201,7 +201,7 @@ bool testAdd(Device* testDevice, size_t n)
 
         refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
         testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -238,7 +238,7 @@ bool testSub(Device* testDevice, size_t n)
 
         refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
         testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -274,7 +274,7 @@ bool testUnary(Device* testDevice, size_t n)
 
         refDevice.unary(array1.value().data(), n, cpuResult.data(), dtype);
         testDevice->unary(array1.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult))
@@ -309,7 +309,7 @@ bool testSqrt(Device* testDevice, size_t n)
 
         refDevice.sqrt(array1.value().data(), n, cpuResult.data(), dtype);
         testDevice->sqrt(array1.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -344,7 +344,7 @@ bool testSin(Device* testDevice, size_t n)
 
         refDevice.sin(array1.value().data(), n, cpuResult.data(), dtype);
         testDevice->sin(array1.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -379,7 +379,7 @@ bool testCos(Device* testDevice, size_t n)
 
         refDevice.cos(array1.value().data(), n, cpuResult.data(), dtype);
         testDevice->cos(array1.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -411,7 +411,7 @@ bool testTanh(Device* testDevice, size_t n)
         auto array        = (50 * aix::randn({1, n})).to(dtype);
         auto cpuResult    = array.tanh().value();
         auto deviceResult = array.to(*testDevice).tanh().value();
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -443,7 +443,7 @@ bool testLog(Device* testDevice, size_t n)
         auto array        = (11 + 10 * aix::randn({1, n})).to(dtype);
         auto cpuResult    = array.log().value();
         auto deviceResult = array.to(*testDevice).log().value();
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -475,7 +475,7 @@ bool testExp(Device* testDevice, size_t n)
         auto array        = (1 + aix::randn({1, n})).to(dtype);
         auto cpuResult    = array.exp().value();
         auto deviceResult = array.to(*testDevice).exp().value();
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -506,7 +506,7 @@ bool testMax(Device* testDevice, size_t n)
         auto array        = (1 + aix::randn({1, n})).to(dtype);
         auto cpuResult    = array.max().value();
         auto deviceResult = array.to(*testDevice).max().value();
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult))
@@ -541,7 +541,7 @@ bool testMaxWithDim(Device* testDevice)
         auto array        = (1 + aix::randn(shape)).to(dtype);
         auto cpuResult    = array.max(dim, keepdim).value();
         auto deviceResult = array.to(*testDevice).max(dim, keepdim).value();
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult))
@@ -582,7 +582,7 @@ bool testSlice(Device* testDevice)
             auto array = (1 + aix::randn(shape)).to(dtype);
             auto cpuResult = array.slice(dim, start, end, step).value();
             auto deviceResult = array.to(*testDevice).slice(dim, start, end, step).value();
-            testDevice->commitAndWait();
+            testDevice->synchronize();
 
             // Compare results with the true/reference results.
             if (!verifyResults(cpuResult, deviceResult))
@@ -632,7 +632,7 @@ bool testSliceSet(Device* testDevice)
             auto tensor = (1 + aix::randn(newShape)).to(dtype);
             auto cpuResult = array.value().sliceSet(tensor.value(), dim, start, end, step);
             auto deviceResult = array.to(*testDevice).value().sliceSet(tensor.value(), dim, start, end, step);
-            testDevice->commitAndWait();
+            testDevice->synchronize();
 
             // Compare results with the true/reference results.
             if (!verifyResults(cpuResult, deviceResult))
@@ -672,7 +672,7 @@ bool testTril(Device* testDevice)
         auto array = (1 + aix::randn(shape)).to(dtype);
         auto cpuResult = array.value().tril(diagonal);
         auto deviceResult = array.to(*testDevice).value().tril(diagonal);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results.
         if (!verifyResults(cpuResult, deviceResult))
@@ -707,7 +707,7 @@ bool testTriu(Device* testDevice)
         auto array = (1 + aix::randn(shape)).to(dtype);
         auto cpuResult = array.value().triu(diagonal);
         auto deviceResult = array.to(*testDevice).value().triu(diagonal);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results.
         if (!verifyResults(cpuResult, deviceResult))
@@ -746,7 +746,7 @@ bool testIndexSelect(Device* testDevice)
         auto array = (1 + aix::randn(shape)).to(dtype);
         auto cpuResult = array.value().indexSelect(dim, indices.value());
         auto deviceResult = array.value().to(testDevice).indexSelect(dim, indices.value().to(testDevice));
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results.
         if (!verifyResults(cpuResult, deviceResult))
@@ -791,7 +791,7 @@ bool testIndexAdd(Device* testDevice)
         auto array = (1 + aix::randn(shape)).to(dtype).value();
         auto cpuResult = array.indexAdd(dim, indices.value(), sources);
         auto deviceResult = array.to(testDevice).indexAdd(dim, indices.value().to(testDevice), sources.to(testDevice));
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results.
         if (!verifyResults(cpuResult, deviceResult))
@@ -828,7 +828,7 @@ bool testPow(Device* testDevice, size_t n)
 
         refDevice.pow(array1.value().data(), exp.value().data(), n, cpuResult.data(), dtype);
         testDevice->pow(array1.value().data(), exp.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult,
@@ -866,7 +866,7 @@ bool testMul(Device* testDevice, size_t n)
 
         refDevice.mul(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
         testDevice->mul(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16))
@@ -903,7 +903,7 @@ bool testDiv(Device* testDevice, size_t n)
 
         refDevice.div(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
         testDevice->div(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult, dtype != DataType::kFloat16 ? EPSILON : EPSILON_F16 * 10))
@@ -947,7 +947,7 @@ bool testMatMul(Device* testDevice, size_t n, size_t inner, size_t m)
                            matB.value().data(), {inner, m},
                            deviceResult.data(), dtype);
 
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare true/cpu result with gpu result
         if (!verifyResults(cpuResult, deviceResult))
@@ -991,7 +991,7 @@ bool testTranspose2D(Device* testDevice, size_t n, size_t m)
 
         testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
                               deviceResult.size(), deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare true/cpu result with gpu result
         if (!verifyResults(cpuResult, deviceResult))
@@ -1038,7 +1038,7 @@ bool testTranspose(Device* testDevice)
 
         testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
                               deviceResult.size(), deviceResult.data(), dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare true/cpu result with gpu result
         if (!verifyResults(cpuResult, deviceResult))
@@ -1079,7 +1079,7 @@ bool testCopy(Device* testDevice, size_t n)
 
             refDevice.copy(src.value().data(), srcDType, cpuResult.data(), dstDType, n);
             testDevice->copy(src.value().data(), srcDType, deviceResult.data(), dstDType, n);
-            testDevice->commitAndWait();
+            testDevice->synchronize();
 
             // Compare results with the true/reference results
             if (!verifyResults(cpuResult, deviceResult, hasFloat16 ? EPSILON_F16 : EPSILON))
@@ -1140,7 +1140,7 @@ bool testFill(Device* testDevice, size_t n)
             // We used unifiedScalarValue to pass a pointer to data to the fill method with its data type.
             refDevice.fill(&unifiedScalarValue, srcDType, n, cpuResult.data(), dstDType);
             testDevice->fill(&unifiedScalarValue, srcDType, n, deviceResult.data(), dstDType);
-            testDevice->commitAndWait();
+            testDevice->synchronize();
 
             // Compare results with the true/reference results
             if (!verifyResults(cpuResult, deviceResult))
@@ -1176,7 +1176,7 @@ bool testFillMin(Device* testDevice, size_t n)
         // We used unifiedScalarValue to pass a pointer to data to the fill method with its data type.
         refDevice.fillMin(dtype, n, cpuResult.data());
         testDevice->fillMin(dtype, n, deviceResult.data());
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult))
@@ -1214,7 +1214,7 @@ bool testBroadcastTo(Device* testDevice)
 
         refDevice.broadcastTo(srcTensor.value().data(), cpuResult.data(), cpuResult.size(), shape, newShape, dtype);
         testDevice->broadcastTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape, dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult))
@@ -1255,7 +1255,7 @@ bool testReduceTo(Device* testDevice)
 
         refDevice.reduceTo(srcTensor.value().data(),   cpuResult.data(),    cpuResult.size(),    shape, newShape, dtype);
         testDevice->reduceTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape, dtype);
-        testDevice->commitAndWait();
+        testDevice->synchronize();
 
         // Compare results with the true/reference results
         if (!verifyResults(cpuResult, deviceResult))
@@ -1862,7 +1862,7 @@ TEST_CASE("Device Tests - indexAdd")
 TEST_CASE("Device Tests - batch compute")
 {
     // If a device uses an advanced command queuing method, subsequent commands should be executed properly once the
-    // commitAndWait method is called.
+    // synchronize method is called.
 
     Shape shape{2,3};
     std::initializer_list<float> data1{1.0, 2.0, 3.0,  4.0,  5.0,  6.0};
@@ -1887,7 +1887,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x + y;
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({1608.0,2010.0,2412.0,2814.0,3216.0,3618.0},  shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({201.0,201.0,201.0,201.0,201.0,201.0}, shape).value());
@@ -1913,7 +1913,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z - x - y;
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({-1606.0,-2006.0,-2406.0,-2806.0,-3206.0,-3606.0},  shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({-199.0,-199.0,-199.0,-199.0,-199.0,-199.0}, shape).value());
@@ -1939,7 +1939,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x * y;
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({1407.0,3216.0,5427.0,8040.0,11055.0,14472.0}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({1407.0,1608.0,1809.0,2010.0,2211.0,2412.0}, shape).value());
@@ -1965,7 +1965,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x / y;
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({28.7143,50.25,66.9999,80.4002,91.3635,100.5}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({28.7143,25.125,22.3333,20.1,18.2727,16.75}, shape).value());
@@ -1991,7 +1991,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.sum() + y.sum();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor(15678));
             CheckVectorApproxValues(x.grad(), aix::tensor({201.0,201.0,201.0,201.0,201.0,201.0}, shape).value());
@@ -2017,7 +2017,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.mean() + y.mean();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor(2613));
             CheckVectorApproxValues(x.grad(), aix::tensor({33.5,33.5,33.5,33.5,33.5,33.5}, shape).value());
@@ -2043,7 +2043,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.sqrt() + y.sqrt();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({732.7961,852.7692,951.1430,1037.6198,1116.0948,1188.6305}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({100.5000,71.0643,58.0236,50.2500,44.9449,41.0290}, shape).value());
@@ -2069,7 +2069,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.sin() + y.sin();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({301.1897,381.6301,111.2009,-261.4660,-393.7420,-164.0143}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({108.6004,-83.6453,-198.9882,-131.3821,57.0160,192.9943}, shape).value());
@@ -2095,7 +2095,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.cos() + y.cos();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({260.1352,-112.8908,-382.1257,-300.0356,57.9055,362.6089}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({-169.1358,-182.7688,-28.3652,152.1176,192.7436,56.1625}, shape).value());
@@ -2121,7 +2121,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.log() + y.log();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({391.1286,557.2905,662.4633,741.4656,805.4725,859.6092}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({201.0000,100.5000,66.9999,50.2500,40.2001,33.5000}, shape).value());
@@ -2147,7 +2147,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.exp() + y.exp();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({220970.0,600657.0,1.63276e+06,4.43829e+06,1.20645e+07,3.27948e+07}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({546.375,1485.2,4037.19,10974.3,29831.1,81089.3}, shape).value());
@@ -2174,7 +2174,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.pow(exp) + y.pow(exp);
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({10050.0,13668.0,18090.0,23316.0,29346.0,36180.0}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({402.0,804.0,1206.0,1608.0,2010.0,2412.0}, shape).value());
@@ -2200,7 +2200,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.tanh() + y.tanh();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({354.0808,394.7695,401.0063,401.8651,401.9816,401.9982}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({84.4149,14.2008,1.98307,0.269514,0.0365,0.00493598}, shape).value());
@@ -2227,7 +2227,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x.matmul(y) + y.matmul(x);
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({8442.0,11256.0,14874.0,19296.0}, matShape));
             CheckVectorApproxValues(x.grad(), aix::tensor({4623.0,5427.0,5025.0,5829.0}, matShape).value());
@@ -2253,7 +2253,7 @@ TEST_CASE("Device Tests - batch compute")
                 z = z + x + y*y / x.sum() - (x * y).sin()- y / y.exp() + (x-y) * x * x.sin() / y.tanh() + (y * y) / (x*x).mean();
             }
             z.backward();
-            device->commitAndWait();
+            device->synchronize();
 
             CheckVectorApproxValues(z, aix::tensor({178.2879,-264.8438,1748.9033,6566.8809,9716.0850,6445.9224}, shape));
             CheckVectorApproxValues(x.grad(), aix::tensor({-2764.4619,1425.6165,3467.7439,4074.8318,-2422.4048,-5619.4829}, shape).value());
@@ -2281,7 +2281,7 @@ TEST_CASE("Device Tests - long command batch queue")
         {
             z = z + x + y;
         }
-        device->commitAndWait();
+        device->synchronize();
 
         CHECK(z.value().data<float>()[0] == 2048);
     }
@@ -2330,7 +2330,7 @@ TEST_CASE("Device Tests - loop without sync")
         // IMPORTANT NOTE: We keep optimizing without synchronizing.
     }
     auto loss = lossFunc(model.forward(inputs), targets);
-    device->commitAndWait();
+    device->synchronize();
 
     CHECK(loss.value().item<float>() <= kLossThreshold);
 }

@@ -68,6 +68,7 @@ public:
             m_optimizer.step();
             m_device->commitAndWait();
         }
+        m_device->synchronize();
     }
 
     void cleanUp() final
