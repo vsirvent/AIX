@@ -57,17 +57,13 @@ public:
         m_lossFunc = aix::nn::MSELoss();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i = 0; i < configs.iterationCount; ++i)
-        {
-            auto predictions = m_model.forward(m_inputs);
-            auto loss = m_lossFunc(predictions, m_targets);
-            m_optimizer.zeroGrad();
-            loss.backward();
-            m_optimizer.step();
-            m_device->commitAndWait();
-        }
+        auto predictions = m_model.forward(m_inputs);
+        auto loss = m_lossFunc(predictions, m_targets);
+        m_optimizer.zeroGrad();
+        loss.backward();
+        m_optimizer.step();
         m_device->synchronize();
     }
 

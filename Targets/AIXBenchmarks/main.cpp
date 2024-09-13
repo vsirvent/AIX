@@ -137,20 +137,31 @@ AIXBenchmarkResult runBenchmark(std::function<std::unique_ptr<BenchmarkBase>()>&
         benchmark->setup(configs);
 
         // Run
-        auto timeStart = std::chrono::high_resolution_clock::now();
-        benchmark->run(configs);
-        auto timeEnd = std::chrono::high_resolution_clock::now();
+        auto minDuration = std::chrono::duration<double, std::milli>(std::numeric_limits<double>::max()).count();
+        auto maxDuration = std::chrono::duration<double, std::milli>(std::numeric_limits<double>::lowest()).count();
+        auto sumDuration = std::chrono::duration<double, std::milli>(0).count();
+        for (size_t ic=0; ic<configs.iterationCount; ++ic)
+        {
+            auto timeStart = std::chrono::high_resolution_clock::now();
+            benchmark->run(configs);
+            auto timeEnd = std::chrono::high_resolution_clock::now();
+
+            if (i < configs.warmupCount) continue;   // Skip timing for warm-up.
+
+            auto duration = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
+            minDuration = std::min(minDuration, duration);
+            maxDuration = std::max(maxDuration, duration);
+            sumDuration += duration;
+        }
 
         // CleanUp
         benchmark->cleanUp();
 
         if (i < configs.warmupCount) continue;   // Skip timing for warm-up.
 
-        auto duration = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
-        auto avgDuration = duration / static_cast<double>(configs.iterationCount);
-        result.min = std::min(result.min, avgDuration);
-        result.max = std::max(result.max, avgDuration);
-        avgDurationSum += avgDuration;
+        result.min = std::min(result.min, minDuration);
+        result.max = std::max(result.max, maxDuration);
+        avgDurationSum += sumDuration / static_cast<double>(configs.iterationCount);
     }
 
     result.avg = avgDurationSum / static_cast<double>(configs.samplingCount);
@@ -220,11 +231,11 @@ void compareBenchmarks(const std::string& filename, const AIXBenchmarkConfigs& c
         if (test)
         {
             auto results = runBenchmark(benchmarkCreateFunc, configs);
-            auto avgChange = 100 * (test["avg"].as<double>() - results.avg) / test["avg"].as<double>();
+            auto perfChange = 100 * (test["min"].as<double>() - results.min) / test["min"].as<double>();
             std::cout << std::left << std::setw(maxNameLength) << benchmarkName
-                      << std::right << std::setw(timeWidth) << std::fixed << std::setprecision(4) << test["avg"].as<double>()
-                      << std::right << std::setw(timeWidth) << std::fixed << std::setprecision(4) << results.avg
-                      << std::right << std::setw(changeWidth) << std::fixed << std::setprecision(4) << avgChange
+                      << std::right << std::setw(timeWidth) << std::fixed << std::setprecision(4) << test["min"].as<double>()
+                      << std::right << std::setw(timeWidth) << std::fixed << std::setprecision(4) << results.min
+                      << std::right << std::setw(changeWidth) << std::fixed << std::setprecision(4) << perfChange
                       << std::endl;
         }
     }

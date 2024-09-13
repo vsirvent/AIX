@@ -30,13 +30,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t1 + m_t2;
-            m_device->commitAndWait();
-        }
+        auto t = m_t1 + m_t2;
         m_device->synchronize();
     }
 
@@ -71,13 +67,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t1 - m_t2;
-            m_device->commitAndWait();
-        }
+        auto t = m_t1 - m_t2;
         m_device->synchronize();
     }
 
@@ -112,13 +104,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t1 * m_t2;
-            m_device->commitAndWait();
-        }
+        auto t = m_t1 * m_t2;
         m_device->synchronize();
     }
 
@@ -153,13 +141,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t1 / m_t2;
-            m_device->commitAndWait();
-        }
+        auto t = m_t1 / m_t2;
         m_device->synchronize();
     }
 
@@ -193,13 +177,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = -m_t;
-            m_device->commitAndWait();
-        }
+        auto t = -m_t;
         m_device->synchronize();
     }
 
@@ -233,13 +213,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.sum();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.sum();
         m_device->synchronize();
     }
 
@@ -273,13 +249,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.sum(1, false);
-            m_device->commitAndWait();
-        }
+        auto t = m_t.sum(1, false);
         m_device->synchronize();
     }
 
@@ -313,13 +285,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.max();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.max();
         m_device->synchronize();
     }
 
@@ -353,13 +321,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.max(1, false);
-            m_device->commitAndWait();
-        }
+        auto t = m_t.max(1, false);
         m_device->synchronize();
     }
 
@@ -393,13 +357,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.sqrt();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.sqrt();
         m_device->synchronize();
     }
 
@@ -433,13 +393,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.sin();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.sin();
         m_device->synchronize();
     }
 
@@ -473,13 +429,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.cos();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.cos();
         m_device->synchronize();
     }
 
@@ -513,13 +465,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.tanh();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.tanh();
         m_device->synchronize();
     }
 
@@ -553,13 +501,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.log();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.log();
         m_device->synchronize();
     }
 
@@ -593,13 +537,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.exp();
-            m_device->commitAndWait();
-        }
+        auto t = m_t.exp();
         m_device->synchronize();
     }
 
@@ -634,13 +574,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.pow(m_exp);
-            m_device->commitAndWait();
-        }
+        auto t = m_t.pow(m_exp);
         m_device->synchronize();
     }
 
@@ -676,13 +612,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = matmul(m_t1, m_t2);
-            m_device->commitAndWait();
-        }
+        auto t = matmul(m_t1, m_t2);
         m_device->synchronize();
     }
 
@@ -717,13 +649,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.transpose(0, 1);
-            m_device->commitAndWait();
-        }
+        auto t = m_t.transpose(0, 1);
         m_device->synchronize();
     }
 
@@ -758,13 +686,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = m_t.slice(0, 0, elementCount, 1);
-            m_device->commitAndWait();
-        }
+        auto t = m_t.slice(0, 0, elementCount, 1);
         m_device->synchronize();
     }
 
@@ -801,13 +725,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto t = aix::cat(m_tensors, dim);
-            m_device->commitAndWait();
-        }
+        auto t = aix::cat(m_tensors, dim);
         m_device->synchronize();
     }
 
@@ -846,13 +766,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            auto selected = m_tensor.indexSelect(dim, m_indices);
-            m_device->commitAndWait();
-        }
+        auto selected = m_tensor.indexSelect(dim, m_indices);
         m_device->synchronize();
     }
 

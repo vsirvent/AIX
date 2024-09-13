@@ -31,13 +31,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->add(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->add(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -74,13 +70,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->sub(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->sub(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -117,13 +109,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->mul(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->mul(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -160,13 +148,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->div(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->div(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -202,13 +186,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->unary(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->unary(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -243,14 +223,10 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
         double scalar = 5;  // Type and accuracy do not matter here.
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->fill(&scalar, srcDataType, elementCount, m_result.value().data(), m_result.dataType());
-            m_device->commitAndWait();
-        }
+        m_device->fill(&scalar, srcDataType, elementCount, m_result.value().data(), m_result.dataType());
         m_device->synchronize();
     }
 
@@ -286,13 +262,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->sum(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->sum(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -328,13 +300,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->max(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->max(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -370,13 +338,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->sqrt(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->sqrt(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -412,13 +376,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->sin(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->sin(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -454,13 +414,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->cos(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->cos(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -496,13 +452,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->tanh(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->tanh(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -538,13 +490,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->log(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->log(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -580,13 +528,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->exp(m_t.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->exp(m_t.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -623,13 +567,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->pow(m_t.value().data(), m_exp.value().data(), elementCount, m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->pow(m_t.value().data(), m_exp.value().data(), elementCount, m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -666,14 +606,10 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->matmul(m_t1.value().data(), {M, M}, m_t2.value().data(), {M, M},
-                             m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->matmul(m_t1.value().data(), {M, M}, m_t2.value().data(), {M, M},
+                         m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -709,14 +645,10 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->transpose(0, 1, m_t.value().data(), {M, M}, m_t.value().strides(), m_result.value().strides(),
-                                m_result.value().size(), m_result.value().data(), dataType);
-            m_device->commitAndWait();
-        }
+        m_device->transpose(0, 1, m_t.value().data(), {M, M}, m_t.value().strides(), m_result.value().strides(),
+                            m_result.value().size(), m_result.value().data(), dataType);
         m_device->synchronize();
     }
 
@@ -751,13 +683,9 @@ public:
         m_device->synchronize();
     }
 
-    void run(const AIXBenchmarkConfigs& configs) final
+    void run(const AIXBenchmarkConfigs&) final
     {
-        for (size_t i=0; i<configs.iterationCount; ++i)
-        {
-            m_device->copy(m_src.value().data(), srcDataType, m_dst.value().data(), dstDataType, elementCount);
-            m_device->commitAndWait();
-        }
+        m_device->copy(m_src.value().data(), srcDataType, m_dst.value().data(), dstDataType, elementCount);
         m_device->synchronize();
     }
 
