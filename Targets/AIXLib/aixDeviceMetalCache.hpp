@@ -58,21 +58,25 @@ public:
         // Find the closest buffer in the cached buffers with a similar size.
         auto it = m_cacheMap.lower_bound(size);
 
-        // Make sure we use most of the available memory.
-        while (!buffer && it != m_cacheMap.end() && it->first < std::min(size << 1, size + (vm_page_size << 1)))
+        while (it != m_cacheMap.end() && it->first < std::min(size << 1, size + (vm_page_size << 1)))
         {
-            // Collect from the cache.
-            buffer = it->second->buffer;
+            BufferHolder* bufHolder = it->second;
+            if (bufHolder->buffer)
+            {
+                buffer = bufHolder->buffer;
+                m_cacheSize -= buffer->length();
 
-            // Remove from the cache.
-            removeFromList(it->second);
-            delete it->second;
-            it = m_cacheMap.erase(it);
-        }
-
-        if (buffer)
-        {
-            m_cacheSize -= buffer->length();
+                // Remove from list and map, then delete BufferHolder.
+                removeFromList(bufHolder);
+                m_cacheMap.erase(bufHolder->mapIter);
+                delete bufHolder;
+                break;
+            }
+            else
+            {
+                // Remove stale entries.
+                m_cacheMap.erase(it++);
+            }
         }
 
         return buffer;
@@ -80,13 +84,14 @@ public:
 
     void recycle(MTL::Buffer* buffer)
     {
-        std::lock_guard<std::mutex>  lock(m_syncObj);
         if (!buffer) return;
+        std::lock_guard<std::mutex> lock(m_syncObj);
+
         // Add to the cache.
         auto bufHolder = new BufferHolder(buffer);
         addAtHead(bufHolder);
         m_cacheSize += buffer->length();
-        m_cacheMap.insert({buffer->length(), bufHolder});
+        bufHolder->mapIter = m_cacheMap.insert({buffer->length(), bufHolder});
     }
 
     void reduceSize(size_t bytesToFree)
@@ -97,14 +102,19 @@ public:
             size_t totalBytesFreed = 0;
             while (m_bhTail && (totalBytesFreed < bytesToFree))
             {
-                if (m_bhTail->buffer)
+                auto bufHolder = m_bhTail;
+                if (bufHolder->buffer)
                 {
-                    totalBytesFreed += m_bhTail->buffer->length();
-                    m_bhTail->buffer->release();
-                    m_bhTail->buffer = nullptr;
+                    totalBytesFreed += bufHolder->buffer->length();
+                    bufHolder->buffer->release();
                 }
-                removeFromList(m_bhTail);
+
+                // Remove from list and map, then delete BufferHolder.
+                removeFromList(bufHolder);
+                m_cacheMap.erase(bufHolder->mapIter);
+                delete bufHolder;
             }
+            assert(m_cacheSize >= totalBytesFreed);
             m_cacheSize -= totalBytesFreed;
         }
         else
@@ -117,9 +127,10 @@ private:
     struct BufferHolder
     {
         explicit BufferHolder(MTL::Buffer* buffer) : buffer(buffer) { }
-        MTL::Buffer*  buffer;
+        MTL::Buffer*  buffer{nullptr};
         BufferHolder* prev{nullptr};
         BufferHolder* next{nullptr};
+        std::multimap<size_t, BufferHolder*>::iterator mapIter;
     };
 
     void clearCache()
@@ -141,41 +152,39 @@ private:
     {
         if (!bufHolder) return;
 
-        if (!m_bhHead)
+        bufHolder->prev = nullptr;
+        bufHolder->next = m_bhHead;
+        if (m_bhHead)
         {
-            m_bhHead = m_bhTail = bufHolder;
+            m_bhHead->prev = bufHolder;
         }
         else
         {
-            m_bhHead->prev = bufHolder;
-            bufHolder->next = m_bhHead;
-            m_bhHead = bufHolder;
+            m_bhTail = bufHolder;
         }
+        m_bhHead = bufHolder;
     }
 
     void removeFromList(BufferHolder* bufHolder)
     {
-        if (!bufHolder)  return;
+        if (!bufHolder) return;
 
-        // If in the middle.
-        if (bufHolder->prev && bufHolder->next)
+        if (bufHolder->prev)
         {
             bufHolder->prev->next = bufHolder->next;
+        }
+        else
+        {
+            m_bhHead = bufHolder->next;
+        }
+
+        if (bufHolder->next)
+        {
             bufHolder->next->prev = bufHolder->prev;
         }
-        else if (bufHolder->prev && bufHolder == m_bhTail)
-        {   // If tail.
+        else
+        {
             m_bhTail = bufHolder->prev;
-            m_bhTail->next = nullptr;
-        }
-        else if (bufHolder == m_bhHead && bufHolder->next)
-        {   // If head.
-            m_bhHead = bufHolder->next;
-            m_bhHead->prev = nullptr;
-        }
-        else if (bufHolder == m_bhHead && bufHolder == m_bhTail)
-        {   // If only element.
-            m_bhHead = m_bhTail = nullptr;
         }
 
         bufHolder->prev = bufHolder->next = nullptr;
