@@ -3793,6 +3793,15 @@ static Tensor arange(float start, float end, float step, const TensorOptions & o
 inline Tensor arange(float end, const TensorOptions & opt = {})               { return arange(0.0, end, 1.0, opt);   }
 inline Tensor arange(float start, float end, const TensorOptions & opt = {})  { return arange(start, end, 1.0, opt); }
 
+static Tensor eye(size_t n, const TensorOptions & opt = {})
+{
+    std::vector<float> data(n * n, 0);
+    for (size_t i=0; i<n; ++i)
+    {
+        data[i * n + i] = 1;
+    }
+    return Tensor{data.data(), data.size(), getDataType<float>(), aix::Shape{n, n}, opt};
+}
 
 // Optimizers Namespace
 

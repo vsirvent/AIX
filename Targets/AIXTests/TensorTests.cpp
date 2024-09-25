@@ -2826,3 +2826,27 @@ TEST_CASE("Tensor - indexSelect")
         CHECK_THROWS_AS({ t33.indexSelect(-3, i1); }, std::invalid_argument);
     }
 }
+
+TEST_CASE("Tensor - eye")
+{
+    SUBCASE("eye(1)")
+    {
+        auto a = aix::eye(1);
+        CheckVectorApproxValues(a, aix::tensor({ 1.0 }, aix::Shape{1, 1}));
+    }
+
+    SUBCASE("eye(2)")
+    {
+        auto a = aix::eye(2);
+        CheckVectorApproxValues(a, aix::tensor({ 1.0, 0.0,
+                                                 0.0, 1.0, }, aix::Shape{2, 2}));
+    }
+
+    SUBCASE("eye(3)")
+    {
+        auto a = aix::eye(3);
+        CheckVectorApproxValues(a, aix::tensor({ 1.0, 0.0, 0.0,
+                                                 0.0, 1.0, 0.0,
+                                                 0.0, 0.0, 1.0, }, aix::Shape{3, 3}));
+    }
+}
