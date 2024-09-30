@@ -1422,6 +1422,42 @@ static std::random_device randomDevice;
 static std::mt19937 randGen(randomDevice());
 
 
+class TensorStorage
+{
+public:
+    TensorStorage() = default;
+
+    explicit TensorStorage(Device* device, size_t size) : m_device{device}, m_size{size}
+    {
+        m_data = device->allocate(size);
+    }
+
+    explicit TensorStorage(Device* device, size_t size, aix::DataType dtype) : m_device{device}
+    {
+        m_data = device->allocate(size, dtype);
+        m_size = size * aix::Device::dataTypeSize(dtype);
+    }
+
+    virtual ~TensorStorage()
+    {
+        if (m_device && m_data)
+        {
+            m_device->deallocate(m_data);
+        }
+    }
+
+    inline Device* device()             { return m_device;  }
+    inline void*   data()               { return m_data;    }
+    inline const void* data() const     { return m_data;    }
+    inline size_t  size() const         { return m_size;    }
+
+private:
+    Device*   m_device{nullptr};
+    void*     m_data{nullptr};
+    size_t    m_size{0};
+};
+
+
 class TensorValue
 {
 public:
@@ -1432,8 +1468,19 @@ public:
     TensorValue(const void* data, size_t size, DataType srcDType, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
-        m_data = device->allocate(size, dType);
-        device->copy(data, srcDType, m_data, dType, size);
+        m_storage = std::make_shared<TensorStorage>(device, size, dType);
+        device->copy(data, srcDType, m_storage->data(), dType, size);
+        m_size = size;
+        // Compute the strides for indexing multi-dimensional data.
+        m_strides = computeStrides();
+    }
+
+    // Constructor
+    TensorValue(const std::shared_ptr<TensorStorage>& storage, size_t size, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
+        m_dType(dType), m_shape(std::move(shape)), m_device(device)
+    {
+        assert(storage->device() == device);
+        m_storage = storage;
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
         m_strides = computeStrides();
@@ -1444,8 +1491,8 @@ public:
     TensorValue(const std::initializer_list<T> & data, Shape shape, Device * device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
-        m_data = device->allocate(data.size(), dType);
-        device->copy(data.begin(), getDataType<T>(), m_data, dType, data.size());
+        m_storage = std::make_shared<TensorStorage>(device, data.size(), dType);
+        device->copy(data.begin(), getDataType<T>(), m_storage->data(), dType, data.size());
         m_size = data.size();
         // Compute the strides for indexing multi-dimensional data.
         m_strides = computeStrides();
@@ -1457,9 +1504,9 @@ public:
     {
         m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
-        m_data = device->allocate(m_size, dType);
+        m_storage = std::make_shared<TensorStorage>(device, m_size, dType);
         // initialize data.
-        device->fill(&value, DataType::kFloat32, m_size, m_data, dType);
+        device->fill(&value, DataType::kFloat32, m_size, m_storage->data(), dType);
         m_strides = computeStrides();
     }
 
@@ -1469,7 +1516,7 @@ public:
     {
         m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
-        m_data = device->allocate(m_size, dType);
+        m_storage = std::make_shared<TensorStorage>(device, m_size, dType);
         m_strides = computeStrides();
     }
 
@@ -1478,7 +1525,7 @@ public:
         m_dType(dType), m_size(size), m_shape(std::move(shape)), m_strides(std::move(strides)), m_device(device)
     {
         // Each tensor array must use device specific memory allocator.
-        m_data = device->allocate(m_size, dType);
+        m_storage = std::make_shared<TensorStorage>(device, m_size, dType);
     }
 
     // Constructor
@@ -1487,16 +1534,14 @@ public:
     {
         // Each tensor array must use device specific memory allocator.
         m_size = 1;
-        m_data = device->allocate(m_size, dType);
-        device->fill(&value, DataType::kFloat32, m_size, m_data, dType);
+        m_storage = std::make_shared<TensorStorage>(device, m_size, dType);
+        device->fill(&value, DataType::kFloat32, m_size, m_storage->data(), dType);
         m_strides = computeStrides();
     }
 
     // Destructor
     ~TensorValue()
     {
-        if (m_data) m_device->deallocate(m_data);
-        m_data   = nullptr;
         m_device = nullptr;
     }
 
@@ -1508,8 +1553,8 @@ public:
         m_shape   = other.m_shape;
         m_strides = other.m_strides;
         m_device  = other.m_device;
-        m_data    = m_device->allocate(other.m_size, other.m_dType);
-        m_device->copy(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
+        m_storage = std::make_shared<TensorStorage>(m_device, other.m_size, other.m_dType);
+        m_device->copy(other.data(), other.m_dType, data(), other.m_dType, other.m_size);
     }
 
     // Copy assignment operator
@@ -1517,14 +1562,13 @@ public:
     {
         if (this != &other)     // Protect against self-assignment
         {
-            if (m_device) m_device->deallocate(m_data);
             m_dType   = other.m_dType;
             m_size    = other.m_size;
             m_shape   = other.m_shape;
             m_strides = other.m_strides;
             m_device  = other.m_device;
-            m_data    = m_device->allocate(other.m_size, other.m_dType);
-            m_device->copy(other.m_data, other.m_dType, m_data, other.m_dType, other.m_size);
+            m_storage = std::make_shared<TensorStorage>(m_device, other.m_size, other.m_dType);
+            m_device->copy(other.data(), other.m_dType, data(), other.m_dType, other.m_size);
         }
 
         return *this;
@@ -1534,13 +1578,12 @@ public:
     TensorValue(TensorValue&& other) noexcept
     {
         m_dType   = other.m_dType;
-        m_data    = other.m_data;
+        m_storage = other.m_storage;
         m_size    = other.m_size;
         m_shape   = other.m_shape;
         m_strides = other.m_strides;
         m_device  = other.m_device;
         other.m_size   = 0;
-        other.m_data   = nullptr;           // Avoid double deletion
         other.m_device = nullptr;
     }
 
@@ -1549,15 +1592,13 @@ public:
     {
         if (this != &other)
         {
-            if (m_device) m_device->deallocate(m_data);   // Free existing resource
             m_dType   = other.m_dType;
-            m_data    = other.m_data;
+            m_storage = other.m_storage;
             m_size    = other.m_size;
             m_shape   = other.m_shape;
             m_strides = other.m_strides;
             m_device  = other.m_device;
             other.m_size   = 0;
-            other.m_data   = nullptr;       // Avoid double deletion
             other.m_device = nullptr;
         }
 
@@ -1572,11 +1613,11 @@ public:
 
     // Access element at a specific index (non-const version).
     template<typename T>
-    T & getValueAt(const Index & indices)     { return static_cast<T*>(m_data)[getIndex(indices)]; }
+    T & getValueAt(const Index & indices)     { return static_cast<T*>(m_storage->data())[getIndex(indices)]; }
 
     // Access element at a specific index (const version).
     template<typename T>
-    T getValueAt(const Index & indices) const { return static_cast<T*>(m_data)[getIndex(indices)]; }
+    T getValueAt(const Index & indices) const { return static_cast<T*>(m_storage->data())[getIndex(indices)]; }
 
     // Get the data type of the tensor.
     DataType dataType() const      { return m_dType; }
@@ -1588,14 +1629,17 @@ public:
     const Stride & strides() const  { return m_strides; }
 
     // Get the raw data of the tensor.
-    const void* data() const    { return m_data; }
-    void* data()                { return m_data; }
+    const void* data() const    { return m_storage->data(); }
+    void* data()                { return m_storage->data(); }
+
+    // Get storage of the tensor.
+    const std::shared_ptr<TensorStorage>& storage() { return m_storage; };
 
     // Get the raw data of the tensor.
     template<typename T>
-    const T* data() const       { return static_cast<T*>(m_data); }
+    const T* data() const       { return static_cast<T*>(m_storage->data()); }
     template<typename T>
-    T* data()                   { return static_cast<T*>(m_data); }
+    T* data()                   { return static_cast<T*>(m_storage->data()); }
 
     // Get the size of the data
     size_t size() const         { return m_size; }
@@ -1607,7 +1651,7 @@ public:
     TensorValue to(Device * device) const
     {
         if (m_device == device) return *this;
-        return {m_data, m_size, m_dType, m_shape, device, m_dType};
+        return {data(), m_size, m_dType, m_shape, device, m_dType};
     }
     inline TensorValue to(std::unique_ptr<Device>& device) const    { return to(device.get()); }
     inline TensorValue to(std::shared_ptr<Device>& device) const    { return to(device.get()); }
@@ -1619,7 +1663,7 @@ public:
         {
             throw std::invalid_argument("Tensor is not a scalar.");
         }
-        return static_cast<T*>(m_data)[0];
+        return static_cast<T*>(m_storage->data())[0];
     }
 
     // Returns a new TensorValue with a new shape.
@@ -1631,7 +1675,7 @@ public:
             throw std::invalid_argument("Reshape error: element count mismatch (" +
                                         std::to_string(m_size) + " vs " + std::to_string(newSize) + ").");
         }
-        return {m_data, m_size, m_dType, newShape, m_device, m_dType};
+        return {m_storage, m_size, newShape, m_device, m_dType};
     }
 
     // Equalize tensor data types by promoting data type of tensors.
@@ -1712,7 +1756,7 @@ public:
         }
         Shape resultShape = broadcastShapes(shape(), newShape);
         TensorValue result(resultShape, device(), m_dType);
-        device()->broadcastTo(m_data, result.data(), result.size(), shape(), resultShape, m_dType);
+        device()->broadcastTo(data(), result.data(), result.size(), shape(), resultShape, m_dType);
         return result;
     }
 
@@ -1722,7 +1766,7 @@ public:
         if (shape() == originalShape) return *this;
         // Ensure tensor values are initialized to zero, as the reduction operation performs a summation.
         TensorValue result(0, originalShape, device(), m_dType);
-        device()->reduceTo(m_data, result.data(), m_size, m_shape, originalShape, m_dType);
+        device()->reduceTo(data(), result.data(), m_size, m_shape, originalShape, m_dType);
         return result;
     }
 
@@ -1781,7 +1825,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, m_dType);
-        m_device->unary(m_data, m_size, result.m_data, m_dType);
+        m_device->unary(data(), m_size, result.data(), m_dType);
         return result;
     }
 
@@ -1851,13 +1895,13 @@ public:
 
     void fill(float value) const
     {
-        m_device->fill(&value, DataType::kFloat32, m_size, m_data, m_dType);
+        m_device->fill(&value, DataType::kFloat32, m_size, m_storage->data(), m_dType);
     }
 
     TensorValue sum() const
     {
         TensorValue result({}, device(), m_dType);
-        m_device->sum(m_data, m_size, result.data(), m_dType);
+        m_device->sum(data(), m_size, result.data(), m_dType);
         return result;
     }
 
@@ -1931,7 +1975,7 @@ public:
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, m_dType);
-        m_device->pow(m_data, exp.m_data, m_size, result.m_data, m_dType);
+        m_device->pow(data(), exp.data(), m_size, result.data(), m_dType);
         return result;
     }
 
@@ -1939,7 +1983,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result({}, m_device, m_dType);
-        m_device->max(m_data, m_size, result.m_data, m_dType);
+        m_device->max(data(), m_size, result.data(), m_dType);
         return result;
     }
 
@@ -1958,7 +2002,7 @@ public:
 
         TensorValue result(newShape, device(), m_dType);            // Zero initialization is not required.
         device()->fillMin(m_dType, result.size(), result.data());   // Initialize the tensor with the lowest value.
-        device()->maxTo(m_data, result.data(), m_size, m_shape, newShape, m_dType);
+        device()->maxTo(data(), result.data(), m_size, m_shape, newShape, m_dType);
         return keepDim ? result : result.squeeze(dim);
     }
 
@@ -1966,7 +2010,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result({}, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
-        m_device->argmax(m_data, m_size, result.m_data, m_dType, aix::DataType::kInt32);
+        m_device->argmax(data(), m_size, result.data(), m_dType, aix::DataType::kInt32);
         return result;
     }
 
@@ -1984,7 +2028,7 @@ public:
         newShape[dim] = 1;
 
         TensorValue result(newShape, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
-        m_device->argmaxTo(m_data, result.data(), m_size, result.size(), m_shape, newShape, m_strides, dim,
+        m_device->argmaxTo(data(), result.data(), m_size, result.size(), m_shape, newShape, m_strides, dim,
                            m_dType, aix::DataType::kInt32);
         return keepDim ? result : result.squeeze(dim);
     }
@@ -1993,7 +2037,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, aix::DataType::kInt32);   // Index is by default in int32 type.
-        m_device->argmaxIndices(m_data, m_size, result.m_data, m_dType, aix::DataType::kInt32);
+        m_device->argmaxIndices(data(), m_size, result.data(), m_dType, aix::DataType::kInt32);
         return result;
     }
 
@@ -2011,7 +2055,7 @@ public:
         newShape[dim] = 1;
 
         TensorValue result(0, m_shape, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
-        m_device->argmaxIndicesTo(m_data, result.data(), m_size, result.size(), m_shape, newShape, m_dType,
+        m_device->argmaxIndicesTo(data(), result.data(), m_size, result.size(), m_shape, newShape, m_dType,
                                   aix::DataType::kInt32);
         return result;
     }
@@ -2048,7 +2092,7 @@ public:
 
         // Resultant tensor shape
         TensorValue result(resultShape, m_device, m_dType);
-        m_device->matmul(m_data, m_shape, b.m_data, b.m_shape, result.m_data, m_dType);
+        m_device->matmul(data(), m_shape, b.data(), b.m_shape, result.data(), m_dType);
         return result;
     }
 
@@ -2068,7 +2112,7 @@ public:
         Shape newShape = m_shape;
         std::swap(newShape[dim0], newShape[dim1]);
         TensorValue result(newShape, device(), m_dType);
-        m_device->transpose(dim0, dim1, m_data, m_shape, m_strides, result.strides(), result.size(), result.data(), m_dType);
+        m_device->transpose(dim0, dim1, data(), m_shape, m_strides, result.strides(), result.size(), result.data(), m_dType);
         return result;
     }
 
@@ -2145,7 +2189,7 @@ public:
 
         TensorValue result(newShape, device(), m_dType);    // Zero initialization is not required.
         // Slice and copy data to the result tensor.
-        device()->slice(m_data, result.data(), result.size(), m_shape, newShape, m_strides,
+        device()->slice(data(), result.data(), result.size(), m_shape, newShape, m_strides,
                         dim, start, step, m_dType);
         return result;
     }
@@ -2199,14 +2243,14 @@ public:
         if (inPlace)
         {
             // Slice and set tensor's data to the result tensor.
-            device()->sliceSet(tensor.m_data, m_data, tensor.size(), m_shape, newShape, m_strides, dim, start, step,
+            device()->sliceSet(tensor.m_storage->data(), m_storage->data(), tensor.size(), m_shape, newShape, m_strides, dim, start, step,
                                m_dType);
             return *this;
         }
 
         TensorValue result(0, m_shape, device(), m_dType);  // Zero initialization is required.
         // Slice and set tensor's data to the result tensor.
-        device()->sliceSet(tensor.m_data, result.data(), tensor.size(), m_shape, newShape, m_strides, dim, start, step,
+        device()->sliceSet(tensor.m_storage->data(), result.data(), tensor.size(), m_shape, newShape, m_strides, dim, start, step,
                            m_dType);
         return result;
     }
@@ -2294,7 +2338,7 @@ public:
 
         if (inPlace)
         {
-            device()->indexAdd(source.data(), m_data, source.size(), indices.data(), indices.size(),
+            device()->indexAdd(source.data(), m_storage->data(), source.size(), indices.data(), indices.size(),
                                shape(), dim, dataType());
             return *this;
         }
@@ -2427,7 +2471,7 @@ private:
             return result;
         }
         TensorValue result(m_shape, m_device, m_dType);
-        (m_device->*func)(m_data, other.m_data, m_size, result.m_data, m_dType);
+        (m_device->*func)(data(), other.data(), m_size, result.data(), m_dType);
         return result;
     }
 
@@ -2445,7 +2489,7 @@ private:
         }
         else
         {
-            (m_device->*func)(m_data, other.m_data, m_size, m_data, m_dType);
+            (m_device->*func)(data(), other.data(), m_size, data(), m_dType);
         }
         return *this;
     }
@@ -2457,13 +2501,13 @@ private:
         if (dataType() != promotedDType)
         {
             // This constructor requires copy operation.
-            TensorValue result(m_data, m_size, m_dType, m_shape, m_device, promotedDType);
+            TensorValue result(data(), m_size, m_dType, m_shape, m_device, promotedDType);
             (m_device->*func)(result.data(), result.size(), result.data(), promotedDType);
             return result;
         }
         // This constructor does not require copy operation.
         TensorValue result(m_shape, m_device, m_dType);
-        (m_device->*func)(m_data, m_size, result.m_data, m_dType);
+        (m_device->*func)(data(), m_size, result.data(), m_dType);
         return result;
     }
 
@@ -2644,11 +2688,11 @@ private:
 
 private:
     DataType  m_dType{DataType::kFloat32};
-    void*     m_data{nullptr};  // The flat array of tensor elements.
     size_t    m_size{0};        // Number of elements in DataType.
     Shape     m_shape;          // The shape of the tensor.
     Stride    m_strides;        // The strides for indexing the tensor.
     Device *  m_device{nullptr};
+    std::shared_ptr<TensorStorage>  m_storage;      // The flat array of tensor elements.
 };
 
 
@@ -2743,6 +2787,15 @@ public:
     }
 
     // Constructor.
+    explicit Tensor(const std::shared_ptr<TensorStorage>& storage, size_t size, const Shape & shape,
+                    const TensorOptions & opt = {})
+    {
+        m_data = std::make_shared<TensorNode>(TensorValue{storage, size, shape, opt.m_device, opt.m_dtype},
+                                              opt.m_requireGrad);
+        m_data->m_backwardFunc = defaultBackward;
+    }
+
+    // Constructor.
     explicit Tensor(float value, const Shape & shape, const TensorOptions & opt = {})
     {
         // Create a new Tensor Graph Node.
@@ -2805,9 +2858,9 @@ public:
                                         std::to_string(value().size()) + " vs " + std::to_string(newSize) + ").");
         }
 
-        const auto& tv = m_data->m_value;
+        auto& tv = m_data->m_value;
         TensorOptions opt{ .m_requireGrad=isRequireGrad(), .m_dtype=dataType(), .m_device=device() };
-        Tensor result{tv.data(), tv.size(), tv.dataType(), newShape, opt};
+        Tensor result{tv.storage(), tv.size(), newShape, opt};
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = reshapeBackwardFunc;
         return result;
