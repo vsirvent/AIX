@@ -629,9 +629,47 @@ private:
     std::unique_ptr<aix::Device>  m_device;
 };
 
-using BenchmarkTensorMatMulF32800 = BenchmarkTensorMatMul<aix::DataType::kFloat32,800>;
+using BenchmarkTensorMatMulF3210   = BenchmarkTensorMatMul<aix::DataType::kFloat32,10>;
+using BenchmarkTensorMatMulF3225   = BenchmarkTensorMatMul<aix::DataType::kFloat32,25>;
+using BenchmarkTensorMatMulF3250   = BenchmarkTensorMatMul<aix::DataType::kFloat32,50>;
+using BenchmarkTensorMatMulF32100  = BenchmarkTensorMatMul<aix::DataType::kFloat32,100>;
+using BenchmarkTensorMatMulF32200  = BenchmarkTensorMatMul<aix::DataType::kFloat32,200>;
+using BenchmarkTensorMatMulF32500  = BenchmarkTensorMatMul<aix::DataType::kFloat32,500>;
+using BenchmarkTensorMatMulF32800  = BenchmarkTensorMatMul<aix::DataType::kFloat32,800>;
+using BenchmarkTensorMatMulF321000 = BenchmarkTensorMatMul<aix::DataType::kFloat32,1000>;
+using BenchmarkTensorMatMulF322000 = BenchmarkTensorMatMul<aix::DataType::kFloat32,2000>;
 
-BENCHMARK(BenchmarkTensorMatMulF32800, "tensor_matmul_f32_800")
+using BenchmarkTensorMatMulF3216   = BenchmarkTensorMatMul<aix::DataType::kFloat32,16>;
+using BenchmarkTensorMatMulF3232   = BenchmarkTensorMatMul<aix::DataType::kFloat32,32>;
+using BenchmarkTensorMatMulF3264   = BenchmarkTensorMatMul<aix::DataType::kFloat32,64>;
+using BenchmarkTensorMatMulF32128  = BenchmarkTensorMatMul<aix::DataType::kFloat32,128>;
+using BenchmarkTensorMatMulF32256  = BenchmarkTensorMatMul<aix::DataType::kFloat32,256>;
+using BenchmarkTensorMatMulF32512  = BenchmarkTensorMatMul<aix::DataType::kFloat32,512>;
+using BenchmarkTensorMatMulF32768  = BenchmarkTensorMatMul<aix::DataType::kFloat32,768>;
+using BenchmarkTensorMatMulF321024 = BenchmarkTensorMatMul<aix::DataType::kFloat32,1024>;
+using BenchmarkTensorMatMulF322048 = BenchmarkTensorMatMul<aix::DataType::kFloat32,2048>;
+
+BENCHMARK(BenchmarkTensorMatMulF3210  , "tensor_matmul_f32_10")
+BENCHMARK(BenchmarkTensorMatMulF3225  , "tensor_matmul_f32_25")
+BENCHMARK(BenchmarkTensorMatMulF3250  , "tensor_matmul_f32_50")
+BENCHMARK(BenchmarkTensorMatMulF32100 , "tensor_matmul_f32_100")
+BENCHMARK(BenchmarkTensorMatMulF32200 , "tensor_matmul_f32_200")
+BENCHMARK(BenchmarkTensorMatMulF32500 , "tensor_matmul_f32_500")
+BENCHMARK(BenchmarkTensorMatMulF32800 , "tensor_matmul_f32_800")
+BENCHMARK(BenchmarkTensorMatMulF321000, "tensor_matmul_f32_1000")
+BENCHMARK(BenchmarkTensorMatMulF322000, "tensor_matmul_f32_2000")
+
+BENCHMARK(BenchmarkTensorMatMulF3216  , "tensor_matmul_f32_16")
+BENCHMARK(BenchmarkTensorMatMulF3232  , "tensor_matmul_f32_32")
+BENCHMARK(BenchmarkTensorMatMulF3264  , "tensor_matmul_f32_64")
+BENCHMARK(BenchmarkTensorMatMulF32128 , "tensor_matmul_f32_128")
+BENCHMARK(BenchmarkTensorMatMulF32256 , "tensor_matmul_f32_256")
+BENCHMARK(BenchmarkTensorMatMulF32512 , "tensor_matmul_f32_512")
+BENCHMARK(BenchmarkTensorMatMulF32768 , "tensor_matmul_f32_768")
+BENCHMARK(BenchmarkTensorMatMulF321024, "tensor_matmul_f32_1024")
+BENCHMARK(BenchmarkTensorMatMulF322048, "tensor_matmul_f32_2048")
+
+
 
 // --------------------------------------------------------------------------------
 // TRANSPOSE

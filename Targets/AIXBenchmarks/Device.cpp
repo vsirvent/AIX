@@ -624,9 +624,45 @@ private:
     std::unique_ptr<aix::Device>  m_device;
 };
 
-using BenchmarkDeviceMatMulF32800 = BenchmarkDeviceMatMul<aix::DataType::kFloat32,800>;
+using BenchmarkDeviceMatMulF3210   = BenchmarkDeviceMatMul<aix::DataType::kFloat32,10>;
+using BenchmarkDeviceMatMulF3225   = BenchmarkDeviceMatMul<aix::DataType::kFloat32,25>;
+using BenchmarkDeviceMatMulF3250   = BenchmarkDeviceMatMul<aix::DataType::kFloat32,50>;
+using BenchmarkDeviceMatMulF32100  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,100>;
+using BenchmarkDeviceMatMulF32200  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,200>;
+using BenchmarkDeviceMatMulF32500  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,500>;
+using BenchmarkDeviceMatMulF32800  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,800>;
+using BenchmarkDeviceMatMulF321000 = BenchmarkDeviceMatMul<aix::DataType::kFloat32,1000>;
+using BenchmarkDeviceMatMulF322000 = BenchmarkDeviceMatMul<aix::DataType::kFloat32,2000>;
 
-BENCHMARK(BenchmarkDeviceMatMulF32800, "device_matmul_f32_800")
+using BenchmarkDeviceMatMulF3216   = BenchmarkDeviceMatMul<aix::DataType::kFloat32,16>;
+using BenchmarkDeviceMatMulF3232   = BenchmarkDeviceMatMul<aix::DataType::kFloat32,32>;
+using BenchmarkDeviceMatMulF3264   = BenchmarkDeviceMatMul<aix::DataType::kFloat32,64>;
+using BenchmarkDeviceMatMulF32128  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,128>;
+using BenchmarkDeviceMatMulF32256  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,256>;
+using BenchmarkDeviceMatMulF32512  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,512>;
+using BenchmarkDeviceMatMulF32768  = BenchmarkDeviceMatMul<aix::DataType::kFloat32,768>;
+using BenchmarkDeviceMatMulF321024 = BenchmarkDeviceMatMul<aix::DataType::kFloat32,1024>;
+using BenchmarkDeviceMatMulF322048 = BenchmarkDeviceMatMul<aix::DataType::kFloat32,2048>;
+
+BENCHMARK(BenchmarkDeviceMatMulF3210  , "device_matmul_f32_10")
+BENCHMARK(BenchmarkDeviceMatMulF3225  , "device_matmul_f32_25")
+BENCHMARK(BenchmarkDeviceMatMulF3250  , "device_matmul_f32_50")
+BENCHMARK(BenchmarkDeviceMatMulF32100 , "device_matmul_f32_100")
+BENCHMARK(BenchmarkDeviceMatMulF32200 , "device_matmul_f32_200")
+BENCHMARK(BenchmarkDeviceMatMulF32500 , "device_matmul_f32_500")
+BENCHMARK(BenchmarkDeviceMatMulF32800 , "device_matmul_f32_800")
+BENCHMARK(BenchmarkDeviceMatMulF321000, "device_matmul_f32_1000")
+BENCHMARK(BenchmarkDeviceMatMulF322000, "device_matmul_f32_2000")
+
+BENCHMARK(BenchmarkDeviceMatMulF3216  , "device_matmul_f32_16")
+BENCHMARK(BenchmarkDeviceMatMulF3232  , "device_matmul_f32_32")
+BENCHMARK(BenchmarkDeviceMatMulF3264  , "device_matmul_f32_64")
+BENCHMARK(BenchmarkDeviceMatMulF32128 , "device_matmul_f32_128")
+BENCHMARK(BenchmarkDeviceMatMulF32256 , "device_matmul_f32_256")
+BENCHMARK(BenchmarkDeviceMatMulF32512 , "device_matmul_f32_512")
+BENCHMARK(BenchmarkDeviceMatMulF32768 , "device_matmul_f32_768")
+BENCHMARK(BenchmarkDeviceMatMulF321024, "device_matmul_f32_1024")
+BENCHMARK(BenchmarkDeviceMatMulF322048, "device_matmul_f32_2048")
 
 // --------------------------------------------------------------------------------
 // TRANSPOSE
