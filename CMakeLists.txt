@@ -61,7 +61,6 @@ if (AIX_BUILD_TESTS)
 endif ()
 
 if (AIX_BUILD_EXAMPLES)
-    add_subdirectory(Targets/AIXExamples/GPT2)
     add_subdirectory(Targets/AIXExamples/XORApp)
     add_subdirectory(Targets/AIXExamples/XORLayerApp)
     add_subdirectory(Targets/AIXExamples/XORSequentialApp)
