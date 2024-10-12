@@ -403,17 +403,9 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     auto buf2Size = MatrixSize{s2[0], s2[1]};
 
     size_t M = buf1Size.rows;
-    size_t K = buf1Size.cols;
+    //size_t K = buf1Size.cols;
     size_t N = buf2Size.cols;
 
-    // Encode the pipeline state object and its parameters.
-    m_compEncoder->setComputePipelineState(compFuncPSO);
-    m_compEncoder->setBuffer(buf1, 0, 0);
-    m_compEncoder->setBuffer(buf2, 0, 1);
-    m_compEncoder->setBuffer(bufResult, 0, 2);
-    m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 3);
-    m_compEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
-    m_compEncoder->dispatchThreads({align(s2[1],tileSize), align(s1[0],tileSize), 1}, {w, h, 1});
     auto encodeParams = [&](const MTL::ComputePipelineState* compFuncPSO)
     {
         m_compEncoder->setComputePipelineState(compFuncPSO);
