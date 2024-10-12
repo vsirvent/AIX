@@ -1677,6 +1677,13 @@ TEST_CASE("Device Tests - MatMul")
             CHECK(testMatMul(&*device, m, m, m));
         }
 
+        for (size_t m=0; m<100; ++m)
+        {
+            CHECK(testMatMul(&*device, 32 * (1 + std::rand() % 5),
+                                       32 * (1 + std::rand() % 5),
+                                       32 * (1 + std::rand() % 5)));
+        }
+
         CHECK(testMatMul(&*device, 257, 129, 513));
         CHECK(testMatMul(&*device, 258, 130, 514));
         CHECK(testMatMul(&*device, 256, 128, 512));

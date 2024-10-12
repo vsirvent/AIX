@@ -599,6 +599,80 @@ kernel void matrixMul_aa(device const T* inA,
 }
 
 
+// Matrix_Mul Block 32
+// -----------------------------------------------------------------
+template<typename T>
+kernel void matrixMul_b32_aa(device const T* inA,
+                             device const T* inB,
+                             device T* result,
+                             constant MatrixSize& matASize,
+                             constant MatrixSize& matBSize,
+                             uint2 gid  [[thread_position_in_grid]],
+                             uint2 tgid [[threadgroup_position_in_grid]],
+                             uint2 lid  [[thread_position_in_threadgroup]])
+{
+    constexpr uint TSX = 32;        // Tile size X.
+    constexpr uint TSY = TSX * 1;   // Tile size Y.
+
+    const uint M = matASize.rows;
+    const uint N = matASize.cols;
+    const uint K = matBSize.cols;
+
+    auto xOffset = tgid.x * TSX;
+    auto yOffset = tgid.y * TSY + lid.y * TSX;
+    inA += yOffset * N;
+    inB += xOffset;
+    result += yOffset * K + xOffset;
+
+    // Local tile buffers.
+    simdgroup_matrix<T,8,8>  A[4];
+    simdgroup_matrix<T,8,8>  B[4];
+    simdgroup_matrix<T,8,8>  C[4][4] = { simdgroup_matrix<T,8,8>(0) };
+
+    // Iterate over tiles.
+    for (uint k=0; k<N; k+=8)
+    {
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+
+        // Load tiles of A.
+        #pragma unroll(4)
+        for (uint i=0; i<4; ++i)
+        {
+            simdgroup_load(A[i], inA + k + i * 8 * N, N);
+        }
+
+        // Load tiles of B.
+        #pragma unroll(4)
+        for (uint i=0; i<4; ++i)
+        {
+            simdgroup_load(B[i], inB + i * 8 + k * K, K);
+        }
+
+        // Multiply and accumulate.
+        #pragma unroll(4)
+        for (int i=0; i<4; ++i)
+        {
+            #pragma unroll(4)
+            for (int j=0; j<4; ++j)
+            {
+                simdgroup_multiply_accumulate(C[i][j], A[j], B[i], C[i][j]);
+            }
+        }
+    }
+
+    // Store the results.
+    #pragma unroll(4)
+    for (int i=0; i<4; ++i)
+    {
+        #pragma unroll(4)
+        for (int j=0; j<4; ++j)
+        {
+            simdgroup_store(C[j][i], result + j * 8 + i * 8 * K, K);
+        }
+    }
+}
+
+
 // Transpose2D - Naive Implementation
 // -----------------------------------------------------------------
 template<typename T>
@@ -1777,6 +1851,84 @@ kernel void matrixMul_aa(device const uchar*,
                          uint2 gid  [[thread_position_in_grid]],
                          uint2 tgid [[threadgroup_position_in_grid]],
                          uint2 lid  [[thread_position_in_threadgroup]]);
+
+
+// Matrix_Mul Block 32
+// -----------------------------------------------------------------
+template [[ host_name("matrixMul_b32_aa_f32") ]]
+kernel void matrixMul_b32_aa(device const float* inA,
+                             device const float* inB,
+                             device float* result,
+                             constant MatrixSize& matSize1,
+                             constant MatrixSize& matSize2,
+                             uint2 gid  [[thread_position_in_grid]],
+                             uint2 tgid [[threadgroup_position_in_grid]],
+                             uint2 lid  [[thread_position_in_threadgroup]]);
+
+template [[ host_name("matrixMul_b32_aa_f16") ]]
+kernel void matrixMul_b32_aa(device const half* inA,
+                             device const half* inB,
+                             device half* result,
+                             constant MatrixSize& matSize1,
+                             constant MatrixSize& matSize2,
+                             uint2 gid  [[thread_position_in_grid]],
+                             uint2 tgid [[threadgroup_position_in_grid]],
+                             uint2 lid  [[thread_position_in_threadgroup]]);
+
+template [[ host_name("matrixMul_b32_aa_bf16") ]]
+kernel void matrixMul_b32_aa(device const bfloat* inA,
+                             device const bfloat* inB,
+                             device bfloat* result,
+                             constant MatrixSize& matSize1,
+                             constant MatrixSize& matSize2,
+                             uint2 gid  [[thread_position_in_grid]],
+                             uint2 tgid [[threadgroup_position_in_grid]],
+                             uint2 lid  [[thread_position_in_threadgroup]]);
+
+kernel void matrixMul_b32_aa_i64(device const long* inA,
+                                 device const long* inB,
+                                 device long* result,
+                                 constant MatrixSize& matSize1,
+                                 constant MatrixSize& matSize2,
+                                 uint2 gid  [[thread_position_in_grid]],
+                                 uint2 tgid [[threadgroup_position_in_grid]],
+                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
+
+kernel void matrixMul_b32_aa_i32(device const int* inA,
+                                 device const int* inB,
+                                 device int* result,
+                                 constant MatrixSize& matSize1,
+                                 constant MatrixSize& matSize2,
+                                 uint2 gid  [[thread_position_in_grid]],
+                                 uint2 tgid [[threadgroup_position_in_grid]],
+                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
+
+kernel void matrixMul_b32_aa_i16(device const short* inA,
+                                 device const short* inB,
+                                 device short* result,
+                                 constant MatrixSize& matSize1,
+                                 constant MatrixSize& matSize2,
+                                 uint2 gid  [[thread_position_in_grid]],
+                                 uint2 tgid [[threadgroup_position_in_grid]],
+                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
+
+kernel void matrixMul_b32_aa_i8(device const char* inA,
+                                device const char* inB,
+                                device char* result,
+                                constant MatrixSize& matSize1,
+                                constant MatrixSize& matSize2,
+                                uint2 gid  [[thread_position_in_grid]],
+                                uint2 tgid [[threadgroup_position_in_grid]],
+                                uint2 lid  [[thread_position_in_threadgroup]]) { }
+
+kernel void matrixMul_b32_aa_ui8(device const unsigned char* inA,
+                                 device const unsigned char* inB,
+                                 device unsigned char* result,
+                                 constant MatrixSize& matSize1,
+                                 constant MatrixSize& matSize2,
+                                 uint2 gid  [[thread_position_in_grid]],
+                                 uint2 tgid [[threadgroup_position_in_grid]],
+                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
 
 
 // Transpose2D

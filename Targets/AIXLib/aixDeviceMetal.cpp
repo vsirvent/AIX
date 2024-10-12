@@ -67,6 +67,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOSum[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sum_a_" + dtypeStr);
         m_compFuncPSOMax[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "max_a_" + dtypeStr);
         m_compFuncPSOMatMul[i]      = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_aa_" + dtypeStr);
+        m_compFuncPSOMatMulB32[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_b32_aa_" + dtypeStr);
         m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_a_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
         m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_a_" + dtypeStr);
@@ -120,6 +121,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOSum[i]->release();
         m_compFuncPSOMax[i]->release();
         m_compFuncPSOMatMul[i]->release();
+        m_compFuncPSOMatMulB32[i]->release();
         m_compFuncPSOTranspose2D[i]->release();
         m_compFuncPSOTranspose[i]->release();
         m_compFuncPSOBroadcastTo[i]->release();
@@ -403,7 +405,7 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     auto buf2Size = MatrixSize{s2[0], s2[1]};
 
     size_t M = buf1Size.rows;
-    //size_t K = buf1Size.cols;
+    size_t K = buf1Size.cols;
     size_t N = buf2Size.cols;
 
     auto encodeParams = [&](const MTL::ComputePipelineState* compFuncPSO)
@@ -416,14 +418,31 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
         m_compEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
     };
 
-    constexpr size_t tileSize = 64;
-    constexpr size_t numThreads = 64;
-    uint numThreadgroupsX = (N + tileSize - 1) / tileSize;
-    uint numThreadgroupsY = (M + tileSize - 1) / tileSize;
-    auto compFuncPSO = m_compFuncPSOMatMul[iDType];
-    assert(numThreads <= compFuncPSO->maxTotalThreadsPerThreadgroup());
-    encodeParams(compFuncPSO);
-    m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {numThreads, 1, 1});
+    // Use fast matmul where dimensions are multiple of 32.
+    if (M % 32 == 0 && N % 32 == 0 & K % 32 == 0 &&         // TODO: Make SIMD comparison.
+        (dtype == aix::DataType::kFloat32 || dtype == aix::DataType::kFloat16 || dtype == aix::DataType::kBFloat16))
+    {
+        constexpr size_t tileSizeX = 32;
+        constexpr size_t tileSizeY = tileSizeX * 1;
+        // Encode the pipeline state object and its parameters.
+        uint numThreadgroupsX = (N + tileSizeX - 1) / tileSizeX;
+        uint numThreadgroupsY = (M + tileSizeY - 1) / tileSizeY;
+        auto compFuncPSO = m_compFuncPSOMatMulB32[iDType];
+        assert(tileSizeX * tileSizeY / tileSizeX <= compFuncPSO->maxTotalThreadsPerThreadgroup());
+        encodeParams(compFuncPSO);
+        m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {tileSizeX, tileSizeY/tileSizeX, 1});
+    }
+    else
+    {
+        constexpr size_t tileSize = 64;
+        constexpr size_t numThreads = 64;
+        uint numThreadgroupsX = (N + tileSize - 1) / tileSize;
+        uint numThreadgroupsY = (M + tileSize - 1) / tileSize;
+        auto compFuncPSO = m_compFuncPSOMatMul[iDType];
+        assert(numThreads <= compFuncPSO->maxTotalThreadsPerThreadgroup());
+        encodeParams(compFuncPSO);
+        m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {numThreads, 1, 1});
+    }
 
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);
@@ -1004,6 +1023,7 @@ MTL::Library* DeviceMetal::createLibrary(const char* shaders)
 {
     // Create a compile options.
     MTL::CompileOptions* compileOptions = MTL::CompileOptions::alloc()->init();
+    compileOptions->setOptimizationLevel(MTL::LibraryOptimizationLevelDefault);
     compileOptions->setFastMathEnabled(false);
 
     NS::Error* error = nullptr;
