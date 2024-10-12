@@ -389,9 +389,7 @@ void DeviceMetal::argmaxIndices(const void* a, size_t size, void* result, DataTy
 void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype)
 {
     validateDataType(dtype);
-    constexpr size_t tileSize = 32;
     auto iDType = static_cast<size_t>(dtype);
-    auto compFuncPSO = m_compFuncPSOMatMul[iDType];
 
     // Result buffer has to be allocated in advance and has to be a GPU memory.
     if (!isDeviceBuffer(result))
@@ -404,9 +402,9 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     auto buf1Size = MatrixSize{s1[0], s1[1]};
     auto buf2Size = MatrixSize{s2[0], s2[1]};
 
-    // Calculate maximum thread group dimensions
-    NS::UInteger w = compFuncPSO->threadExecutionWidth();
-    NS::UInteger h = compFuncPSO->maxTotalThreadsPerThreadgroup() / w;
+    size_t M = buf1Size.rows;
+    size_t K = buf1Size.cols;
+    size_t N = buf2Size.cols;
 
     // Encode the pipeline state object and its parameters.
     m_compEncoder->setComputePipelineState(compFuncPSO);
@@ -416,6 +414,24 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
     m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 3);
     m_compEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
     m_compEncoder->dispatchThreads({align(s2[1],tileSize), align(s1[0],tileSize), 1}, {w, h, 1});
+    auto encodeParams = [&](const MTL::ComputePipelineState* compFuncPSO)
+    {
+        m_compEncoder->setComputePipelineState(compFuncPSO);
+        m_compEncoder->setBuffer(buf1, 0, 0);
+        m_compEncoder->setBuffer(buf2, 0, 1);
+        m_compEncoder->setBuffer(bufResult, 0, 2);
+        m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 3);
+        m_compEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
+    };
+
+    constexpr size_t tileSize = 64;
+    constexpr size_t numThreads = 64;
+    uint numThreadgroupsX = (N + tileSize - 1) / tileSize;
+    uint numThreadgroupsY = (M + tileSize - 1) / tileSize;
+    auto compFuncPSO = m_compFuncPSOMatMul[iDType];
+    assert(numThreads <= compFuncPSO->maxTotalThreadsPerThreadgroup());
+    encodeParams(compFuncPSO);
+    m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {numThreads, 1, 1});
 
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);

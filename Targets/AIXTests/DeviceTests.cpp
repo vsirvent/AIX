@@ -1672,11 +1672,46 @@ TEST_CASE("Device Tests - MatMul")
             }
         }
 
+        for (size_t m=1; m<=1024; m*=2)
+        {
+            CHECK(testMatMul(&*device, m, m, m));
+        }
+
         CHECK(testMatMul(&*device, 257, 129, 513));
         CHECK(testMatMul(&*device, 258, 130, 514));
         CHECK(testMatMul(&*device, 256, 128, 512));
         CHECK(testMatMul(&*device, 255, 127, 511));
         CHECK(testMatMul(&*device, 254, 126, 510));
+
+        CHECK(testMatMul(&*device, 129, 257, 513));
+        CHECK(testMatMul(&*device, 130, 258, 514));
+        CHECK(testMatMul(&*device, 128, 256, 512));
+        CHECK(testMatMul(&*device, 127, 255, 511));
+        CHECK(testMatMul(&*device, 126, 254, 510));
+
+        CHECK(testMatMul(&*device, 257, 513, 129));
+        CHECK(testMatMul(&*device, 258, 514, 130));
+        CHECK(testMatMul(&*device, 256, 512, 128));
+        CHECK(testMatMul(&*device, 255, 511, 127));
+        CHECK(testMatMul(&*device, 254, 510, 126));
+
+        CHECK(testMatMul(&*device, 129, 513, 257));
+        CHECK(testMatMul(&*device, 130, 514, 258));
+        CHECK(testMatMul(&*device, 128, 512, 256));
+        CHECK(testMatMul(&*device, 127, 511, 255));
+        CHECK(testMatMul(&*device, 126, 510, 254));
+
+        CHECK(testMatMul(&*device, 513, 257, 129));
+        CHECK(testMatMul(&*device, 514, 258, 130));
+        CHECK(testMatMul(&*device, 512, 256, 128));
+        CHECK(testMatMul(&*device, 511, 255, 127));
+        CHECK(testMatMul(&*device, 510, 254, 126));
+
+        CHECK(testMatMul(&*device, 513, 129, 257));
+        CHECK(testMatMul(&*device, 514, 130, 258));
+        CHECK(testMatMul(&*device, 512, 128, 256));
+        CHECK(testMatMul(&*device, 511, 127, 255));
+        CHECK(testMatMul(&*device, 510, 126, 254));
     }
 }
 

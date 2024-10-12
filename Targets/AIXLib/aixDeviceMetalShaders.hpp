@@ -502,52 +502,100 @@ kernel void pow_aa(device const T* inA  [[buffer(0)]],
 // Matrix_Mul
 // -----------------------------------------------------------------
 template<typename T>
-kernel void matrixMul_aa(device const T* inA             [[buffer(0)]],
-                         device const T* inB             [[buffer(1)]],
-                         device T* result              [[buffer(2)]],
-                         constant MatrixSize& matASize [[buffer(3)]],
-                         constant MatrixSize& matBSize [[buffer(4)]],
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]])
+kernel void matrixMul_aa(device const T* inA,
+                         device const T* inB,
+                         device T* result,
+                         constant MatrixSize& matASize,
+                         constant MatrixSize& matBSize,
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]])
 {
-    constexpr int TILE_SIZE = 32;
-    size_t M = matASize.rows;
-    size_t N = matBSize.cols;
-    size_t K = matASize.cols;
+    // Constants defining tile and thread sizes.
+    constexpr uint BM = 64;      // Tile size in M dimension.
+    constexpr uint BN = 64;      // Tile size in N dimension.
+    constexpr uint BK = 8;       // Tile size in K dimension.
+    constexpr uint TM = 8;       // Elements per thread along M.
+    constexpr uint TN = 8;       // Elements per thread along N.
 
-    // Allocate shared memory.
-    threadgroup T  A[TILE_SIZE][TILE_SIZE + 1];  // +1 to avoid bank conflict.
-    threadgroup T  B[TILE_SIZE][TILE_SIZE + 1];
+    // Thread indices within a block.
+    constexpr uint bRowThread = BN / TN;            // Block row thread.
+    constexpr uint bColThread = BM / TM;            // Block col thread.
+    constexpr uint numThreads = bRowThread * bColThread;
 
-    // Initialize the sum for each thread's output element.
-    T sum = 0;
+    // Matrix dimensions.
+    uint M = matASize.rows;
+    uint K = matASize.cols;
+    uint N = matBSize.cols;
 
-    // Loop over all tiles.
-    for (size_t tile = 0; tile < (K + TILE_SIZE - 1) / TILE_SIZE; ++tile)
+    uint tx = (lid.x % bRowThread) * TN;
+    uint ty = (lid.x / bRowThread) * TM;
+
+    // Shared memory for tiles.
+    threadgroup T A[BM * BK];
+    threadgroup T B[BK * BN];
+
+    // Indices for loading tiles into thread group memory.
+    uint tileRowA = lid.x / BK;
+    uint tileColA = lid.x % BK;
+    constexpr uint tileStrideA = numThreads / BK;
+
+    uint tileRowB = lid.x / BN;
+    uint tileColB = lid.x % BN;
+    constexpr uint tileStrideB = numThreads / BN;
+
+    T tmp[TM][TN] = { 0 };      // Temporary accumulation buffer.
+
+    // Main loop over tiles of K dimension.
+    for (uint k=0; k<K; k+=BK)
     {
-        // Load elements into shared memory.
-        size_t aRow = gid.y;
-        size_t aCol = tile * TILE_SIZE + lid.x;
-        A[lid.y][lid.x] = (aRow < M && aCol < K) ? inA[aRow * K + aCol] : 0;
+        // Load tiles from inA into shared memory with boundary checks.
+        for (uint i=0; i<BM; i+=tileStrideA)
+        {
+            uint globalRow = tgid.y * BM + tileRowA + i;
+            uint globalCol = k + tileColA;
+            A[(tileRowA + i) * BK + tileColA] = globalRow < M && globalCol < K ? inA[globalRow * K + globalCol] : 0;
+        }
 
-        size_t bRow = tile * TILE_SIZE + lid.y;
-        size_t bCol = gid.x;
-        B[lid.x][lid.y] = (bRow < K && bCol < N) ? inB[bRow * N + bCol] : 0;
+        // Load tiles from inB into shared memory with boundary checks.
+        for (uint i=0; i<BK; i+=tileStrideB)
+        {
+            uint globalRow = k + tileRowB + i;
+            uint globalCol = tgid.x * BN + tileColB;
+            B[(tileRowB + i) * BN + tileColB] = globalRow < K && globalCol < N ? inB[globalRow * N + globalCol] : 0;
+        }
 
-        // Synchronize to make sure the tile is loaded.
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        // Perform the multiplication for the current tile.
-        #pragma clang pragma unroll(full)
-        for (size_t k = 0; k < TILE_SIZE; ++k)
-            sum += A[lid.y][k] * B[lid.x][k];
-
-        // Synchronize to make sure the computation is done before loading new tile.
+        // Compute partial results.
+        for (uint i=0; i<BK; i++)
+        {
+            for (uint j=0; j<TM; j++)
+            {
+                #pragma unroll(TN)
+                for (uint l=0; l<TN; l++)
+                {
+                    tmp[j][l] += A[(ty + j) * BK + i] * B[tx + l + i * BN];
+                }
+            }
+        }
         threadgroup_barrier(mem_flags::mem_threadgroup);
     }
 
-    if (gid.y < M && gid.x < N)
-        result[gid.y * N + gid.x] = sum;
+    // Store the final results with boundary checks.
+    for (uint j=0; j<TM; j++)
+    {
+        #pragma unroll(TN)
+        for (uint l=0; l<TN; l++)
+        {
+            uint globalRow = tgid.y * BM + ty + j;
+            uint globalCol = tgid.x * BN + tx + l;
+            if (globalRow < M && globalCol < N)
+            {
+                result[globalRow * N + globalCol] = tmp[j][l];
+            }
+        }
+    }
 }
 
 
@@ -1656,8 +1704,9 @@ kernel void matrixMul_aa(device const float*,
                          device float*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 template [[ host_name("matrixMul_aa_f16") ]]
 kernel void matrixMul_aa(device const half*,
@@ -1665,8 +1714,9 @@ kernel void matrixMul_aa(device const half*,
                          device half*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 template [[ host_name("matrixMul_aa_bf16") ]]
 kernel void matrixMul_aa(device const bfloat*,
@@ -1674,8 +1724,9 @@ kernel void matrixMul_aa(device const bfloat*,
                          device bfloat*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 template [[ host_name("matrixMul_aa_i64") ]]
 kernel void matrixMul_aa(device const long*,
@@ -1683,8 +1734,9 @@ kernel void matrixMul_aa(device const long*,
                          device long*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 template [[ host_name("matrixMul_aa_i32") ]]
 kernel void matrixMul_aa(device const int*,
@@ -1692,8 +1744,9 @@ kernel void matrixMul_aa(device const int*,
                          device int*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 template [[ host_name("matrixMul_aa_i16") ]]
 kernel void matrixMul_aa(device const short*,
@@ -1701,8 +1754,9 @@ kernel void matrixMul_aa(device const short*,
                          device short*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 template [[ host_name("matrixMul_aa_i8") ]]
 kernel void matrixMul_aa(device const char*,
@@ -1710,8 +1764,9 @@ kernel void matrixMul_aa(device const char*,
                          device char*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 template [[ host_name("matrixMul_aa_ui8") ]]
 kernel void matrixMul_aa(device const uchar*,
@@ -1719,8 +1774,9 @@ kernel void matrixMul_aa(device const uchar*,
                          device uchar*,
                          constant MatrixSize&,
                          constant MatrixSize&,
-                         uint2 gid [[thread_position_in_grid]],
-                         uint2 lid [[thread_position_in_threadgroup]]);
+                         uint2 gid  [[thread_position_in_grid]],
+                         uint2 tgid [[threadgroup_position_in_grid]],
+                         uint2 lid  [[thread_position_in_threadgroup]]);
 
 
 // Transpose2D
