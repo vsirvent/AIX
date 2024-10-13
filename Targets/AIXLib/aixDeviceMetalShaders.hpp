@@ -599,22 +599,17 @@ kernel void matrixMul_aa(device const T* inA,
 }
 
 
-// Matrix_Mul Block 32
+// Matrix Mul Tiled
 // -----------------------------------------------------------------
-template<typename T>
-kernel void matrixMul_b32_aa(device const T* inA,
-                             device const T* inB,
-                             device T* result,
-                             constant MatrixSize& matASize,
-                             constant MatrixSize& matBSize,
-                             uint2 gid  [[thread_position_in_grid]],
-                             uint2 tgid [[threadgroup_position_in_grid]],
-                             uint2 lid  [[thread_position_in_threadgroup]])
+template<typename T, uint TSX, uint TSY>
+[[kernel]] void matrixMulTiled(const device T* inA,
+                               const device T* inB,
+                               device T* result,
+                               constant MatrixSize& matASize,
+                               constant MatrixSize& matBSize,
+                               uint2 tgid [[threadgroup_position_in_grid]],
+                               uint2 lid  [[thread_position_in_threadgroup]])
 {
-    constexpr uint TSX = 32;        // Tile size X.
-    constexpr uint TSY = TSX * 1;   // Tile size Y.
-
-    const uint M = matASize.rows;
     const uint N = matASize.cols;
     const uint K = matBSize.cols;
 
@@ -1852,83 +1847,41 @@ kernel void matrixMul_aa(device const uchar*,
                          uint2 tgid [[threadgroup_position_in_grid]],
                          uint2 lid  [[thread_position_in_threadgroup]]);
 
-
-// Matrix_Mul Block 32
+// clang-format off
+// Matrix Mul Tiled
 // -----------------------------------------------------------------
-template [[ host_name("matrixMul_b32_aa_f32") ]]
-kernel void matrixMul_b32_aa(device const float* inA,
-                             device const float* inB,
-                             device float* result,
-                             constant MatrixSize& matSize1,
-                             constant MatrixSize& matSize2,
-                             uint2 gid  [[thread_position_in_grid]],
-                             uint2 tgid [[threadgroup_position_in_grid]],
-                             uint2 lid  [[thread_position_in_threadgroup]]);
+#define SpecializeMatrixMulTiled(tname, tsx, tsy, type)  \
+    template [[ host_name("matrixMulTiled_" #tsx "_" #tsy "_" tname) ]]  \
+    [[kernel]] void matrixMulTiled<type,tsx,tsy>(const device type* inA,  \
+                                                 const device type* inB,  \
+                                                 device type* result,     \
+                                                 constant MatrixSize& matSize1,  \
+                                                 constant MatrixSize& matSize2,  \
+                                                 uint2 tgid [[threadgroup_position_in_grid]],  \
+                                                 uint2 lid  [[thread_position_in_threadgroup]])
 
-template [[ host_name("matrixMul_b32_aa_f16") ]]
-kernel void matrixMul_b32_aa(device const half* inA,
-                             device const half* inB,
-                             device half* result,
-                             constant MatrixSize& matSize1,
-                             constant MatrixSize& matSize2,
-                             uint2 gid  [[thread_position_in_grid]],
-                             uint2 tgid [[threadgroup_position_in_grid]],
-                             uint2 lid  [[thread_position_in_threadgroup]]);
+#define ImplementSpecializedMatrixMulTiled(tname, tsx, tsy, type)  \
+    template <> [[ host_name("matrixMulTiled_" #tsx "_" #tsy "_" tname) ]]  \
+    [[kernel]] void matrixMulTiled<type,tsx,tsy>(const device type* inA,  \
+                                                 const device type* inB,  \
+                                                 device type* result,     \
+                                                 constant MatrixSize& matSize1,  \
+                                                 constant MatrixSize& matSize2,  \
+                                                 uint2 tgid [[threadgroup_position_in_grid]],  \
+                                                 uint2 lid  [[thread_position_in_threadgroup]])
 
-template [[ host_name("matrixMul_b32_aa_bf16") ]]
-kernel void matrixMul_b32_aa(device const bfloat* inA,
-                             device const bfloat* inB,
-                             device bfloat* result,
-                             constant MatrixSize& matSize1,
-                             constant MatrixSize& matSize2,
-                             uint2 gid  [[thread_position_in_grid]],
-                             uint2 tgid [[threadgroup_position_in_grid]],
-                             uint2 lid  [[thread_position_in_threadgroup]]);
+#define DeclareConfigMatrixMulTiled(tsx, tsy) \
+    SpecializeMatrixMulTiled("f32",  tsx, tsy, float); \
+    SpecializeMatrixMulTiled("f16",  tsx, tsy, half); \
+    SpecializeMatrixMulTiled("bf16", tsx, tsy, bfloat); \
+    ImplementSpecializedMatrixMulTiled("i64", tsx, tsy, long)  { } \
+    ImplementSpecializedMatrixMulTiled("i32", tsx, tsy, int)   { } \
+    ImplementSpecializedMatrixMulTiled("i16", tsx, tsy, short) { } \
+    ImplementSpecializedMatrixMulTiled("i8",  tsx, tsy, char)  { } \
+    ImplementSpecializedMatrixMulTiled("ui8", tsx, tsy, unsigned char)  { }
 
-kernel void matrixMul_b32_aa_i64(device const long* inA,
-                                 device const long* inB,
-                                 device long* result,
-                                 constant MatrixSize& matSize1,
-                                 constant MatrixSize& matSize2,
-                                 uint2 gid  [[thread_position_in_grid]],
-                                 uint2 tgid [[threadgroup_position_in_grid]],
-                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
-
-kernel void matrixMul_b32_aa_i32(device const int* inA,
-                                 device const int* inB,
-                                 device int* result,
-                                 constant MatrixSize& matSize1,
-                                 constant MatrixSize& matSize2,
-                                 uint2 gid  [[thread_position_in_grid]],
-                                 uint2 tgid [[threadgroup_position_in_grid]],
-                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
-
-kernel void matrixMul_b32_aa_i16(device const short* inA,
-                                 device const short* inB,
-                                 device short* result,
-                                 constant MatrixSize& matSize1,
-                                 constant MatrixSize& matSize2,
-                                 uint2 gid  [[thread_position_in_grid]],
-                                 uint2 tgid [[threadgroup_position_in_grid]],
-                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
-
-kernel void matrixMul_b32_aa_i8(device const char* inA,
-                                device const char* inB,
-                                device char* result,
-                                constant MatrixSize& matSize1,
-                                constant MatrixSize& matSize2,
-                                uint2 gid  [[thread_position_in_grid]],
-                                uint2 tgid [[threadgroup_position_in_grid]],
-                                uint2 lid  [[thread_position_in_threadgroup]]) { }
-
-kernel void matrixMul_b32_aa_ui8(device const unsigned char* inA,
-                                 device const unsigned char* inB,
-                                 device unsigned char* result,
-                                 constant MatrixSize& matSize1,
-                                 constant MatrixSize& matSize2,
-                                 uint2 gid  [[thread_position_in_grid]],
-                                 uint2 tgid [[threadgroup_position_in_grid]],
-                                 uint2 lid  [[thread_position_in_threadgroup]]) { }
+DeclareConfigMatrixMulTiled(32, 32);
+// clang-format on
 
 
 // Transpose2D

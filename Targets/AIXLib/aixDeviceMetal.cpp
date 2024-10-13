@@ -67,7 +67,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOSum[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sum_a_" + dtypeStr);
         m_compFuncPSOMax[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "max_a_" + dtypeStr);
         m_compFuncPSOMatMul[i]      = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_aa_" + dtypeStr);
-        m_compFuncPSOMatMulB32[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_b32_aa_" + dtypeStr);
+        m_compFuncPSOMatMulTiled32x32[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_32_" + dtypeStr);
         m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_a_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
         m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_a_" + dtypeStr);
@@ -121,7 +121,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOSum[i]->release();
         m_compFuncPSOMax[i]->release();
         m_compFuncPSOMatMul[i]->release();
-        m_compFuncPSOMatMulB32[i]->release();
+        m_compFuncPSOMatMulTiled32x32[i]->release();
         m_compFuncPSOTranspose2D[i]->release();
         m_compFuncPSOTranspose[i]->release();
         m_compFuncPSOBroadcastTo[i]->release();
@@ -418,19 +418,25 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
         m_compEncoder->setBytes(&buf2Size, sizeof(MatrixSize), 4);
     };
 
-    // Use fast matmul where dimensions are multiple of 32.
-    if (M % 32 == 0 && N % 32 == 0 & K % 32 == 0 &&         // TODO: Make SIMD comparison.
-        (dtype == aix::DataType::kFloat32 || dtype == aix::DataType::kFloat16 || dtype == aix::DataType::kBFloat16))
+    auto dispatchTiled = [&](const MTL::ComputePipelineState* compFuncPSO, const size_t tileSizeX, const size_t tileSizeY)
     {
-        constexpr size_t tileSizeX = 32;
-        constexpr size_t tileSizeY = tileSizeX * 1;
         // Encode the pipeline state object and its parameters.
         uint numThreadgroupsX = (N + tileSizeX - 1) / tileSizeX;
         uint numThreadgroupsY = (M + tileSizeY - 1) / tileSizeY;
-        auto compFuncPSO = m_compFuncPSOMatMulB32[iDType];
         assert(tileSizeX * tileSizeY / tileSizeX <= compFuncPSO->maxTotalThreadsPerThreadgroup());
         encodeParams(compFuncPSO);
         m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {tileSizeX, tileSizeY/tileSizeX, 1});
+    };
+
+    bool isFloatType = dtype == aix::DataType::kFloat32 ||
+                       dtype == aix::DataType::kFloat16 ||
+                       dtype == aix::DataType::kBFloat16;
+
+    // Use fast matmul where dimensions are multiple of TSY.
+    // TODO: Make SIMD comparison.
+    if (M % 32 == 0 && N % 32 == 0 & K % 32 == 0 && isFloatType)
+    {
+        dispatchTiled(m_compFuncPSOMatMulTiled32x32[iDType], 32, 32);
     }
     else
     {
