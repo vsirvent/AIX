@@ -66,10 +66,10 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOPow[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "pow_aa_" + dtypeStr);
         m_compFuncPSOSum[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sum_a_" + dtypeStr);
         m_compFuncPSOMax[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "max_a_" + dtypeStr);
-        m_compFuncPSOMatMul[i]      = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_aa_" + dtypeStr);
+        m_compFuncPSOMatMulTiledBC6464888[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiledBC_64_64_8_8_8_" + dtypeStr);
         m_compFuncPSOMatMulTiled32x32[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_32_" + dtypeStr);
         m_compFuncPSOMatMulTiled32x64[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_64_" + dtypeStr);
-        m_compFuncPSOMatMulTiled32x128[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_128_" + dtypeStr);
+        m_compFuncPSOMatMulTiled32x128[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_128_" + dtypeStr);
         m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_a_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
         m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_a_" + dtypeStr);
@@ -122,7 +122,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOPow[i]->release();
         m_compFuncPSOSum[i]->release();
         m_compFuncPSOMax[i]->release();
-        m_compFuncPSOMatMul[i]->release();
+        m_compFuncPSOMatMulTiledBC6464888[i]->release();
         m_compFuncPSOMatMulTiled32x32[i]->release();
         m_compFuncPSOMatMulTiled32x64[i]->release();
         m_compFuncPSOMatMulTiled32x128[i]->release();
@@ -456,7 +456,7 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
         constexpr size_t numThreads = 64;
         uint numThreadgroupsX = (N + tileSize - 1) / tileSize;
         uint numThreadgroupsY = (M + tileSize - 1) / tileSize;
-        auto compFuncPSO = m_compFuncPSOMatMul[iDType];
+        auto compFuncPSO = m_compFuncPSOMatMulTiledBC6464888[iDType];
         assert(numThreads <= compFuncPSO->maxTotalThreadsPerThreadgroup());
         encodeParams(compFuncPSO);
         m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {numThreads, 1, 1});

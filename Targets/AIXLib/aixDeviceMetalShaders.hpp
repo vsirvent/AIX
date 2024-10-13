@@ -499,24 +499,23 @@ kernel void pow_aa(device const T* inA  [[buffer(0)]],
 }
 
 
-// Matrix_Mul
+// Matrix Mul Tiled with boundary checks
 // -----------------------------------------------------------------
-template<typename T>
-kernel void matrixMul_aa(device const T* inA,
-                         device const T* inB,
-                         device T* result,
-                         constant MatrixSize& matASize,
-                         constant MatrixSize& matBSize,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]])
+template<typename T, uint BM, uint BN, uint BK, uint TM, uint TN>
+kernel void matrixMulTiledBC(device const T* inA,
+                             device const T* inB,
+                             device T* result,
+                             constant MatrixSize& matASize,
+                             constant MatrixSize& matBSize,
+                             uint2 tgid [[threadgroup_position_in_grid]],
+                             uint2 lid  [[thread_position_in_threadgroup]])
 {
     // Constants defining tile and thread sizes.
-    constexpr uint BM = 64;      // Tile size in M dimension.
-    constexpr uint BN = 64;      // Tile size in N dimension.
-    constexpr uint BK = 8;       // Tile size in K dimension.
-    constexpr uint TM = 8;       // Elements per thread along M.
-    constexpr uint TN = 8;       // Elements per thread along N.
+    // BM: Tile size in M dimension.
+    // BN: Tile size in N dimension.
+    // BK: Tile size in K dimension.
+    // TM: Elements per thread along M.
+    // TN: Elements per thread along N.
 
     // Thread indices within a block.
     constexpr uint bRowThread = BN / TN;            // Block row thread.
@@ -1767,85 +1766,27 @@ kernel void max_a(device const uchar*,
 
 // Matrix_Mul
 // -----------------------------------------------------------------
-template [[ host_name("matrixMul_aa_f32") ]]
-kernel void matrixMul_aa(device const float*,
-                         device const float*,
-                         device float*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
+#define SpecializeMatrixMulTiledBC(tname, bm, bn, bk, tm, tn, type)  \
+    template [[ host_name("matrixMulTiledBC_" #bm "_" #bn "_" #bk "_" #tm "_" #tn "_" tname) ]]  \
+    [[kernel]] void matrixMulTiledBC<type,bm,bn,bk,tm,tn>(const device type* inA,  \
+                                                          const device type* inB,  \
+                                                          device type* result,     \
+                                                          constant MatrixSize& matASize,  \
+                                                          constant MatrixSize& matBSize,  \
+                                                          uint2 tgid [[threadgroup_position_in_grid]],  \
+                                                          uint2 lid  [[thread_position_in_threadgroup]])
 
-template [[ host_name("matrixMul_aa_f16") ]]
-kernel void matrixMul_aa(device const half*,
-                         device const half*,
-                         device half*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
+#define DeclareConfigMatrixMulTiledBC(bm, bn, bk, tm, tn) \
+    SpecializeMatrixMulTiledBC("f32",  bm, bn, bk, tm, tn, float);  \
+    SpecializeMatrixMulTiledBC("f16",  bm, bn, bk, tm, tn, half);   \
+    SpecializeMatrixMulTiledBC("bf16", bm, bn, bk, tm, tn, bfloat); \
+    SpecializeMatrixMulTiledBC("i64",  bm, bn, bk, tm, tn, long);   \
+    SpecializeMatrixMulTiledBC("i32",  bm, bn, bk, tm, tn, int);    \
+    SpecializeMatrixMulTiledBC("i16",  bm, bn, bk, tm, tn, short);  \
+    SpecializeMatrixMulTiledBC("i8",   bm, bn, bk, tm, tn, char);   \
+    SpecializeMatrixMulTiledBC("ui8",  bm, bn, bk, tm, tn, unsigned char)
 
-template [[ host_name("matrixMul_aa_bf16") ]]
-kernel void matrixMul_aa(device const bfloat*,
-                         device const bfloat*,
-                         device bfloat*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
-
-template [[ host_name("matrixMul_aa_i64") ]]
-kernel void matrixMul_aa(device const long*,
-                         device const long*,
-                         device long*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
-
-template [[ host_name("matrixMul_aa_i32") ]]
-kernel void matrixMul_aa(device const int*,
-                         device const int*,
-                         device int*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
-
-template [[ host_name("matrixMul_aa_i16") ]]
-kernel void matrixMul_aa(device const short*,
-                         device const short*,
-                         device short*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
-
-template [[ host_name("matrixMul_aa_i8") ]]
-kernel void matrixMul_aa(device const char*,
-                         device const char*,
-                         device char*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
-
-template [[ host_name("matrixMul_aa_ui8") ]]
-kernel void matrixMul_aa(device const uchar*,
-                         device const uchar*,
-                         device uchar*,
-                         constant MatrixSize&,
-                         constant MatrixSize&,
-                         uint2 gid  [[thread_position_in_grid]],
-                         uint2 tgid [[threadgroup_position_in_grid]],
-                         uint2 lid  [[thread_position_in_threadgroup]]);
+DeclareConfigMatrixMulTiledBC(64, 64, 8, 8, 8);
 
 // clang-format off
 // Matrix Mul Tiled
