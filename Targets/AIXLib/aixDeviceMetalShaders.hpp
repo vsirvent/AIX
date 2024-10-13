@@ -544,7 +544,7 @@ kernel void matrixMul_aa(device const T* inA,
     uint tileColB = lid.x % BN;
     constexpr uint tileStrideB = numThreads / BN;
 
-    T tmp[TM][TN] = { 0 };      // Temporary accumulation buffer.
+    T tmp[TM][TN] = {{0}};      // Temporary accumulation buffer.
 
     // Main loop over tiles of K dimension.
     for (uint k=0; k<K; k+=BK)
