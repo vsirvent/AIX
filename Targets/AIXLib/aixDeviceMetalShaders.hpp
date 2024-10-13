@@ -1881,6 +1881,8 @@ kernel void matrixMul_aa(device const uchar*,
     ImplementSpecializedMatrixMulTiled("ui8", tsx, tsy, unsigned char)  { }
 
 DeclareConfigMatrixMulTiled(32, 32);
+DeclareConfigMatrixMulTiled(32, 64);
+DeclareConfigMatrixMulTiled(32, 128);
 // clang-format on
 
 

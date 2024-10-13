@@ -68,6 +68,8 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOMax[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "max_a_" + dtypeStr);
         m_compFuncPSOMatMul[i]      = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMul_aa_" + dtypeStr);
         m_compFuncPSOMatMulTiled32x32[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_32_" + dtypeStr);
+        m_compFuncPSOMatMulTiled32x64[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_64_" + dtypeStr);
+        m_compFuncPSOMatMulTiled32x128[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_128_" + dtypeStr);
         m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_a_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
         m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_a_" + dtypeStr);
@@ -122,6 +124,8 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOMax[i]->release();
         m_compFuncPSOMatMul[i]->release();
         m_compFuncPSOMatMulTiled32x32[i]->release();
+        m_compFuncPSOMatMulTiled32x64[i]->release();
+        m_compFuncPSOMatMulTiled32x128[i]->release();
         m_compFuncPSOTranspose2D[i]->release();
         m_compFuncPSOTranspose[i]->release();
         m_compFuncPSOBroadcastTo[i]->release();
@@ -428,13 +432,21 @@ void DeviceMetal::matmul(const void* a1, const Shape & s1, const void* a2, const
         m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {tileSizeX, tileSizeY/tileSizeX, 1});
     };
 
-    bool isFloatType = dtype == aix::DataType::kFloat32 ||
-                       dtype == aix::DataType::kFloat16 ||
-                       dtype == aix::DataType::kBFloat16;
-
+    bool commonCondition = K % 32 == 0 && N % 32 == 0 &&
+                           (dtype == aix::DataType::kFloat32 ||
+                            dtype == aix::DataType::kFloat16 ||
+                            dtype == aix::DataType::kBFloat16);
     // Use fast matmul where dimensions are multiple of TSY.
     // TODO: Make SIMD comparison.
-    if (M % 32 == 0 && N % 32 == 0 & K % 32 == 0 && isFloatType)
+    if (M % 128 == 0 && commonCondition)
+    {
+        dispatchTiled(m_compFuncPSOMatMulTiled32x128[iDType], 32, 128);
+    }
+    else if (M % 64 == 0 && commonCondition)
+    {
+        dispatchTiled(m_compFuncPSOMatMulTiled32x64[iDType], 32, 64);
+    }
+    else if (M % 32 == 0 && commonCondition)
     {
         dispatchTiled(m_compFuncPSOMatMulTiled32x32[iDType], 32, 32);
     }
