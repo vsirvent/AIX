@@ -42,45 +42,45 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
             auto jDType = static_cast<DataType>(j);
             // Metal Framework does not support kFloat64 format.
             bool isNull = iDType == DataType::kFloat64 || jDType == DataType::kFloat64;
-            std::string kernelName = "copy_aa_" + toString(i) + "_" + toString(j);
+            std::string kernelName = "copy_" + toString(i) + "_" + toString(j);
             m_compFuncPSOCopyAA[i][j] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : kernelName);
-            kernelName = "fill_aa_" + toString(i) + "_" + toString(j);
+            kernelName = "fill_" + toString(i) + "_" + toString(j);
             m_compFuncPSOFill[i][j]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : kernelName);
         }
 
         // Metal Framework does not support kFloat64 format.
         bool isNull = iDType == DataType::kFloat64;
         std::string dtypeStr = toString(i);
-        m_compFuncPSOAdd[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "add_aa_" + dtypeStr);
-        m_compFuncPSOSub[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sub_aa_" + dtypeStr);
-        m_compFuncPSOMul[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "mul_aa_" + dtypeStr);
-        m_compFuncPSODiv[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "div_aa_" + dtypeStr);
-        m_compFuncPSOUnary[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "unary_a_" + dtypeStr);
-        m_compFuncPSOFillMin[i]     = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "fillMin_a_" + dtypeStr);
-        m_compFuncPSOSqrt[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sqrt_a_" + dtypeStr);
-        m_compFuncPSOSin[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sin_a_" + dtypeStr);
-        m_compFuncPSOCos[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "cos_a_" + dtypeStr);
-        m_compFuncPSOTanh[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "tanh_a_" + dtypeStr);
-        m_compFuncPSOLog[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "log_a_" + dtypeStr);
-        m_compFuncPSOExp[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "exp_a_" + dtypeStr);
-        m_compFuncPSOPow[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "pow_aa_" + dtypeStr);
-        m_compFuncPSOSum[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sum_a_" + dtypeStr);
-        m_compFuncPSOMax[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "max_a_" + dtypeStr);
+        m_compFuncPSOAdd[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "add_" + dtypeStr);
+        m_compFuncPSOSub[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sub_" + dtypeStr);
+        m_compFuncPSOMul[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "mul_" + dtypeStr);
+        m_compFuncPSODiv[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "div_" + dtypeStr);
+        m_compFuncPSOUnary[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "unary_" + dtypeStr);
+        m_compFuncPSOFillMin[i]     = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "fillMin_" + dtypeStr);
+        m_compFuncPSOSqrt[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sqrt_" + dtypeStr);
+        m_compFuncPSOSin[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sin_" + dtypeStr);
+        m_compFuncPSOCos[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "cos_" + dtypeStr);
+        m_compFuncPSOTanh[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "tanh_" + dtypeStr);
+        m_compFuncPSOLog[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "log_" + dtypeStr);
+        m_compFuncPSOExp[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "exp_" + dtypeStr);
+        m_compFuncPSOPow[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "pow_" + dtypeStr);
+        m_compFuncPSOSum[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sum_" + dtypeStr);
+        m_compFuncPSOMax[i]         = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "max_" + dtypeStr);
         m_compFuncPSOMatMulTiledBC6464888[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiledBC_64_64_8_8_8_" + dtypeStr);
         m_compFuncPSOMatMulTiled32x32[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_32_" + dtypeStr);
         m_compFuncPSOMatMulTiled32x64[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_64_" + dtypeStr);
         m_compFuncPSOMatMulTiled32x128[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_128_" + dtypeStr);
-        m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_a_" + dtypeStr);
-        m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_a_" + dtypeStr);
-        m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_a_" + dtypeStr);
-        m_compFuncPSOReduceTo[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "reduceTo_a_" + dtypeStr);
-        m_compFuncPSOMaxTo[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "maxTo_a_" + dtypeStr);
-        m_compFuncPSOSlice[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "slice_a_" + dtypeStr);
-        m_compFuncPSOSliceSet[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sliceSet_a_" + dtypeStr);
-        m_compFuncPSOTril[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "tril_a_" + dtypeStr);
-        m_compFuncPSOTriu[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "triu_a_" + dtypeStr);
-        m_compFuncPSOIndexSelect[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "indexSelect_a_" + dtypeStr);
-        m_compFuncPSOIndexAdd[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "indexAdd_a_" + dtypeStr);
+        m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_" + dtypeStr);
+        m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_" + dtypeStr);
+        m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_" + dtypeStr);
+        m_compFuncPSOReduceTo[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "reduceTo_" + dtypeStr);
+        m_compFuncPSOMaxTo[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "maxTo_" + dtypeStr);
+        m_compFuncPSOSlice[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "slice_" + dtypeStr);
+        m_compFuncPSOSliceSet[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sliceSet_" + dtypeStr);
+        m_compFuncPSOTril[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "tril_" + dtypeStr);
+        m_compFuncPSOTriu[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "triu_" + dtypeStr);
+        m_compFuncPSOIndexSelect[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "indexSelect_" + dtypeStr);
+        m_compFuncPSOIndexAdd[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "indexAdd_" + dtypeStr);
     }
 
     m_cmdQueue = createCommandQueue();
