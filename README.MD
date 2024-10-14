@@ -76,7 +76,7 @@ int main()
         loss.backward();            // Compute all gradients in the graph.
         optimizer.step();           // Update neural net's learnable parameters.
 
-        device->commitAndWait();    // Finalize compute batch.
+        device->synchronize();      // Finalize compute batch.
 
         // Stop training process when loss is lower than the threshold.
         if (loss.value().item<float>() <= kLossThreshold)
@@ -85,7 +85,7 @@ int main()
 
     // Use the trained model for prediction.
     auto predictions = model.forward(inputs);
-    device->commitAndWait();
+    device->synchronize();
 
     std::cout << predictions << std::endl;
     // ...
