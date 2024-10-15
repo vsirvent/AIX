@@ -703,6 +703,47 @@ using BenchmarkDeviceTransposeF325K = BenchmarkDeviceTranspose<aix::DataType::kF
 
 BENCHMARK(BenchmarkDeviceTransposeF325K, "device_transpose_f32_5k")
 
+using BenchmarkDeviceTransposeF3210   = BenchmarkDeviceTranspose<aix::DataType::kFloat32,10>;
+using BenchmarkDeviceTransposeF3225   = BenchmarkDeviceTranspose<aix::DataType::kFloat32,25>;
+using BenchmarkDeviceTransposeF3250   = BenchmarkDeviceTranspose<aix::DataType::kFloat32,50>;
+using BenchmarkDeviceTransposeF32100  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,100>;
+using BenchmarkDeviceTransposeF32200  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,200>;
+using BenchmarkDeviceTransposeF32500  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,500>;
+using BenchmarkDeviceTransposeF32800  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,800>;
+using BenchmarkDeviceTransposeF321000 = BenchmarkDeviceTranspose<aix::DataType::kFloat32,1000>;
+using BenchmarkDeviceTransposeF322000 = BenchmarkDeviceTranspose<aix::DataType::kFloat32,2000>;
+
+using BenchmarkDeviceTransposeF3216   = BenchmarkDeviceTranspose<aix::DataType::kFloat32,16>;
+using BenchmarkDeviceTransposeF3232   = BenchmarkDeviceTranspose<aix::DataType::kFloat32,32>;
+using BenchmarkDeviceTransposeF3264   = BenchmarkDeviceTranspose<aix::DataType::kFloat32,64>;
+using BenchmarkDeviceTransposeF32128  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,128>;
+using BenchmarkDeviceTransposeF32256  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,256>;
+using BenchmarkDeviceTransposeF32512  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,512>;
+using BenchmarkDeviceTransposeF32768  = BenchmarkDeviceTranspose<aix::DataType::kFloat32,768>;
+using BenchmarkDeviceTransposeF321024 = BenchmarkDeviceTranspose<aix::DataType::kFloat32,1024>;
+using BenchmarkDeviceTransposeF322048 = BenchmarkDeviceTranspose<aix::DataType::kFloat32,2048>;
+
+BENCHMARK(BenchmarkDeviceTransposeF3210  , "device_transpose_f32_10")
+BENCHMARK(BenchmarkDeviceTransposeF3225  , "device_transpose_f32_25")
+BENCHMARK(BenchmarkDeviceTransposeF3250  , "device_transpose_f32_50")
+BENCHMARK(BenchmarkDeviceTransposeF32100 , "device_transpose_f32_100")
+BENCHMARK(BenchmarkDeviceTransposeF32200 , "device_transpose_f32_200")
+BENCHMARK(BenchmarkDeviceTransposeF32500 , "device_transpose_f32_500")
+BENCHMARK(BenchmarkDeviceTransposeF32800 , "device_transpose_f32_800")
+BENCHMARK(BenchmarkDeviceTransposeF321000, "device_transpose_f32_1000")
+BENCHMARK(BenchmarkDeviceTransposeF322000, "device_transpose_f32_2000")
+
+BENCHMARK(BenchmarkDeviceTransposeF3216  , "device_transpose_f32_16")
+BENCHMARK(BenchmarkDeviceTransposeF3232  , "device_transpose_f32_32")
+BENCHMARK(BenchmarkDeviceTransposeF3264  , "device_transpose_f32_64")
+BENCHMARK(BenchmarkDeviceTransposeF32128 , "device_transpose_f32_128")
+BENCHMARK(BenchmarkDeviceTransposeF32256 , "device_transpose_f32_256")
+BENCHMARK(BenchmarkDeviceTransposeF32512 , "device_transpose_f32_512")
+BENCHMARK(BenchmarkDeviceTransposeF32768 , "device_transpose_f32_768")
+BENCHMARK(BenchmarkDeviceTransposeF321024, "device_transpose_f32_1024")
+BENCHMARK(BenchmarkDeviceTransposeF322048, "device_transpose_f32_2048")
+
+
 // --------------------------------------------------------------------------------
 // COPY
 // --------------------------------------------------------------------------------

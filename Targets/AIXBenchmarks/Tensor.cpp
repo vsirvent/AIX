@@ -704,9 +704,45 @@ private:
     std::unique_ptr<aix::Device>  m_device;
 };
 
-using BenchmarkTensorTransposeF325K = BenchmarkTensorTranspose<aix::DataType::kFloat32,5000>;
+using BenchmarkTensorTransposeF3210   = BenchmarkTensorTranspose<aix::DataType::kFloat32,10>;
+using BenchmarkTensorTransposeF3225   = BenchmarkTensorTranspose<aix::DataType::kFloat32,25>;
+using BenchmarkTensorTransposeF3250   = BenchmarkTensorTranspose<aix::DataType::kFloat32,50>;
+using BenchmarkTensorTransposeF32100  = BenchmarkTensorTranspose<aix::DataType::kFloat32,100>;
+using BenchmarkTensorTransposeF32200  = BenchmarkTensorTranspose<aix::DataType::kFloat32,200>;
+using BenchmarkTensorTransposeF32500  = BenchmarkTensorTranspose<aix::DataType::kFloat32,500>;
+using BenchmarkTensorTransposeF32800  = BenchmarkTensorTranspose<aix::DataType::kFloat32,800>;
+using BenchmarkTensorTransposeF321000 = BenchmarkTensorTranspose<aix::DataType::kFloat32,1000>;
+using BenchmarkTensorTransposeF322000 = BenchmarkTensorTranspose<aix::DataType::kFloat32,2000>;
 
-BENCHMARK(BenchmarkTensorTransposeF325K, "tensor_transpose_f32_5k")
+using BenchmarkTensorTransposeF3216   = BenchmarkTensorTranspose<aix::DataType::kFloat32,16>;
+using BenchmarkTensorTransposeF3232   = BenchmarkTensorTranspose<aix::DataType::kFloat32,32>;
+using BenchmarkTensorTransposeF3264   = BenchmarkTensorTranspose<aix::DataType::kFloat32,64>;
+using BenchmarkTensorTransposeF32128  = BenchmarkTensorTranspose<aix::DataType::kFloat32,128>;
+using BenchmarkTensorTransposeF32256  = BenchmarkTensorTranspose<aix::DataType::kFloat32,256>;
+using BenchmarkTensorTransposeF32512  = BenchmarkTensorTranspose<aix::DataType::kFloat32,512>;
+using BenchmarkTensorTransposeF32768  = BenchmarkTensorTranspose<aix::DataType::kFloat32,768>;
+using BenchmarkTensorTransposeF321024 = BenchmarkTensorTranspose<aix::DataType::kFloat32,1024>;
+using BenchmarkTensorTransposeF322048 = BenchmarkTensorTranspose<aix::DataType::kFloat32,2048>;
+
+BENCHMARK(BenchmarkTensorTransposeF3210  , "tensor_transpose_f32_10")
+BENCHMARK(BenchmarkTensorTransposeF3225  , "tensor_transpose_f32_25")
+BENCHMARK(BenchmarkTensorTransposeF3250  , "tensor_transpose_f32_50")
+BENCHMARK(BenchmarkTensorTransposeF32100 , "tensor_transpose_f32_100")
+BENCHMARK(BenchmarkTensorTransposeF32200 , "tensor_transpose_f32_200")
+BENCHMARK(BenchmarkTensorTransposeF32500 , "tensor_transpose_f32_500")
+BENCHMARK(BenchmarkTensorTransposeF32800 , "tensor_transpose_f32_800")
+BENCHMARK(BenchmarkTensorTransposeF321000, "tensor_transpose_f32_1000")
+BENCHMARK(BenchmarkTensorTransposeF322000, "tensor_transpose_f32_2000")
+
+BENCHMARK(BenchmarkTensorTransposeF3216  , "tensor_transpose_f32_16")
+BENCHMARK(BenchmarkTensorTransposeF3232  , "tensor_transpose_f32_32")
+BENCHMARK(BenchmarkTensorTransposeF3264  , "tensor_transpose_f32_64")
+BENCHMARK(BenchmarkTensorTransposeF32128 , "tensor_transpose_f32_128")
+BENCHMARK(BenchmarkTensorTransposeF32256 , "tensor_transpose_f32_256")
+BENCHMARK(BenchmarkTensorTransposeF32512 , "tensor_transpose_f32_512")
+BENCHMARK(BenchmarkTensorTransposeF32768 , "tensor_transpose_f32_768")
+BENCHMARK(BenchmarkTensorTransposeF321024, "tensor_transpose_f32_1024")
+BENCHMARK(BenchmarkTensorTransposeF322048, "tensor_transpose_f32_2048")
 
 // --------------------------------------------------------------------------------
 // SLICE
