@@ -71,6 +71,8 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOMatMulTiled32x64[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_64_" + dtypeStr);
         m_compFuncPSOMatMulTiled32x128[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "matrixMulTiled_32_128_" + dtypeStr);
         m_compFuncPSOTranspose2D[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2D_" + dtypeStr);
+        m_compFuncPSOTranspose2DTiled16x16x8[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2DTiled_16_16_8_" + dtypeStr);
+        m_compFuncPSOTranspose2DTiled32x32x8[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2DTiled_32_32_8_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_" + dtypeStr);
         m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_" + dtypeStr);
         m_compFuncPSOReduceTo[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "reduceTo_" + dtypeStr);
@@ -127,6 +129,8 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOMatMulTiled32x64[i]->release();
         m_compFuncPSOMatMulTiled32x128[i]->release();
         m_compFuncPSOTranspose2D[i]->release();
+        m_compFuncPSOTranspose2DTiled16x16x8[i]->release();
+        m_compFuncPSOTranspose2DTiled32x32x8[i]->release();
         m_compFuncPSOTranspose[i]->release();
         m_compFuncPSOBroadcastTo[i]->release();
         m_compFuncPSOReduceTo[i]->release();
@@ -1226,15 +1230,42 @@ void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result,
     auto buf1Size = MatrixSize{shape[0], shape[1]};
     auto compFuncPSO = m_compFuncPSOTranspose2D[iDType];
 
-    // Calculate maximum thread group dimensions
-    NS::UInteger w = compFuncPSO->threadExecutionWidth();
-    NS::UInteger h = compFuncPSO->maxTotalThreadsPerThreadgroup() / w;
+    size_t M = buf1Size.rows;
+    size_t N = buf1Size.cols;
 
-    m_compEncoder->setComputePipelineState(compFuncPSO);
-    m_compEncoder->setBuffer(buf1, 0, 0);
-    m_compEncoder->setBuffer(bufResult, 0, 1);
-    m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
-    m_compEncoder->dispatchThreads({shape[0], shape[1], 1}, {w, h, 1});
+    auto encodeParams = [&](const MTL::ComputePipelineState* compFuncPSO)
+    {
+        m_compEncoder->setComputePipelineState(compFuncPSO);
+        m_compEncoder->setBuffer(buf1, 0, 0);
+        m_compEncoder->setBuffer(bufResult, 0, 1);
+        m_compEncoder->setBytes(&buf1Size, sizeof(MatrixSize), 2);
+    };
+
+    auto dispatchTiled = [&](const MTL::ComputePipelineState* compFuncPSO, const size_t tileSize, const size_t batchSize)
+    {
+        // Encode the pipeline state object and its parameters.
+        uint numThreadgroupsX = (N + tileSize - 1) / tileSize;
+        uint numThreadgroupsY = (M + tileSize - 1) / tileSize;
+        assert(tileSizeX <= compFuncPSO->maxTotalThreadsPerThreadgroup());
+        encodeParams(compFuncPSO);
+        m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {tileSize, batchSize, 1});
+    };
+
+    if (M % 32 == 0 && N % 32 == 0)
+    {
+        dispatchTiled(m_compFuncPSOTranspose2DTiled32x32x8[iDType], 32, 8);
+    }
+    else if (M % 16 == 0 && N % 16 == 0)
+    {
+        dispatchTiled(m_compFuncPSOTranspose2DTiled16x16x8[iDType], 16, 8);
+    }
+    else
+    {
+        NS::UInteger w = compFuncPSO->threadExecutionWidth();
+        NS::UInteger h = compFuncPSO->maxTotalThreadsPerThreadgroup() / w;
+        encodeParams(compFuncPSO);
+        m_compEncoder->dispatchThreads({shape[0], shape[1], 1}, {w, h, 1});
+    }
 
     // Free operation is delayed until the commit is done.
     freeTemporaryBuffer(buf1);

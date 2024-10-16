@@ -682,6 +682,44 @@ template<typename T>
 }
 
 
+// Transpose2D Tiled
+// -----------------------------------------------------------------
+template<typename T, uint TILE_SIZE, uint BATCH_SIZE>
+[[kernel]] void transpose2DTiled(const device T* mat          [[buffer(0)]],
+                                 device T* result             [[buffer(1)]],
+                                 constant MatrixSize& matSize [[buffer(2)]],
+                                 uint2 gid  [[thread_position_in_grid]],
+                                 uint2 tgid [[threadgroup_position_in_grid]],
+                                 uint2 tid  [[thread_position_in_threadgroup]])
+{
+    threadgroup T tile[TILE_SIZE][TILE_SIZE + 1];
+
+    const uint inputHeight = matSize.rows;    // M
+    const uint inputWidth  = matSize.cols;    // N
+    const uint outputWidth = inputHeight;     // M since transposing.
+
+    uint x  = tgid.x * TILE_SIZE + tid.x;      // Global x position.
+    uint y  = tgid.y * TILE_SIZE + tid.y;      // Global y position.
+
+    #pragma unroll(TILE_SIZE/BATCH_SIZE)
+    for (uint j=0; j<TILE_SIZE; j+=BATCH_SIZE)
+    {
+        tile[tid.y + j][tid.x] = mat[(y + j) * inputWidth + x];
+    }
+
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    uint tX = tgid.y * TILE_SIZE + tid.x;     // Transposed x.
+    uint tY = tgid.x * TILE_SIZE + tid.y;     // Transposed y.
+
+    #pragma unroll(TILE_SIZE/BATCH_SIZE)
+    for (uint j=0; j<TILE_SIZE; j+=BATCH_SIZE)
+    {
+        result[(tY + j) * outputWidth + tX] = tile[tid.x][tid.y + j];
+    }
+}
+
+
 // Transpose - Naive Implementation
 // -----------------------------------------------------------------
 size_t flattenIndex(thread size_t* indices, size_t indicesSize, device const size_t* strides)
@@ -1450,6 +1488,31 @@ SpecializeTranspose2D("i32",  int);
 SpecializeTranspose2D("i16",  short);
 SpecializeTranspose2D("i8",   char);
 SpecializeTranspose2D("ui8",  uchar);
+
+
+// Transpose2D Tiled
+// -----------------------------------------------------------------
+#define SpecializeTranspose2DTiled(tname, type, ts, bs)  \
+    template [[ host_name("transpose2DTiled_" #ts "_" #ts "_" #bs "_" tname) ]]  \
+    [[kernel]] void transpose2DTiled<type,ts,bs>(const device type* mat          [[buffer(0)]],  \
+                                                 device type* result             [[buffer(1)]],  \
+                                                 constant MatrixSize& matSize    [[buffer(2)]],  \
+                                                 uint2 gid  [[thread_position_in_grid]],         \
+                                                 uint2 tgid [[threadgroup_position_in_grid]],    \
+                                                 uint2 tid  [[thread_position_in_threadgroup]])
+
+#define DeclareConfigTranspose2DTiled(ts, bs)  \
+    SpecializeTranspose2DTiled("f32",  float , ts, bs);  \
+    SpecializeTranspose2DTiled("f16",  half  , ts, bs);  \
+    SpecializeTranspose2DTiled("bf16", bfloat, ts, bs);  \
+    SpecializeTranspose2DTiled("i64",  long  , ts, bs);  \
+    SpecializeTranspose2DTiled("i32",  int   , ts, bs);  \
+    SpecializeTranspose2DTiled("i16",  short , ts, bs);  \
+    SpecializeTranspose2DTiled("i8",   char  , ts, bs);  \
+    SpecializeTranspose2DTiled("ui8",  uchar , ts, bs);
+
+DeclareConfigTranspose2DTiled(16, 8);
+DeclareConfigTranspose2DTiled(32, 8);
 
 
 // Transpose

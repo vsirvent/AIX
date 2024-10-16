@@ -236,6 +236,8 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOMatMulTiled32x64[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMatMulTiled32x128[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOTranspose2D[aix::DataTypeCount]{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOTranspose2DTiled16x16x8[aix::DataTypeCount]{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOTranspose2DTiled32x32x8[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOTranspose[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOCopyAA[aix::DataTypeCount][aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOFill[aix::DataTypeCount][aix::DataTypeCount];
