@@ -1246,7 +1246,7 @@ void DeviceMetal::transpose2D(const void* mat, const Shape& shape, void* result,
         // Encode the pipeline state object and its parameters.
         uint numThreadgroupsX = (N + tileSize - 1) / tileSize;
         uint numThreadgroupsY = (M + tileSize - 1) / tileSize;
-        assert(tileSizeX <= compFuncPSO->maxTotalThreadsPerThreadgroup());
+        assert(tileSize * batchSize <= compFuncPSO->maxTotalThreadsPerThreadgroup());
         encodeParams(compFuncPSO);
         m_compEncoder->dispatchThreadgroups({numThreadgroupsX, numThreadgroupsY, 1}, {tileSize, batchSize, 1});
     };
