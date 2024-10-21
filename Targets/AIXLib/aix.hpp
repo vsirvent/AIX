@@ -116,6 +116,7 @@ class Tensor;
 
 // Tensor Index, Shape and Stride Types
 using Index  = std::vector<size_t>;
+using SIndex = std::vector<ssize_t>;
 using Shape  = std::vector<size_t>;
 using Stride = std::vector<size_t>;
 
@@ -2116,6 +2117,79 @@ public:
         return result;
     }
 
+    TensorValue permute(SIndex newDims) const
+    {
+        if (newDims.size() != shape().size())
+        {
+            throw std::invalid_argument("Dimension count does not match in permute.");
+        }
+
+        if (shape().empty()) return *this;      // Nothing to do for a scalar tensor.
+        if (shape().size() == 1 && (newDims[0] == 0 || newDims[0] == -1)) return *this;
+
+        auto shapeSize = static_cast<ssize_t>(shape().size());
+        std::vector<ssize_t> dimTable(shapeSize, -1);
+
+        // Check if it's an identity permutation and validate dimensions.
+        bool isIdentity = true;
+        for (ssize_t i = 0; i < shapeSize; ++i)
+        {
+            auto& dim = newDims[i];
+            dim = dim < 0 ? shapeSize + dim : dim;
+            if (dim < 0 || dim >= shapeSize)
+            {
+                throw std::invalid_argument("Dimension is out of range for permute.");
+            }
+            if (dimTable[dim] != -1)
+            {
+                throw std::invalid_argument("There is at least one repeated dim in permute.");
+            }
+            dimTable[dim] = i;
+            if (dim != i) isIdentity = false;
+        }
+
+        if (isIdentity) return *this;
+
+        // Create the new shape.
+        Shape newShape(shapeSize);
+        for (ssize_t i = 0; i < shapeSize; ++i)
+        {
+            newShape[i] = m_shape[newDims[i]];
+        }
+
+        TensorValue result(newShape, device(), m_dType);
+
+        // Perform series of transpositions.
+        Shape currShape = m_shape;
+        Stride currStride = m_strides;
+        TensorValue currTensor = *this;
+
+        SIndex currDims(shapeSize);
+        std::iota(currDims.begin(), currDims.end(), 0);     // Initialize to [0, 1, 2, ...]
+
+        for (ssize_t i=0; i<shapeSize; ++i)
+        {
+            if (currDims[i] == newDims[i]) continue;
+
+            // Find the position of newDims[i] in currentDims.
+            auto it = std::find(currDims.begin() + i, currDims.end(), newDims[i]);
+            size_t j = std::distance(currDims.begin(), it);
+
+            // Swap dimensions i and j.
+            std::swap(currDims[i], currDims[j]);
+            std::swap(currShape[i], currShape[j]);
+
+            // Perform the transpose.
+            TensorValue tempTensor(currShape, m_device, m_dType);
+            m_device->transpose(j, i, currTensor.data(), currShape, currStride,
+                                tempTensor.strides(), tempTensor.size(), tempTensor.data(), m_dType);
+            currTensor = std::move(tempTensor);
+            currStride = currTensor.strides();
+        }
+
+        return currTensor;
+    }
+
     TensorValue squeeze(ssize_t dim) const
     {
         dim = dim < 0 ? static_cast<ssize_t>(shape().size()) + dim : dim;
@@ -2738,6 +2812,7 @@ public:
     bool  m_retainGrad{false};
     std::shared_ptr<TensorNode>  m_a{nullptr};
     std::shared_ptr<TensorNode>  m_b{nullptr};
+    SIndex m_dims;
     size_t m_dim0{0};
     size_t m_dim1{0};
     bool m_keepDim{false};
@@ -3074,6 +3149,27 @@ public:
     {
         if (!node->m_a) return;
         node->m_a->backward(seed.transpose(node->m_dim0, node->m_dim1));
+    }
+
+    static void permuteBackwardFunc(TensorNode* node, const TensorValue& seed)
+    {
+        if (!node->m_a) return;
+
+        // Convert negative reference indices to positive.
+        SIndex orgDims = node->m_dims;
+        for (size_t i=0; i<orgDims.size(); ++i)
+        {
+            orgDims[i] = orgDims[i] < 0 ? static_cast<ssize_t>(orgDims.size()) + orgDims[i] : orgDims[i];
+        }
+
+        // Calculate permute indexes to put the dimensions back to the original positions.
+        SIndex dims(orgDims.size());
+        for (size_t i=0; i<orgDims.size(); ++i)
+        {
+            auto it = std::find(orgDims.begin(), orgDims.end(), i);
+            dims[i] = std::distance(orgDims.begin(), it);
+        }
+        node->m_a->backward(seed.permute(dims));
     }
 
     static void sliceBackwardFunc(TensorNode * node, const TensorValue & seed)
@@ -3462,6 +3558,16 @@ public:
         result.m_data->m_dim0 = dim0;
         result.m_data->m_dim1 = dim1;
         result.m_data->m_backwardFunc = transposeBackwardFunc;
+        return result;
+    }
+
+    Tensor permute(const SIndex& dims) const
+    {
+        Tensor result(shape(), { .m_requireGrad=isRequireGrad(), .m_dtype=dataType(), .m_device=device() });
+        result.m_data->m_value = m_data->m_value.permute(dims);
+        result.m_data->m_a = m_data;
+        result.m_data->m_dims = dims;
+        result.m_data->m_backwardFunc = permuteBackwardFunc;
         return result;
     }
 
