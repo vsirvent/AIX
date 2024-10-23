@@ -1058,6 +1058,51 @@ bool testTranspose(Device* testDevice)
 }
 
 
+bool testPermute(Device* testDevice)
+{
+    for (size_t i=0; i<aix::DataTypeCount; ++i)
+    {
+        auto dtype = static_cast<DataType>(i);
+        // Apple Metal Framework does not support kFloat64 data type.
+        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
+
+        aix::Device  refDevice;     // Reference/CPU device.
+        ssize_t maxDim = 6;
+        auto tensor = aix::randn(createRandomShape(1, maxDim)).to(dtype);
+        SIndex dims(tensor.shape().size());
+        std::iota(dims.begin(), dims.end(), 0);   // Initialize to [0, 1, 2, ...]
+
+        for (size_t j=0; j<dims.size(); ++j)
+        {
+            std::uniform_int_distribution<size_t> distr_int(0, 1000);
+            size_t dim0 = distr_int(randGen) % tensor.shape().size();
+            size_t dim1 = distr_int(randGen) % tensor.shape().size();
+            std::swap(dims[dim0], dims[dim1]);
+        }
+
+        auto cpuResult    = tensor.to(refDevice).permute(dims);
+        auto deviceResult = tensor.to(testDevice).permute(dims);
+        testDevice->synchronize();
+
+        // Compare true/cpu result with gpu result.
+        if (!verifyResults(cpuResult.value(), deviceResult.value()))
+        {
+            #ifdef DEBUG_LOG
+            std::cout << "----------------------" << std::endl;
+            std::cout << "Dims: ";  for (auto val: dims) std::cout << val << ","; std::cout << "\n";
+            std::cout << "Shape: "; for (auto val: deviceResult.shape()) std::cout << val << ","; std::cout << "\n";
+            std::cout << "Tensor" << std::endl << tensor << std::endl;
+            std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
+            std::cout << "Device Result" << std::endl << deviceResult << std::endl;
+            #endif
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
 bool testCopy(Device* testDevice, size_t n)
 {
     for (size_t i=0; i<aix::DataTypeCount; ++i)
@@ -1763,6 +1808,24 @@ TEST_CASE("Device Tests - Transpose")
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testTranspose(&*device2));
+        }
+    }
+}
+
+
+TEST_CASE("Device Tests - Permute")
+{
+    // For each available devices, tests add operation.
+    for (auto deviceType : testDeviceTypes)
+    {
+        // Check if the devices is available.
+        auto device = aix::createDevice(deviceType);
+        if (!device) continue;      // Skip if the device is not available.
+
+        for (size_t n = 0; n < 100; ++n)
+        {
+            auto device2 = aix::createDevice(deviceType);
+            CHECK(testPermute(&*device2));
         }
     }
 }
