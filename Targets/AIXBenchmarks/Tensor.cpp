@@ -744,6 +744,47 @@ BENCHMARK(BenchmarkTensorTransposeF32768 , "tensor_transpose_f32_768")
 BENCHMARK(BenchmarkTensorTransposeF321024, "tensor_transpose_f32_1024")
 BENCHMARK(BenchmarkTensorTransposeF322048, "tensor_transpose_f32_2048")
 
+
+// --------------------------------------------------------------------------------
+// PERMUTE
+// --------------------------------------------------------------------------------
+
+template<aix::DataType dataType, size_t M>
+class BenchmarkTensorPermute : public BenchmarkBase
+{
+public:
+    void setup(const AIXBenchmarkConfigs& configs) final
+    {
+        m_device = aix::createDevice(configs.deviceType);
+        aix::TensorOptions opt = { .m_dtype=dataType, .m_device=m_device.get() };
+        m_t = aix::randn({M, M, M}, opt);
+        m_device->synchronize();
+    }
+
+    void run(const AIXBenchmarkConfigs&) final
+    {
+        auto t = m_t.permute({2,1,0});
+        m_device->synchronize();
+    }
+
+    void cleanUp() final
+    {
+        m_device.release();
+        m_device = nullptr;
+    }
+
+private:
+    aix::Tensor  m_t;
+    std::unique_ptr<aix::Device>  m_device;
+};
+
+using BenchmarkTensorPermuteF32250 = BenchmarkTensorPermute<aix::DataType::kFloat32,250>;
+using BenchmarkTensorPermuteF32256 = BenchmarkTensorPermute<aix::DataType::kFloat32,256>;
+
+BENCHMARK(BenchmarkTensorPermuteF32250, "tensor_permute_f32_250")
+BENCHMARK(BenchmarkTensorPermuteF32256, "tensor_permute_f32_256")
+
+
 // --------------------------------------------------------------------------------
 // SLICE
 // --------------------------------------------------------------------------------
