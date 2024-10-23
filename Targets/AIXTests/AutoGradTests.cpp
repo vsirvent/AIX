@@ -720,7 +720,7 @@ TEST_CASE("Auto Grad - Squeeze")
     {
         auto a = aix::tensor(data, shape).requireGrad(true);
         auto s = a.squeeze(1);
-        s.backward();
+        s.backward(1, s.shape());
         CheckVectorApproxValues(a.grad(), aix::tensor({1.0, 1.0, 1.0, 1.0}, a.shape()).value());
     }
 }
@@ -735,7 +735,7 @@ TEST_CASE("Auto Grad - Unsqueeze")
     {
         auto a = aix::tensor(data, shape).requireGrad(true);
         auto s = a.unsqueeze(1);
-        s.backward();
+        s.backward(1, s.shape());
         CheckVectorApproxValues(a.grad(), aix::tensor({1.0, 1.0, 1.0, 1.0}, a.shape()).value());
     }
 }
@@ -751,7 +751,7 @@ TEST_CASE("Auto Grad - variance")
     {
         auto a = aix::tensor(data, shape).requireGrad(true);
         auto var = a.var();
-        var.backward();
+        var.backward(1, var.shape());
         CheckVectorApproxValues(a.grad(), aix::tensor({-1.0000, -0.3333,
                                                         0.3333,  1.0000}, a.shape()).value());
     }
@@ -760,7 +760,7 @@ TEST_CASE("Auto Grad - variance")
     {
         auto a = aix::tensor(data, shape).requireGrad(true);
         auto var  = a.var(true);
-        var.backward();
+        var.backward(1, var.shape());
         CheckVectorApproxValues(a.grad(), aix::tensor({-1.0000, -0.3333,
                                                         0.3333,  1.0000}, a.shape()).value());
     }
@@ -769,7 +769,7 @@ TEST_CASE("Auto Grad - variance")
     {
         auto a = aix::tensor(data, shape).requireGrad(true);
         auto var  = a.var(false);
-        var.backward();
+        var.backward(1, var.shape());
         CheckVectorApproxValues(a.grad(), aix::tensor({-0.7500, -0.2500,
                                                         0.2500,  0.7500}, a.shape()).value());
     }
@@ -959,7 +959,7 @@ TEST_CASE("Auto Grad - argmax")
         CHECK(amax.shape() == Shape{});
         CHECK(amax.value().item<int32_t>() == 0);
         CHECK(a.grad().shape() == Shape{});
-        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0 }, a.shape()).value());
+        CheckVectorApproxValues(a.grad(), aix::Tensor(0.0, a.shape()).value());
     }
 
     SUBCASE("1 tensor")
@@ -970,7 +970,7 @@ TEST_CASE("Auto Grad - argmax")
         CHECK(amax.shape() == Shape{});
         CHECK(amax.value().item<int32_t>() == 0);
         CHECK(a.grad().shape() == Shape{1});
-        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0 }, a.shape()).value());
+        CheckVectorApproxValues(a.grad(), aix::Tensor(0.0, a.shape()).value());
     }
 
     SUBCASE("1x1 tensor")
@@ -981,7 +981,7 @@ TEST_CASE("Auto Grad - argmax")
         CHECK(amax.shape() == Shape{});
         CHECK(amax.value().item<int32_t>() == 0);
         CHECK(a.grad().shape() == Shape{1,1});
-        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0 }, a.shape()).value());
+        CheckVectorApproxValues(a.grad(), aix::Tensor(0.0, a.shape()).value());
     }
 
     SUBCASE("2x2 tensor")
@@ -992,7 +992,7 @@ TEST_CASE("Auto Grad - argmax")
         CHECK(amax.shape() == Shape{});
         CHECK(amax.value().item<int32_t>() == 3);
         CHECK(a.grad().shape() == Shape{2,2});
-        CheckVectorApproxValues(a.grad(), aix::tensor({ 0.0 }, a.shape()).value());
+        CheckVectorApproxValues(a.grad(), aix::Tensor(0.0, a.shape()).value());
     }
 
     SUBCASE("2x2 tensor - complex")
@@ -1002,7 +1002,7 @@ TEST_CASE("Auto Grad - argmax")
         amax.backward(1, amax.shape());
         CHECK(amax.shape() == Shape{2,2});
         CHECK(a.grad().shape() == Shape{2,2});
-        CheckVectorApproxValues(a.grad(), aix::tensor({ 1.0 }, a.shape()).value());
+        CheckVectorApproxValues(a.grad(), aix::Tensor(1.0, a.shape()).value());
     }
 }
 

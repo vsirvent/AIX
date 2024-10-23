@@ -570,23 +570,23 @@ public:
         synchronize();    // This call has no effect, but it shows the difference between copy and copyImmediate.
     }
 
-    virtual void broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                             DataType dtype)
+    virtual void contiguous(const void* src, void* dst, size_t size, size_t offset, const Stride& strides,
+                            const Shape& shape, DataType dtype)
     {
         static const auto funcTable = std::array
         {
-            broadcastToGeneric<double    >,
-            broadcastToGeneric<float     >,
-            broadcastToGeneric<float16_t >,
-            broadcastToGeneric<bfloat16_t>,
-            broadcastToGeneric<int64_t   >,
-            broadcastToGeneric<int32_t   >,
-            broadcastToGeneric<int16_t   >,
-            broadcastToGeneric<int8_t    >,
-            broadcastToGeneric<uint8_t   >,
+            contiguousGeneric<double    >,
+            contiguousGeneric<float     >,
+            contiguousGeneric<float16_t >,
+            contiguousGeneric<bfloat16_t>,
+            contiguousGeneric<int64_t   >,
+            contiguousGeneric<int32_t   >,
+            contiguousGeneric<int16_t   >,
+            contiguousGeneric<int8_t    >,
+            contiguousGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
+        funcTable[static_cast<size_t>(dtype)](src, dst, size, offset, strides, shape);
     }
 
     virtual void reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
@@ -1155,15 +1155,36 @@ protected:
     }
 
     template <typename T>
-    static void broadcastToGeneric(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)
+    static void contiguousGeneric(const void* src, void* dst, size_t size, size_t offset, const Stride& strides,
+                                  const Shape& shape)
     {
         auto tSrc = static_cast<const T*>(src);
         auto tDst = static_cast<T*>(dst);
 
-        for (size_t index = 0; index < size; ++index)
+        std::vector<size_t> indices(shape.size(), 0);
+        for (size_t i=0; i<size; ++i)
         {
-            // Copy value from original index to the new index.
-            tDst[index] = tSrc[translationIndex(index, shape, newShape)];
+            size_t ofs = offset;
+            for (size_t dim = 0; dim < shape.size(); ++dim)
+            {
+                ofs += indices[dim] * strides[dim];
+            }
+
+            tDst[i] = tSrc[ofs];
+
+            // Increment indices
+            for (ssize_t dim = static_cast<ssize_t>(shape.size()) - 1; dim >= 0; --dim)
+            {
+                indices[dim]++;
+                if (indices[dim] < shape[dim])
+                {
+                    break;
+                }
+                else
+                {
+                    indices[dim] = 0;
+                }
+            }
         }
     }
 
@@ -1477,7 +1498,7 @@ public:
     }
 
     // Constructor
-    TensorValue(const std::shared_ptr<TensorStorage>& storage, size_t size, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
+    TensorValue(const std::shared_ptr<TensorStorage>& storage, size_t size, size_t offset, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
         assert(storage->device() == device);
@@ -1485,6 +1506,7 @@ public:
         m_size = size;
         // Compute the strides for indexing multi-dimensional data.
         m_strides = computeStrides();
+        m_offset = offset;
     }
 
     // Constructor
@@ -1634,7 +1656,8 @@ public:
     void* data()                { return m_storage->data(); }
 
     // Get storage of the tensor.
-    const std::shared_ptr<TensorStorage>& storage() { return m_storage; };
+    inline const std::shared_ptr<TensorStorage>& storage()  { return m_storage; };
+    inline size_t storageOffset() const                     { return m_offset; };
 
     // Get the raw data of the tensor.
     template<typename T>
@@ -1676,7 +1699,7 @@ public:
             throw std::invalid_argument("Reshape error: element count mismatch (" +
                                         std::to_string(m_size) + " vs " + std::to_string(newSize) + ").");
         }
-        return {m_storage, m_size, newShape, m_device, m_dType};
+        return {m_storage, m_size, m_offset, newShape, m_device, m_dType};
     }
 
     // Equalize tensor data types by promoting data type of tensors.
@@ -1755,10 +1778,27 @@ public:
         {
             throw std::invalid_argument("Target TensorValue shape is not broadcastable.");
         }
-        Shape resultShape = broadcastShapes(shape(), newShape);
-        TensorValue result(resultShape, device(), m_dType);
-        device()->broadcastTo(data(), result.data(), result.size(), shape(), resultShape, m_dType);
-        return result;
+
+        // Calculate new strides for broadcasting.
+        std::vector<size_t> newStrides(newShape.size(), 0);
+        size_t currentStride = 1;
+        for (int i = m_shape.size() - 1, j = newShape.size() - 1; j >= 0; --i, --j)
+        {
+            if (i < 0 || m_shape[i] != newShape[j])
+            {
+                newStrides[j] = 0;      // Broadcast dimension.
+            } 
+            else
+            {
+                newStrides[j] = currentStride;
+                currentStride *= m_shape[i];
+            }
+        }
+
+        // Create a new TensorValue that shares the same storage.
+        TensorValue result(m_storage, m_size, m_offset, newShape, m_device, m_dType);
+        result.m_strides = std::move(newStrides);
+        return result.contiguous();
     }
 
     // Reduces the TensorValue back to the original shape.
@@ -1768,6 +1808,30 @@ public:
         // Ensure tensor values are initialized to zero, as the reduction operation performs a summation.
         TensorValue result(0, originalShape, device(), m_dType);
         device()->reduceTo(data(), result.data(), m_size, m_shape, originalShape, m_dType);
+        return result;
+    }
+
+    // Returns true if the tensor is contiguous.
+    bool isContiguous() const
+    {
+        size_t expectedStride = 1;
+        for (ssize_t i = m_shape.size() - 1; i >= 0; --i)
+        {
+            if (m_strides[i] != expectedStride)
+            {
+                return false;
+            }
+            expectedStride *= m_shape[i];
+        }
+        return true;
+    }
+
+    TensorValue contiguous() const
+    {
+        if (isContiguous()) return *this;
+
+        TensorValue result(m_shape, m_device, m_dType);
+        m_device->contiguous(data(), result.data(), result.size(), m_offset, m_strides, m_shape, m_dType);
         return result;
     }
 
@@ -2602,7 +2666,7 @@ private:
     size_t getIndex(const Index & indices) const
     {
         assert(indices.size() == m_shape.size());
-        return std::inner_product(indices.begin(), indices.end(), m_strides.begin(), 0);
+        return m_offset + std::inner_product(indices.begin(), indices.end(), m_strides.begin(), 0);
     }
 
     // Promotes data types and applies broadcasting if necessary.
@@ -2765,6 +2829,7 @@ private:
     size_t    m_size{0};        // Number of elements in DataType.
     Shape     m_shape;          // The shape of the tensor.
     Stride    m_strides;        // The strides for indexing the tensor.
+    size_t    m_offset{0};      // Start offset of data on storage.
     Device *  m_device{nullptr};
     std::shared_ptr<TensorStorage>  m_storage;      // The flat array of tensor elements.
 };
@@ -2862,10 +2927,10 @@ public:
     }
 
     // Constructor.
-    explicit Tensor(const std::shared_ptr<TensorStorage>& storage, size_t size, const Shape & shape,
+    explicit Tensor(const std::shared_ptr<TensorStorage>& storage, size_t size, size_t offset, const Shape & shape,
                     const TensorOptions & opt = {})
     {
-        m_data = std::make_shared<TensorNode>(TensorValue{storage, size, shape, opt.m_device, opt.m_dtype},
+        m_data = std::make_shared<TensorNode>(TensorValue{storage, size, offset, shape, opt.m_device, opt.m_dtype},
                                               opt.m_requireGrad);
         m_data->m_backwardFunc = defaultBackward;
     }
@@ -2935,7 +3000,7 @@ public:
 
         auto& tv = m_data->m_value;
         TensorOptions opt{ .m_requireGrad=isRequireGrad(), .m_dtype=dataType(), .m_device=device() };
-        Tensor result{tv.storage(), tv.size(), newShape, opt};
+        Tensor result{tv.storage(), tv.size(), tv.storageOffset(), newShape, opt};
         result.m_data->m_a = m_data;
         result.m_data->m_backwardFunc = reshapeBackwardFunc;
         return result;

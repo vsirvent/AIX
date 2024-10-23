@@ -20,8 +20,16 @@ inline auto Approx(auto value, double epsilon = 1e-4)
     return doctest::Approx(value).epsilon(epsilon);
 }
 
-inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix::TensorValue & expected, double epsilon = 1e-4)
+inline void CheckVectorApproxValues(aix::TensorValue results, aix::TensorValue expected, double epsilon = 1e-4)
 {
+    results = results.contiguous();
+    expected = expected.contiguous();
+
+    if (results.size() != expected.size())
+    {
+        throw std::invalid_argument("Tensor data sizes do no match for test result comparison.");
+    }
+
     if (results.dataType() != expected.dataType())
     {
         throw std::invalid_argument("Tensor data types do no match for test result comparison.");
@@ -99,5 +107,5 @@ inline void CheckVectorApproxValues(const aix::TensorValue & results, const aix:
 
 inline void CheckVectorApproxValues(const aix::Tensor & results, const aix::Tensor & expected, double epsilon = 1e-4)
 {
-    CheckVectorApproxValues(results.value(), expected.value(), epsilon);
+    CheckVectorApproxValues(results.value().contiguous(), expected.value().contiguous(), epsilon);
 }

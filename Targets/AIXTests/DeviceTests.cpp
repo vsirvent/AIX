@@ -1239,45 +1239,6 @@ bool testFillMin(Device* testDevice, size_t n)
 }
 
 
-bool testBroadcastTo(Device* testDevice)
-{
-    for (size_t i=0; i<aix::DataTypeCount; ++i)
-    {
-        auto dtype = static_cast<DataType>(i);
-        // Apple Metal Framework does not support kFloat64 data type.
-        if (testDevice->type() == DeviceType::kGPU_METAL && dtype == DataType::kFloat64) continue;
-
-        auto shape    = createRandomShape(1, 5);
-        auto newShape = createRandomShape(1, 5);
-        // Skip this test if the two random shapes cannot be broadcasted.
-        if (!TensorValue::checkBroadcastShapes(shape, newShape)) return true;
-
-        aix::Device  refDevice;     // Reference/CPU device.
-        auto srcTensor    = aix::randn(shape).to(dtype);
-        auto cpuResult    = aix::TensorValue(newShape, &refDevice).to(dtype);
-        auto deviceResult = aix::TensorValue(newShape, testDevice).to(dtype);
-
-        refDevice.broadcastTo(srcTensor.value().data(), cpuResult.data(), cpuResult.size(), shape, newShape, dtype);
-        testDevice->broadcastTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape, dtype);
-        testDevice->synchronize();
-
-        // Compare results with the true/reference results
-        if (!verifyResults(cpuResult, deviceResult))
-        {
-            #ifdef DEBUG_LOG
-            std::cout << "----------------------" << std::endl;
-            std::cout << "Source" << std::endl << srcTensor << std::endl;
-            std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
-            std::cout << "Device Result" << std::endl << deviceResult << std::endl;
-            #endif
-            return false;
-        }
-    }
-
-    return true;
-}
-
-
 bool testReduceTo(Device* testDevice)
 {
     for (size_t i=0; i<aix::DataTypeCount; ++i)
@@ -1883,25 +1844,6 @@ TEST_CASE("Device Tests - FillMin")
         {
             auto device2 = aix::createDevice(deviceType);
             CHECK(testFillMin(&*device2, size));
-        }
-    }
-}
-
-
-TEST_CASE("Device Tests - broadcastTo")
-{
-    // For each available devices, tests add operation.
-    for (auto deviceType : testDeviceTypes)
-    {
-        // Check if the devices is available.
-        auto device = aix::createDevice(deviceType);
-        if (!device) continue;      // Skip if the device is not available.
-
-        // Create a new device per test
-        for (size_t i=0; i<100; ++i)
-        {
-            auto device2 = aix::createDevice(deviceType);
-            CHECK(testBroadcastTo(&*device2));
         }
     }
 }

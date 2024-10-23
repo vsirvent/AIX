@@ -557,11 +557,12 @@ void DeviceMetal::copyImmediate(const void* src, DataType srcDType, void* dst, D
     synchronize();
 }
 
-void DeviceMetal::broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)
+void DeviceMetal::contiguous(const void* src, void* dst, size_t size, size_t offset, const Stride& strides,
+                             const Shape& shape, DataType dtype)
 {
     validateDataType(dtype);
-    auto iDType = static_cast<size_t>(dtype);
-    translation(src, dst, size, shape, newShape, m_compFuncPSOBroadcastTo[iDType], dtype, "broadcastTo_" + toString(dtype));
+    synchronize();
+    Device::contiguous(src, dst, size, offset, strides, shape, dtype);
 }
 
 void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)

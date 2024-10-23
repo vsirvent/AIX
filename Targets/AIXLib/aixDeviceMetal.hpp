@@ -115,7 +115,7 @@ public:
 
     void copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size) override;
 
-    void broadcastTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
+    void contiguous(const void* src, void* dst, size_t size, size_t offset, const Stride& strides, const Shape& shape, DataType dtype) override;
 
     void reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
 
