@@ -3286,3 +3286,260 @@ TEST_CASE("TensorValue - Cat")
         CHECK_THROWS_AS({ aix::TensorValue::cat({t33,t11}, 1); }, std::invalid_argument);
     }
 }
+
+
+TEST_CASE("TensorValue - permute()")
+{
+    auto ts = TensorValue(5.0,{}, &testDevice);
+    auto t12 = TensorValue({1.0,2.0}, {1,2}, &testDevice);
+    auto t32 = TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice);
+    auto t324 = aix::arange(1.0, 25.0, 1.0, aix::device(&testDevice)).reshape({3,2,4}).value();
+
+    SUBCASE("Fail tests")
+    {
+        TensorValue s = TensorValue(1.0, {}, &testDevice);     // Scalar tensor.
+        TensorValue t = TensorValue({1.0,2.0,3.0,4.0}, {2,1,2}, &testDevice);
+        DOCTEST_CHECK_THROWS_AS(s.permute({0}),       std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({0,1,2,3}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({0,1}),     std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({0,1,3}),   std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({0,1,1}),   std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({0,0,1}),   std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({0,1,-4}),  std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({-1,0,-1}), std::invalid_argument);
+        DOCTEST_CHECK_THROWS_AS(t.permute({-2,0,-2}), std::invalid_argument);
+    }
+
+    SUBCASE("s{} p{}")
+    {
+        TensorValue t = TensorValue(5.0, {}, &testDevice);
+        auto result = t.permute({});
+        CHECK(result.shape() == Shape{});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1} p{0}")
+    {
+        TensorValue t = TensorValue(5.0, {1}, &testDevice);
+        auto result = t.permute({0});
+        CHECK(result.shape() == Shape{1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1} p{-1}")
+    {
+        TensorValue t = TensorValue(5.0, {1}, &testDevice);
+        auto result = t.permute({-1});
+        CHECK(result.shape() == Shape{1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1,1} p{0,1}")
+    {
+        TensorValue t = TensorValue(5.0, {1,1}, &testDevice);
+        auto result = t.permute({0,1});
+        CHECK(result.shape() == Shape{1,1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1,1} p{-2,-1}")
+    {
+        TensorValue t = TensorValue(5.0, {1,1}, &testDevice);
+        auto result = t.permute({-2,-1});
+        CHECK(result.shape() == Shape{1,1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1,1} p{-1,-2}")
+    {
+        TensorValue t = TensorValue(5.0, {1,1}, &testDevice);
+        auto result = t.permute({-1,-2});
+        CHECK(result.shape() == Shape{1,1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1,2} p{0,1}")
+    {
+        auto t = t12;
+        auto result = t.permute({0,1});
+        CHECK(result.shape() == Shape{1,2});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1,2} p{-2,-1}")
+    {
+        auto t = t12;
+        auto result = t.permute({-2,-1});
+        CHECK(result.shape() == Shape{1,2});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{1,2} p{-1,-2}")
+    {
+        auto t = t12;
+        auto result = t.permute({-1,-2});
+        CHECK(result.shape() == Shape{2,1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{2,1} p{0,1}")
+    {
+        auto t = t12.reshape({2,1});
+        auto result = t.permute({0,1});
+        CHECK(result.shape() == Shape{2,1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{2,1} p{-2,-1}")
+    {
+        auto t = t12.reshape({2,1});
+        auto result = t.permute({-2,-1});
+        CHECK(result.shape() == Shape{2,1});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{2,1} p{-1,-2}")
+    {
+        auto t = t12.reshape({2,1});
+        auto result = t.permute({-1,-2});
+        CHECK(result.shape() == Shape{1,2});
+        CheckVectorApproxValues(result, t);
+    }
+
+    SUBCASE("s{3,2} p{0,1}")
+    {
+        auto t = t32;
+        auto result = t.permute({0,1});
+        CHECK(result.shape() == Shape{3,2});
+        CheckVectorApproxValues(result, TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice));
+    }
+
+    SUBCASE("s{3,2} p{1,0}")
+    {
+        auto t = t32;
+        auto result = t.permute({1,0});
+        CHECK(result.shape() == Shape{2,3});
+        CheckVectorApproxValues(result, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0}, {2,3}, &testDevice));
+    }
+
+    SUBCASE("s{3,2} p{-2,-1}")
+    {
+        auto t = t32;
+        auto result = t.permute({-2,-1});
+        CHECK(result.shape() == Shape{3,2});
+        CheckVectorApproxValues(result, TensorValue({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, &testDevice));
+    }
+
+    SUBCASE("s{3,2} p{-1,-2}")
+    {
+        auto t = t32;
+        auto result = t.permute({-1,-2});
+        CHECK(result.shape() == Shape{2,3});
+        CheckVectorApproxValues(result, TensorValue({1.0,3.0,5.0,2.0,4.0,6.0}, {2,3}, &testDevice));
+    }
+
+    SUBCASE("s{3,2,4} p{0,1,2}")
+    {
+        auto t = t324;
+        auto result = t.permute({0,1,2});
+        CHECK(result.shape() == Shape{3,2,4});
+        CheckVectorApproxValues(result, t324);
+    }
+
+    SUBCASE("s{3,2,4} p{0,2,1}")
+    {
+        auto t = t324;
+        auto result = t.permute({0,2,1});
+        CHECK(result.shape() == Shape{3,4,2});
+        CheckVectorApproxValues(result, TensorValue({ 1.0 , 5.0,
+                                                      2.0 , 6.0,
+                                                      3.0 , 7.0,
+                                                      4.0 , 8.0,
+                                                      9.0 ,13.0,
+                                                     10.0, 14.0,
+                                                     11.0, 15.0,
+                                                     12.0, 16.0,
+                                                     17.0, 21.0,
+                                                     18.0, 22.0,
+                                                     19.0, 23.0,
+                                                     20.0, 24.0}, {3,4,2}, &testDevice));
+    }
+
+    SUBCASE("s{3,2,4} p{1,0,2}")
+    {
+        auto t = t324;
+        auto result = t.permute({1,0,2});
+        CHECK(result.shape() == Shape{2,3,4});
+        CheckVectorApproxValues(result, TensorValue({  1.0,  2.0,  3.0,  4.0,
+                                                       9.0, 10.0, 11.0, 12.0,
+                                                      17.0, 18.0, 19.0, 20.0,
+                                                       5.0,  6.0,  7.0,  8.0,
+                                                      13.0, 14.0, 15.0, 16.0,
+                                                      21.0, 22.0, 23.0, 24.0}, {2,3,4}, &testDevice));
+    }
+
+    SUBCASE("s{3,2,4} p{1,2,0}")
+    {
+        auto t = t324;
+        auto result = t.permute({1,2,0});
+        CHECK(result.shape() == Shape{2,4,3});
+        CheckVectorApproxValues(result, TensorValue({ 1.0,  9.0, 17.0,
+                                                      2.0, 10.0, 18.0,
+                                                      3.0, 11.0, 19.0,
+                                                      4.0, 12.0, 20.0,
+                                                      5.0, 13.0, 21.0,
+                                                      6.0, 14.0, 22.0,
+                                                      7.0, 15.0, 23.0,
+                                                      8.0, 16.0, 24.0}, {2,4,3}, &testDevice));
+    }
+
+    SUBCASE("s{3,2,4} p{2,0,1}")
+    {
+        auto t = t324;
+        auto result = t.permute({2,0,1});
+        CHECK(result.shape() == Shape{4,3,2});
+        CheckVectorApproxValues(result, TensorValue({  1.0,  5.0,
+                                                       9.0, 13.0,
+                                                      17.0, 21.0,
+                                                       2.0,  6.0,
+                                                      10.0, 14.0,
+                                                      18.0, 22.0,
+                                                       3.0,  7.0,
+                                                      11.0, 15.0,
+                                                      19.0, 23.0,
+                                                       4.0,  8.0,
+                                                      12.0, 16.0,
+                                                      20.0, 24.0}, {4,3,2}, &testDevice));
+    }
+
+    SUBCASE("s{3,2,4} p{2,1,0}")
+    {
+        auto t = t324;
+        auto result = t.permute({2,1,0});
+        CHECK(result.shape() == Shape{4,2,3});
+        CheckVectorApproxValues(result, TensorValue({ 1.0,  9.0, 17.0,
+                                                      5.0, 13.0, 21.0,
+                                                      2.0, 10.0, 18.0,
+                                                      6.0, 14.0, 22.0,
+                                                      3.0, 11.0, 19.0,
+                                                      7.0, 15.0, 23.0,
+                                                      4.0, 12.0, 20.0,
+                                                      8.0, 16.0, 24.0}, {4,2,3}, &testDevice));
+    }
+
+    SUBCASE("s{3,2,4} p{-1,-2,-3}")
+    {
+        auto t = t324;
+        auto result = t.permute({-1,-2,-3});
+        CHECK(result.shape() == Shape{4,2,3});
+        CheckVectorApproxValues(result, TensorValue({ 1.0,  9.0, 17.0,
+                                                      5.0, 13.0, 21.0,
+                                                      2.0, 10.0, 18.0,
+                                                      6.0, 14.0, 22.0,
+                                                      3.0, 11.0, 19.0,
+                                                      7.0, 15.0, 23.0,
+                                                      4.0, 12.0, 20.0,
+                                                      8.0, 16.0, 24.0}, {4,2,3}, &testDevice));
+    }
+
+}
