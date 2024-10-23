@@ -2683,3 +2683,488 @@ TEST_CASE("Auto Grad - indexSelect")
     }
 
 }
+
+
+TEST_CASE("Auto Grad - permute()")
+{
+    auto t12 = tensor({1.0,2.0}, Shape{1,2}, requireGrad(true));
+    auto t32 = tensor({1.0,2.0,3.0,4.0,5.0,6.0}, {3,2}, requireGrad(true));
+    auto t324 = arange(1.0, 25.0, 1.0).reshape({3,2,4}).requireGrad(true);
+    auto a2  = arange(1.0, 3.0);
+    auto a6  = arange(1.0, 7.0, 1.0);
+    auto a24 = arange(1.0, 25.0, 1.0);
+
+    SUBCASE("s{} p{}")
+    {
+        auto a = tensor({5.0}, Shape{}, requireGrad(true));
+        auto t = a.permute({});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(a.grad(), tensor({1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1} p{0}")
+    {
+        auto a = tensor({5.0}, Shape{1}, requireGrad(true));
+        auto t = a.permute({0});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1} p{-1}")
+    {
+        auto a = tensor({5.0}, Shape{1}, requireGrad(true));
+        auto t = a.permute({-1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,1} p{0,1}")
+    {
+        auto a = tensor({5.0}, Shape{1,1}, requireGrad(true));
+        auto t = a.permute({0,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,1} p{-2,-1}")
+    {
+        auto a = tensor({5.0}, Shape{1,1}, requireGrad(true));
+        auto t = a.permute({-2,-1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,1} p{-1,-2}")
+    {
+        auto a = tensor({5.0}, Shape{1,1}, requireGrad(true));
+        auto t = a.permute({-1,-2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,2} p{0,1}")
+    {
+        auto a = t12;
+        auto t = a.permute({0,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,2} p{-2,-1}")
+    {
+        auto a = t12;
+        auto t = a.permute({-2,-1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,2} p{-1,-2}")
+    {
+        auto a = t12;
+        auto t = a.permute({-1,-2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{2,1} p{0,1}")
+    {
+        auto a = t12.reshape({2,1}).requireGrad(true);
+        auto t = a.permute({0,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{2,1} p{-2,-1}")
+    {
+        auto a = t12.reshape({2,1}).requireGrad(true);
+        auto t = a.permute({-2,-1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{2,1} p{-1,-2}")
+    {
+        auto a = t12.reshape({2,1}).requireGrad(true);
+        auto t = a.permute({-1,-2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{0,1}")
+    {
+        auto a = t32;
+        auto t = a.permute({0,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{1,0}")
+    {
+        auto a = t32;
+        auto t = a.permute({1,0});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{-2,-1}")
+    {
+        auto a = t32;
+        auto t = a.permute({-2,-1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{-1,-2}")
+    {
+        auto a = t32;
+        auto t = a.permute({-1,-2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{0,1,2}")
+    {
+        auto a = t324;
+        auto t = a.permute({0,1,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,2,4});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{0,2,1}")
+    {
+        auto a = t324;
+        auto t = a.permute({0,2,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,4,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{1,0,2}")
+    {
+        auto a = t324;
+        auto t = a.permute({1,0,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,3,4});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{1,2,0}")
+    {
+        auto a = t324;
+        auto t = a.permute({1,2,0});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,4,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{2,0,1}")
+    {
+        auto a = t324;
+        auto t = a.permute({2,0,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{4,3,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{2,1,0}")
+    {
+        auto a = t324;
+        auto t = a.permute({2,1,0});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{4,2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{-1,-2,-3}")
+    {
+        auto a = t324;
+        auto t = a.permute({-1,-2,-3});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{4,2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0,
+                                                  1.0,1.0,1.0,1.0,1.0,1.0}, a.shape()).value());
+    }
+
+    // ------------------------------
+    // Complex
+    // ------------------------------
+
+    SUBCASE("s{} p{} complex")
+    {
+        auto a = tensor({5.0}, Shape{}, requireGrad(true));
+        auto t = a.permute({}) * a;
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{});
+        CheckVectorApproxValues(a.grad(), tensor({10.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1} p{0} complex")
+    {
+        auto a = tensor({5.0}, Shape{1}, requireGrad(true));
+        auto t = a.permute({0}) * a;
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(a.grad(), tensor({10.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1} p{-1} complex")
+    {
+        auto a = tensor({5.0}, Shape{1}, requireGrad(true));
+        auto t = a.permute({-1}) * a;
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1});
+        CheckVectorApproxValues(a.grad(), tensor({10.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,1} p{0,1} complex")
+    {
+        auto a = tensor({5.0}, Shape{1,1}, requireGrad(true));
+        auto t = a.permute({0,1}) * a;
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), tensor({10.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,1} p{-2,-1} complex")
+    {
+        auto a = tensor({5.0}, Shape{1,1}, requireGrad(true));
+        auto t = a.permute({-2,-1}) * a;
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), tensor({10.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,1} p{-1,-2} complex")
+    {
+        auto a = tensor({5.0}, Shape{1,1}, requireGrad(true));
+        auto t = a.permute({-1,-2}) * a;
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,1});
+        CheckVectorApproxValues(a.grad(), tensor({10.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,2} p{0,1} complex")
+    {
+        auto a = a2.reshape({1,2}).requireGrad(true);
+        auto t = a.permute({0,1}) * a;
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(a.grad(), tensor({2.0,4.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,2} p{-2,-1} complex")
+    {
+        auto a = a2.reshape({1,2}).requireGrad(true);
+        auto t = a.permute({-2,-1}) * a2.reshape({1,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,2.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{1,2} p{-1,-2} complex")
+    {
+        auto a = a2.reshape({1,2}).requireGrad(true);
+        auto t = a.permute({-1,-2}) * a2.reshape({2,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,2.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{2,1} p{0,1} complex")
+    {
+        auto a = a2.reshape({2,1}).requireGrad(true);
+        auto t = a.permute({0,1}) * a2.reshape({2,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,2.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{2,1} p{-2,-1} complex")
+    {
+        auto a = a2.reshape({2,1}).requireGrad(true);
+        auto t = a.permute({-2,-1}) * a2.reshape({2,1});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,1});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,2.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{2,1} p{-1,-2} complex")
+    {
+        auto a = a2.reshape({2,1}).requireGrad(true);
+        auto t = a.permute({-1,-2}) * a2.reshape({1,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{1,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,2.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{0,1} complex")
+    {
+        auto a = a6.reshape({3,2}).requireGrad(true);
+        auto t = a.permute({0,1}) * a6.reshape({3,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,2.0,3.0,4.0,5.0,6.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{1,0} complex")
+    {
+        auto a = a6.reshape({3,2}).requireGrad(true);
+        auto t = a.permute({1,0}) * a6.reshape({2,3});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,4.0,2.0,5.0,3.0,6.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{-2,-1} complex")
+    {
+        auto a = a6.reshape({3,2}).requireGrad(true);
+        auto t = a.permute({-2,-1}) * a6.reshape({3,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,2.0,3.0,4.0,5.0,6.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2} p{-1,-2} complex")
+    {
+        auto a = a6.reshape({3,2}).requireGrad(true);
+        auto t = a.permute({-1,-2}) * a6.reshape({2,3});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,4.0,2.0,5.0,3.0,6.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{0,1,2} complex")
+    {
+        auto a = a24.reshape({3,2,4}).requireGrad(true);
+        auto t = a.permute({0,1,2}) * a24.reshape({3,2,4});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,2,4});
+        CheckVectorApproxValues(a.grad(), tensor({ 1.0,  2.0,  3.0,  4.0,
+                                                   5.0,  6.0,  7.0,  8.0,
+                                                   9.0, 10.0, 11.0, 12.0,
+                                                  13.0, 14.0, 15.0, 16.0,
+                                                  17.0, 18.0, 19.0, 20.0,
+                                                  21.0, 22.0, 23.0, 24.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{0,2,1} complex")
+    {
+        auto a = a24.reshape({3,2,4}).requireGrad(true);
+        auto t = a.permute({0,2,1}) * a24.reshape({3,4,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{3,4,2});
+        CheckVectorApproxValues(a.grad(), tensor({ 1.0,  3.0,  5.0,  7.0,
+                                                   2.0,  4.0,  6.0,  8.0,
+                                                   9.0, 11.0, 13.0, 15.0,
+                                                  10.0, 12.0, 14.0, 16.0,
+                                                  17.0, 19.0, 21.0, 23.0,
+                                                  18.0, 20.0, 22.0, 24.0 }, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{1,0,2} complex")
+    {
+        auto a = a24.reshape({3,2,4}).requireGrad(true);
+        auto t = a.permute({1,0,2}) * a24.reshape({2,3,4});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,3,4});
+        CheckVectorApproxValues(a.grad(), tensor({ 1.0,  2.0,  3.0,  4.0,
+                                                  13.0, 14.0, 15.0, 16.0,
+                                                   5.0,  6.0,  7.0,  8.0,
+                                                  17.0, 18.0, 19.0, 20.0,
+                                                   9.0, 10.0, 11.0, 12.0,
+                                                  21.0, 22.0, 23.0, 24.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{1,2,0} complex")
+    {
+        auto a = a24.reshape({3,2,4}).requireGrad(true);
+        auto t = a.permute({1,2,0}) * a24.reshape({2,4,3});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{2,4,3});
+        CheckVectorApproxValues(a.grad(), tensor({ 1.0,  4.0,  7.0, 10.0,
+                                                  13.0, 16.0, 19.0, 22.0,
+                                                   2.0,  5.0,  8.0, 11.0,
+                                                  14.0, 17.0, 20.0, 23.0,
+                                                   3.0,  6.0,  9.0, 12.0,
+                                                  15.0, 18.0, 21.0, 24.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{2,0,1} complex")
+    {
+        auto a = a24.reshape({3,2,4}).requireGrad(true);
+        auto t = a.permute({2,0,1}) * a24.reshape({4,3,2});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{4,3,2});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,  7.0, 13.0, 19.0,
+                                                  2.0,  8.0, 14.0, 20.0,
+                                                  3.0,  9.0, 15.0, 21.0,
+                                                  4.0, 10.0, 16.0, 22.0,
+                                                  5.0, 11.0, 17.0, 23.0,
+                                                  6.0, 12.0, 18.0, 24.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{2,1,0} complex")
+    {
+        auto a = a24.reshape({3,2,4}).requireGrad(true);
+        auto t = a.permute({2,1,0}) * a24.reshape({4,2,3});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{4,2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,  7.0, 13.0, 19.0,
+                                                  4.0, 10.0, 16.0, 22.0,
+                                                  2.0,  8.0, 14.0, 20.0,
+                                                  5.0, 11.0, 17.0, 23.0,
+                                                  3.0,  9.0, 15.0, 21.0,
+                                                  6.0, 12.0, 18.0, 24.0}, a.shape()).value());
+    }
+
+    SUBCASE("s{3,2,4} p{-1,-2,-3} complex")
+    {
+        auto a = a24.reshape({3,2,4}).requireGrad(true);
+        auto t = a.permute({-1,-2,-3}) * a24.reshape({4,2,3});
+        t.backward(1, t.shape());
+        CHECK(t.shape() == Shape{4,2,3});
+        CheckVectorApproxValues(a.grad(), tensor({1.0,  7.0, 13.0, 19.0,
+                                                  4.0, 10.0, 16.0, 22.0,
+                                                  2.0,  8.0, 14.0, 20.0,
+                                                  5.0, 11.0, 17.0, 23.0,
+                                                  3.0,  9.0, 15.0, 21.0,
+                                                  6.0, 12.0, 18.0, 24.0}, a.shape()).value());
+    }
+}
