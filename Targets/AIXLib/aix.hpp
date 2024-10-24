@@ -1161,30 +1161,19 @@ protected:
         auto tSrc = static_cast<const T*>(src);
         auto tDst = static_cast<T*>(dst);
 
-        std::vector<size_t> indices(shape.size(), 0);
         for (size_t i=0; i<size; ++i)
         {
+            size_t idx = i;
             size_t ofs = offset;
-            for (size_t dim = 0; dim < shape.size(); ++dim)
+            for (ssize_t dim = ssize_t(shape.size()) - 1; dim >= 0; --dim)
             {
-                ofs += indices[dim] * strides[dim];
+                auto dimIndex = idx % shape[dim];
+                idx /= shape[dim];
+                ofs += dimIndex * strides[dim];
             }
 
+            // Copy the element from non-contiguous source to contiguous destination.
             tDst[i] = tSrc[ofs];
-
-            // Increment indices
-            for (ssize_t dim = static_cast<ssize_t>(shape.size()) - 1; dim >= 0; --dim)
-            {
-                indices[dim]++;
-                if (indices[dim] < shape[dim])
-                {
-                    break;
-                }
-                else
-                {
-                    indices[dim] = 0;
-                }
-            }
         }
     }
 
