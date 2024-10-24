@@ -1427,8 +1427,8 @@ public:
     TensorValue() = default;
 
     // Constructor
-    TensorValue(const void* data, size_t size, DataType srcDType, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
-        m_dType(dType), m_shape(std::move(shape)), m_device(device)
+    TensorValue(const void* data, size_t size, DataType srcDType, Shape shape, Device* device,
+                DataType dType = DataType::kFloat32) : m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
         m_storage = std::make_shared<TensorStorage>(device, size, dType);
         device->copy(data, srcDType, m_storage->data(), dType, size);
@@ -1438,8 +1438,8 @@ public:
     }
 
     // Constructor
-    TensorValue(const std::shared_ptr<TensorStorage>& storage, size_t size, size_t offset, Shape shape, Device* device, DataType dType = DataType::kFloat32) :
-        m_dType(dType), m_shape(std::move(shape)), m_device(device)
+    TensorValue(const std::shared_ptr<TensorStorage>& storage, size_t size, size_t offset, Shape shape, Device* device,
+                DataType dType = DataType::kFloat32) : m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
         assert(storage->device() == device);
         m_storage = storage;
@@ -2324,15 +2324,15 @@ public:
         if (inPlace)
         {
             // Slice and set tensor's data to the result tensor.
-            device()->sliceSet(tensor.m_storage->data(), m_storage->data(), tensor.size(), m_shape, newShape, m_strides, dim, start, step,
-                               m_dType);
+            device()->sliceSet(tensor.m_storage->data(), m_storage->data(), tensor.size(), m_shape, newShape,
+                               m_strides, dim, start, step, m_dType);
             return *this;
         }
 
         TensorValue result(0, m_shape, device(), m_dType);  // Zero initialization is required.
         // Slice and set tensor's data to the result tensor.
-        device()->sliceSet(tensor.m_storage->data(), result.data(), tensor.size(), m_shape, newShape, m_strides, dim, start, step,
-                           m_dType);
+        device()->sliceSet(tensor.m_storage->data(), result.data(), tensor.size(), m_shape, newShape, m_strides,
+                           dim, start, step, m_dType);
         return result;
     }
 
