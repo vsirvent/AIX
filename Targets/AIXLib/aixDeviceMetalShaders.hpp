@@ -929,19 +929,28 @@ size_t translationIndex(size_t index, device const size_t* shape, device const s
 }
 
 
-// BroadcastTo - Naive Implementation
+// Contiguous - Naive Implementation
 // -----------------------------------------------------------------
 template<typename T, typename T2>
-[[kernel]] void broadcastTo(const device T* src       [[buffer(0)]],
-                            device       T* dst       [[buffer(1)]],
-                            const device T2* shape    [[buffer(2)]],
-                            const device T2* newShape [[buffer(3)]],
-                            constant T2& shapeSize    [[buffer(4)]],
-                            constant T2& newShapeSize [[buffer(5)]],
-                            uint index [[thread_position_in_grid]])
+[[kernel]] void contiguous(const device T* src       [[buffer(0)]],
+                           device       T* dst       [[buffer(1)]],
+                           const device T2* shape    [[buffer(2)]],
+                           const device T2* strides  [[buffer(3)]],
+                           constant T2& shapeSize    [[buffer(4)]],
+                           constant T2& offset       [[buffer(5)]],
+                           uint index [[thread_position_in_grid]])
 {
-    size_t originalIndex = translationIndex(index, shape, newShape, shapeSize, newShapeSize);
-    dst[index] = src[originalIndex];
+    size_t idx = index;
+    size_t ofs = offset;
+    for (int64_t dim = static_cast<int64_t>(shapeSize) - 1; dim >= 0; --dim)
+    {
+        uint dimIndex = idx % shape[dim];
+        idx /= shape[dim];
+        ofs += dimIndex * strides[dim];
+    }
+
+    // Copy the element from non-contiguous source to contiguous destination.
+    dst[index] = src[ofs];
 }
 
 
@@ -1631,26 +1640,26 @@ SpecializeFillMin("i8",   char4);
 SpecializeFillMin("ui8",  uchar4);
 
 
-// BroadcastTo
+// Contiguous
 // -----------------------------------------------------------------
-#define SpecializeBroadcastTo(tname, type1, type2)  \
-    template [[ host_name("broadcastTo_" tname) ]]  \
-    [[kernel]] void broadcastTo(const device type1* src       [[buffer(0)]], \
-                                device       type1* dst       [[buffer(1)]], \
-                                const device type2* shape     [[buffer(2)]], \
-                                const device type2* newShape  [[buffer(3)]], \
-                                constant type2& shapeSize     [[buffer(4)]], \
-                                constant type2& newShapeSize  [[buffer(5)]], \
-                                uint index [[thread_position_in_grid]])
+#define SpecializeContiguous(tname, type1, type2)  \
+    template [[ host_name("contiguous_" tname) ]]  \
+    [[kernel]] void contiguous(const device type1* src       [[buffer(0)]], \
+                               device       type1* dst       [[buffer(1)]], \
+                               const device type2* shape     [[buffer(2)]], \
+                               const device type2* strides   [[buffer(3)]], \
+                               constant type2& shapeSize     [[buffer(4)]], \
+                               constant type2& offset        [[buffer(5)]], \
+                               uint index [[thread_position_in_grid]])
 
-SpecializeBroadcastTo("f32",  float , size_t);
-SpecializeBroadcastTo("f16",  half  , size_t);
-SpecializeBroadcastTo("bf16", bfloat, size_t);
-SpecializeBroadcastTo("i64",  long  , size_t);
-SpecializeBroadcastTo("i32",  int   , size_t);
-SpecializeBroadcastTo("i16",  short , size_t);
-SpecializeBroadcastTo("i8",   char  , size_t);
-SpecializeBroadcastTo("ui8",  uchar , size_t);
+SpecializeContiguous("f32",  float , size_t);
+SpecializeContiguous("f16",  half  , size_t);
+SpecializeContiguous("bf16", bfloat, size_t);
+SpecializeContiguous("i64",  long  , size_t);
+SpecializeContiguous("i32",  int   , size_t);
+SpecializeContiguous("i16",  short , size_t);
+SpecializeContiguous("i8",   char  , size_t);
+SpecializeContiguous("ui8",  uchar , size_t);
 
 
 // ReduceTo

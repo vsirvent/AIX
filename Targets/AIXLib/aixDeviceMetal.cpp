@@ -74,7 +74,7 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOTranspose2DTiled16x16x8[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2DTiled_16_16_8_" + dtypeStr);
         m_compFuncPSOTranspose2DTiled32x32x8[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose2DTiled_32_32_8_" + dtypeStr);
         m_compFuncPSOTranspose[i]   = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "transpose_" + dtypeStr);
-        m_compFuncPSOBroadcastTo[i] = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "broadcastTo_" + dtypeStr);
+        m_compFuncPSOContiguous[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "contiguous_" + dtypeStr);
         m_compFuncPSOReduceTo[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "reduceTo_" + dtypeStr);
         m_compFuncPSOMaxTo[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "maxTo_" + dtypeStr);
         m_compFuncPSOSlice[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "slice_" + dtypeStr);
@@ -132,7 +132,7 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOTranspose2DTiled16x16x8[i]->release();
         m_compFuncPSOTranspose2DTiled32x32x8[i]->release();
         m_compFuncPSOTranspose[i]->release();
-        m_compFuncPSOBroadcastTo[i]->release();
+        m_compFuncPSOContiguous[i]->release();
         m_compFuncPSOReduceTo[i]->release();
         m_compFuncPSOMaxTo[i]->release();
         m_compFuncPSOSlice[i]->release();
@@ -561,8 +561,41 @@ void DeviceMetal::contiguous(const void* src, void* dst, size_t size, size_t off
                              const Shape& shape, DataType dtype)
 {
     validateDataType(dtype);
-    synchronize();
-    Device::contiguous(src, dst, size, offset, strides, shape, dtype);
+    // Result buffer has to be allocated in advance and has to be a GPU memory.
+    if (!isDeviceBuffer(dst))
+        throw std::invalid_argument("DeviceMetal::contiguous() result must have GPU memory.");
+
+    auto iDType = static_cast<size_t>(dtype);
+    size_t shapeSize  = shape.size();
+    size_t strideSize = strides.size();
+    assert(shapeSize == strideSize);
+
+    auto bufSrc     = getReadOnlyMTLBuffer(src, size, dataTypeSize(dtype));
+    auto bufShape   = shapeSize  != 0 ? getReadOnlyMTLBuffer(shape.data(),   shapeSize,  sizeof(size_t)) : nullptr;
+    auto bufStrides = strideSize != 0 ? getReadOnlyMTLBuffer(strides.data(), strideSize, sizeof(size_t)) : nullptr;
+    auto bufDst     = m_allocMap[dst];
+    auto computePSO = m_compFuncPSOContiguous[iDType];
+
+    // Serialize resources and states to be used by the GPU.
+    m_compEncoder->setComputePipelineState(computePSO);
+    m_compEncoder->setBuffer(bufSrc,     0, 0);
+    m_compEncoder->setBuffer(bufDst,     0, 1);
+    m_compEncoder->setBuffer(bufShape,   0, 2);
+    m_compEncoder->setBuffer(bufStrides, 0, 3);
+    m_compEncoder->setBytes(&shapeSize,  sizeof(shapeSize), 4);
+    m_compEncoder->setBytes(&offset,     sizeof(offset),    5);
+
+    // Calculate maximum thread group dimensions
+    NS::UInteger w = std::min(size, computePSO->maxTotalThreadsPerThreadgroup());
+
+    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
+    m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
+
+    // Free operation is delayed until the commit is done.
+    freeTemporaryBuffer(bufSrc);
+    freeTemporaryBuffer(bufShape);
+    freeTemporaryBuffer(bufStrides);
+    commitBatchQueue();
 }
 
 void DeviceMetal::reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype)

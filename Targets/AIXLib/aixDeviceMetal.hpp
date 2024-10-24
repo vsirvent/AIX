@@ -242,7 +242,7 @@ protected:
     MTL::ComputePipelineState*   m_compFuncPSOCopyAA[aix::DataTypeCount][aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOFill[aix::DataTypeCount][aix::DataTypeCount];
     MTL::ComputePipelineState*   m_compFuncPSOFillMin[aix::DataTypeCount]{nullptr};
-    MTL::ComputePipelineState*   m_compFuncPSOBroadcastTo[aix::DataTypeCount]{nullptr};
+    MTL::ComputePipelineState*   m_compFuncPSOContiguous[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOReduceTo[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOMaxTo[aix::DataTypeCount]{nullptr};
     MTL::ComputePipelineState*   m_compFuncPSOSlice[aix::DataTypeCount]{nullptr};
