@@ -988,41 +988,6 @@ template<typename T, typename T2>
 }
 
 
-// Slice - Naive Implementation
-// -----------------------------------------------------------------
-template<typename T, typename T2>
-[[kernel]] void slice(const device T* src       [[buffer(0)]],
-                      device       T* dst       [[buffer(1)]],
-                      const device T2* shape    [[buffer(2)]],
-                      const device T2* newShape [[buffer(3)]],
-                      const device T2* strides  [[buffer(4)]],
-                      constant T2& shapeSize    [[buffer(5)]],
-                      constant T2& newShapeSize [[buffer(6)]],
-                      constant T2& stridesSize  [[buffer(7)]],
-                      constant T2& dim          [[buffer(8)]],
-                      constant T2& start        [[buffer(9)]],
-                      constant T2& step         [[buffer(10)]],
-                      uint index [[thread_position_in_grid]])
-{
-    // Translate the flat index into multi-dimensional indices.
-    size_t dstIndex = index;
-    size_t srcIndex = 0;
-
-    for (int64_t i = static_cast<int64_t>(shapeSize) - 1; i >= 0; --i)
-    {
-        size_t coordinate = dstIndex % newShape[i];
-        dstIndex /= newShape[i];
-
-        if (i == static_cast<int64_t>(dim))   // Handle the slicing dimension.
-            srcIndex += (start + coordinate * step) * strides[i];
-        else
-            srcIndex += coordinate * strides[i];
-    }
-
-    dst[index] = src[srcIndex];
-}
-
-
 // SliceSet - Naive Implementation
 // -----------------------------------------------------------------
 template<typename T, typename T2>
@@ -1724,33 +1689,6 @@ SpecializeMaxTo("i8",   char  , size_t);
 SpecializeMaxTo("ui8",  uchar , size_t);
 ImplementSpecializedMaxTo("bf16", bfloat, size_t);
 ImplementSpecializedMaxTo("i64",  long  , size_t);
-
-
-// Slice
-// -----------------------------------------------------------------
-#define SpecializeSlice(tname, type1, type2)  \
-    template [[ host_name("slice_" tname) ]]  \
-    [[kernel]] void slice(const device type1* src      [[buffer(0)]],  \
-                          device       type1* dst      [[buffer(1)]],  \
-                          const device type2* shape    [[buffer(2)]],  \
-                          const device type2* newShape [[buffer(3)]],  \
-                          const device type2* strides  [[buffer(4)]],  \
-                          constant type2& shapeSize    [[buffer(5)]],  \
-                          constant type2& newShapeSize [[buffer(6)]],  \
-                          constant type2& stridesSize  [[buffer(7)]],  \
-                          constant type2& dim          [[buffer(8)]],  \
-                          constant type2& start        [[buffer(9)]],  \
-                          constant type2& step         [[buffer(10)]], \
-                          uint index [[thread_position_in_grid]])
-
-SpecializeSlice("f32",  float , size_t);
-SpecializeSlice("f16",  half  , size_t);
-SpecializeSlice("bf16", bfloat, size_t);
-SpecializeSlice("i64",  long  , size_t);
-SpecializeSlice("i32",  int   , size_t);
-SpecializeSlice("i16",  short , size_t);
-SpecializeSlice("i8",   char  , size_t);
-SpecializeSlice("ui8",  uchar , size_t);
 
 
 // SliceSet

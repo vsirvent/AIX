@@ -676,25 +676,6 @@ public:
         funcTable[static_cast<size_t>(dtype)](src, dst, srcSize, dstSize, shape, newShape);
     }
 
-    virtual void slice(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                       const Shape& strides, size_t dim, size_t start, size_t step, DataType dtype)
-    {
-        static const auto funcTable = std::array
-        {
-            sliceGeneric<double    >,
-            sliceGeneric<float     >,
-            sliceGeneric<float16_t >,
-            sliceGeneric<bfloat16_t>,
-            sliceGeneric<int64_t   >,
-            sliceGeneric<int32_t   >,
-            sliceGeneric<int16_t   >,
-            sliceGeneric<int8_t    >,
-            sliceGeneric<uint8_t   >,
-        };
-        // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape, strides, dim, start, step);
-    }
-
     virtual void sliceSet(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
                             const Shape& strides, size_t dim, size_t start, size_t step, DataType dtype)
     {
@@ -1202,36 +1183,6 @@ protected:
         {
             auto transIndex = translationIndex(index, newShape, shape);
             tDst[transIndex] = std::max<T>(tDst[transIndex], tSrc[index]);
-        }
-    }
-
-    template <typename T>
-    static void sliceGeneric(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                             const Shape& strides, size_t dim, size_t start, size_t step)
-    {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
-
-        // Iterate over all elements in the destination tensor.
-        for (size_t index = 0; index < size; ++index)
-        {
-            // Translate the flat index into multi-dimensional indices.
-            size_t dstIndex = index;
-            size_t srcIndex = 0;
-
-            for (ssize_t i = static_cast<ssize_t>(shape.size()) - 1; i >= 0; --i)
-            {
-                size_t coordinate = dstIndex % newShape[i];
-                dstIndex /= newShape[i];
-
-                if (i == static_cast<ssize_t>(dim))   // Handle the slicing dimension.
-                    srcIndex += (start + coordinate * step) * strides[i];
-                else
-                    srcIndex += coordinate * strides[i];
-            }
-
-            // Copy the element from the source to the destination.
-            tDst[index] = tSrc[srcIndex];
         }
     }
 
@@ -1787,6 +1738,7 @@ public:
         // Create a new TensorValue that shares the same storage.
         TensorValue result(m_storage, m_size, m_offset, newShape, m_device, m_dType);
         result.m_strides = std::move(newStrides);
+        result.m_isContiguous = false;
         return result.contiguous();
     }
 
@@ -1803,7 +1755,7 @@ public:
     // Returns true if the tensor is contiguous.
     bool isContiguous() const
     {
-        return m_strides == computeStrides();
+        return m_isContiguous;
     }
 
     TensorValue contiguous() const
@@ -2301,15 +2253,26 @@ public:
             throw std::invalid_argument("Start index of slice() must be less than end index.");
         }
 
-        // Calculate the new shape for the sliced tensor.
-        Shape newShape = m_shape;
-        newShape[dim] = (end - start + step - 1) / step; // This computes the size along the slicing dimension.
+        // Compute new size along the sliced dimension.
+        size_t newSizeInDim = (end - start + step - 1) / step;
 
-        TensorValue result(newShape, device(), m_dType);    // Zero initialization is not required.
-        // Slice and copy data to the result tensor.
-        device()->slice(data(), result.data(), result.size(), m_shape, newShape, m_strides,
-                        dim, start, step, m_dType);
-        return result;
+        // Compute new offset.
+        size_t newOffset = m_offset + start * m_strides[dim];
+
+        // Compute new strides.
+        auto newStrides = m_strides;
+        newStrides[dim] *= step;
+
+        // Compute new shape.
+        auto newShape = m_shape;
+        newShape[dim] = newSizeInDim;
+
+        auto newSize = std::accumulate(newShape.begin(), newShape.end(), 1, std::multiplies<>());
+
+        TensorValue result(m_storage, newSize, newOffset, newShape, device(), dataType());
+        result.m_strides = newStrides;
+        result.m_isContiguous = false;
+        return result.contiguous();
     }
 
     TensorValue sliceSet(const TensorValue& tensor, ssize_t dim=0, std::optional<ssize_t> startOpt = std::nullopt,
@@ -2805,6 +2768,7 @@ private:
     }
 
 private:
+    bool      m_isContiguous{true};
     DataType  m_dType{DataType::kFloat32};
     size_t    m_size{0};        // Number of elements in DataType.
     Shape     m_shape;          // The shape of the tensor.

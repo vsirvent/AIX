@@ -77,7 +77,6 @@ DeviceMetal::DeviceMetal(size_t deviceIndex)
         m_compFuncPSOContiguous[i]  = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "contiguous_" + dtypeStr);
         m_compFuncPSOReduceTo[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "reduceTo_" + dtypeStr);
         m_compFuncPSOMaxTo[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "maxTo_" + dtypeStr);
-        m_compFuncPSOSlice[i]       = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "slice_" + dtypeStr);
         m_compFuncPSOSliceSet[i]    = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "sliceSet_" + dtypeStr);
         m_compFuncPSOTril[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "tril_" + dtypeStr);
         m_compFuncPSOTriu[i]        = createComputeFuncPSO(defaultLibrary, isNull ? nullKernelName : "triu_" + dtypeStr);
@@ -135,7 +134,6 @@ DeviceMetal::~DeviceMetal()
         m_compFuncPSOContiguous[i]->release();
         m_compFuncPSOReduceTo[i]->release();
         m_compFuncPSOMaxTo[i]->release();
-        m_compFuncPSOSlice[i]->release();
         m_compFuncPSOSliceSet[i]->release();
         m_compFuncPSOTril[i]->release();
         m_compFuncPSOTriu[i]->release();
@@ -645,62 +643,6 @@ void DeviceMetal::argmaxIndicesTo(const void* src, void* dst, size_t srcSize, si
     validateDataType(dtype);
     synchronize();
     Device::argmaxIndicesTo(src, dst, srcSize, dstSize, shape, newShape, dtype, resultDtype);
-}
-
-void DeviceMetal::slice(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                        const Shape& strides, size_t dim, size_t start, size_t step, DataType dtype)
-{
-    validateDataType(dtype);
-    // Result buffer has to be allocated in advance and has to be a GPU memory.
-    if (!isDeviceBuffer(dst))
-        throw std::invalid_argument("DeviceMetal::slice() result must have GPU memory.");
-
-    // For a special case, two scalar tensors, use just a copy operation.
-    if (shape.empty() && newShape.empty())
-    {
-        copy(src, dtype, dst, dtype, size);
-        return;
-    }
-
-    size_t shapeSize    = shape.size();
-    size_t newShapeSize = newShape.size();
-    size_t stridesSize  = strides.size();
-    assert(size > 0);
-
-    // NOTE: For a scalar tensor shape size could be zero.
-    auto bufSrc     = getReadOnlyMTLBuffer(src, size, dataTypeSize(dtype));
-    auto bufShape1  = shapeSize    != 0 ? getReadOnlyMTLBuffer(shape.data(),    shapeSize,    sizeof(size_t)) : nullptr;
-    auto bufShape2  = newShapeSize != 0 ? getReadOnlyMTLBuffer(newShape.data(), newShapeSize, sizeof(size_t)) : nullptr;
-    auto bufStrides = stridesSize  != 0 ? getReadOnlyMTLBuffer(strides.data(),  stridesSize,  sizeof(size_t)) : nullptr;
-    auto bufDst     = m_allocMap[dst];
-    auto compFuncPSO = m_compFuncPSOSlice[static_cast<size_t>(dtype)];
-
-    // Serialize resources and states to be used by the GPU.
-    m_compEncoder->setComputePipelineState(compFuncPSO);
-    m_compEncoder->setBuffer(bufSrc,     0, 0);
-    m_compEncoder->setBuffer(bufDst,     0, 1);
-    m_compEncoder->setBuffer(bufShape1,  0, 2);
-    m_compEncoder->setBuffer(bufShape2,  0, 3);
-    m_compEncoder->setBuffer(bufStrides, 0, 4);
-    m_compEncoder->setBytes(&shapeSize,    sizeof(shapeSize),    5);
-    m_compEncoder->setBytes(&newShapeSize, sizeof(newShapeSize), 6);
-    m_compEncoder->setBytes(&stridesSize,  sizeof(stridesSize),  7);
-    m_compEncoder->setBytes(&dim,   sizeof(dim),   8);
-    m_compEncoder->setBytes(&start, sizeof(start), 9);
-    m_compEncoder->setBytes(&step,  sizeof(step),  10);
-
-    // Calculate maximum thread group dimensions
-    NS::UInteger w = std::min(size, compFuncPSO->maxTotalThreadsPerThreadgroup());
-
-    // Use dispatch threads which is the most efficient but requires non-uniform grid size feature support in HW.
-    m_compEncoder->dispatchThreads({size, 1, 1}, {w, 1, 1});
-
-    // Free operation is delayed until the commit is done.
-    freeTemporaryBuffer(bufSrc);
-    freeTemporaryBuffer(bufShape1);
-    freeTemporaryBuffer(bufShape2);
-    freeTemporaryBuffer(bufStrides);
-    commitBatchQueue();
 }
 
 void DeviceMetal::sliceSet(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
