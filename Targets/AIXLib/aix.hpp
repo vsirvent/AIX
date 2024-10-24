@@ -1803,16 +1803,7 @@ public:
     // Returns true if the tensor is contiguous.
     bool isContiguous() const
     {
-        size_t expectedStride = 1;
-        for (ssize_t i = m_shape.size() - 1; i >= 0; --i)
-        {
-            if (m_strides[i] != expectedStride)
-            {
-                return false;
-            }
-            expectedStride *= m_shape[i];
-        }
-        return true;
+        return m_strides == computeStrides();
     }
 
     TensorValue contiguous() const
@@ -2639,7 +2630,7 @@ private:
     }
 
     // Compute the strides based on the shape of the tensor
-    Stride computeStrides()
+    Stride computeStrides() const
     {
         Stride strides(m_shape.size());
         size_t stride = 1;
