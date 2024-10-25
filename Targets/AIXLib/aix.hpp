@@ -120,6 +120,16 @@ using SIndex = std::vector<ssize_t>;
 using Shape  = std::vector<size_t>;
 using Stride = std::vector<size_t>;
 
+struct DeviceTensorParams
+{
+    void*    data{nullptr};
+    DataType dtype{aix::DataType::kFloat32};
+    bool     isContiguous{true};
+    size_t   offset{0};         // Start offset of data on storage.
+    Shape    shape;             // The shape of the tensor.
+    size_t   size{0};           // Number of elements in DataType.
+    Stride   strides;           // The strides for indexing the tensor.
+};
 
 class Device
 {
@@ -165,7 +175,7 @@ public:
         return std::free(memory);
     }
 
-    virtual void add(const void* a1, const void* a2, const size_t size, void* result, DataType dtype)
+    virtual void add(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -180,10 +190,10 @@ public:
             addGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a1, a2, result);
     }
 
-    virtual void sub(const void* a1, const void* a2, const size_t size, void* result, DataType dtype)
+    virtual void sub(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -198,10 +208,10 @@ public:
             subGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a1, a2, result);
     }
 
-    virtual void mul(const void* a1, const void* a2, const size_t size, void* result, DataType dtype)
+    virtual void mul(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -216,10 +226,10 @@ public:
             mulGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a1, a2, result);
     }
 
-    virtual void div(const void* a1, const void* a2, const size_t size, void* result, DataType dtype)
+    virtual void div(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -234,10 +244,10 @@ public:
             divGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, a2, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a1, a2, result);
     }
 
-    virtual void unary(const void* a1, const size_t size, void* result, DataType dtype)
+    virtual void unary(const DeviceTensorParams& a1, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -252,13 +262,13 @@ public:
             unaryGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a1, result);
     }
 
-    virtual void fill(const void* scalar, DataType srcDType, size_t size, void* result, DataType dstDType)
+    virtual void fill(const void* scalar, DataType scalarDType, const DeviceTensorParams& result)
     {
         // Define a function pointer type for the conversion copy functions.
-        using fillFunc = void (*)(const void*, void*, size_t);
+        using fillFunc = void (*)(const void*, const DeviceTensorParams&);
 
         // Create a lookup table of the functions.
         static const fillFunc funcTable[DataTypeCount][DataTypeCount] =
@@ -274,10 +284,10 @@ public:
             { fillGeneric<uint8_t, double>,    fillGeneric<uint8_t, float>,    fillGeneric<uint8_t, float16_t>,    fillGeneric<uint8_t, bfloat16_t>,    fillGeneric<uint8_t, int64_t>,    fillGeneric<uint8_t, int32_t>,    fillGeneric<uint8_t, int16_t>,    fillGeneric<uint8_t, int8_t>,    fillGeneric<uint8_t, uint8_t>    },
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(srcDType)][static_cast<size_t>(dstDType)](scalar, result, size);
+        funcTable[static_cast<size_t>(scalarDType)][static_cast<size_t>(result.dtype)](scalar, result);
     }
 
-    virtual void fillMin(DataType dtype, size_t size, void* result)
+    virtual void fillMin(const DeviceTensorParams& result)
     {
         // Create a lookup table of the functions.
         static const auto funcTable = std::array
@@ -293,10 +303,10 @@ public:
             fillMinGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](result, size);
+        funcTable[static_cast<size_t>(result.dtype)](result);
     }
 
-    virtual void sum(const void* a, const size_t size, void* result, DataType dtype)
+    virtual void sum(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -311,10 +321,10 @@ public:
             sumGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void sqrt(const void* a, const size_t size, void* result, DataType dtype)
+    virtual void sqrt(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -329,10 +339,10 @@ public:
             sqrtGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void sin(const void* a, const size_t size, void* result, DataType dtype)
+    virtual void sin(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -347,10 +357,10 @@ public:
             sinGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void cos(const void* a, const size_t size, void* result, DataType dtype)
+    virtual void cos(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -365,10 +375,10 @@ public:
             cosGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void tanh(const void* a, const size_t size, void* result, DataType dtype)
+    virtual void tanh(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -383,10 +393,10 @@ public:
             tanhGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void log(const void* a, const size_t size, void* result, DataType dtype)
+    virtual void log(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -401,10 +411,10 @@ public:
             logGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void exp(const void* a, const size_t size, void* result, DataType dtype)
+    virtual void exp(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -419,10 +429,10 @@ public:
             expGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void pow(const void* a, const void* exp, const size_t size, void* result, DataType dtype)
+    virtual void pow(const DeviceTensorParams& a, const DeviceTensorParams& exp, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -437,10 +447,10 @@ public:
             powGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, exp, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, exp, result);
     }
 
-    virtual void max(const void* a, size_t size, void* result, DataType dtype)
+    virtual void max(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -455,12 +465,12 @@ public:
             maxGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result);
     }
 
-    virtual void argmax(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype)
+    virtual void argmax(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        if (resultDtype != DataType::kInt32)
+        if (result.dtype != DataType::kInt32)
         {
             throw std::invalid_argument("Device::argmax supports only int32 data type for its result.");
         }
@@ -478,12 +488,12 @@ public:
             argmaxGeneric<uint8_t   , int32_t>,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(a.dtype)](a, result);
     }
 
-    virtual void argmaxIndices(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype)
+    virtual void argmaxIndices(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        if (resultDtype != DataType::kInt32)
+        if (result.dtype != DataType::kInt32)
         {
             throw std::invalid_argument("Device::argmaxIndices supports only int32 data type for its result.");
         }
@@ -501,10 +511,10 @@ public:
             argmaxIndicesGeneric<uint8_t   , int32_t>,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a, size, result);
+        funcTable[static_cast<size_t>(a.dtype)](a, result);
     }
 
-    virtual void matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype)
+    virtual void matmul(const DeviceTensorParams& a, const DeviceTensorParams& b, const DeviceTensorParams& result)
     {
         static const auto funcTable = std::array
         {
@@ -519,12 +529,10 @@ public:
             matmulGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](a1, s1, a2, s2, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, b, result);
     }
 
-    virtual void transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
-                           const Stride& strides, const Stride& newStrides, const size_t size, void* result,
-                           DataType dtype)
+    virtual void transpose(const DeviceTensorParams& a, const DeviceTensorParams& result, size_t dim0, size_t dim1)
     {
         static const auto funcTable = std::array
         {
@@ -539,7 +547,7 @@ public:
             transposeGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](dim0, dim1, data, shape, strides, newStrides, size, result);
+        funcTable[static_cast<size_t>(result.dtype)](a, result, dim0, dim1);
     }
 
     virtual void copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size)
@@ -570,8 +578,7 @@ public:
         synchronize();    // This call has no effect, but it shows the difference between copy and copyImmediate.
     }
 
-    virtual void contiguous(const void* src, void* dst, size_t size, size_t offset, const Stride& strides,
-                            const Shape& shape, DataType dtype)
+    virtual void contiguous(const DeviceTensorParams& src, const DeviceTensorParams& dst)
     {
         static const auto funcTable = std::array
         {
@@ -586,11 +593,10 @@ public:
             contiguousGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, offset, strides, shape);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst);
     }
 
-    virtual void reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                          DataType dtype)
+    virtual void reduceTo(const DeviceTensorParams& src, const DeviceTensorParams& dst)
     {
         static const auto funcTable = std::array
         {
@@ -605,11 +611,10 @@ public:
             reduceToGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst);
     }
 
-    virtual void maxTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                       DataType dtype)
+    virtual void maxTo(const DeviceTensorParams& src, const DeviceTensorParams& dst)
     {
         static const auto funcTable = std::array
         {
@@ -624,14 +629,12 @@ public:
             maxToGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst);
     }
 
-    virtual void argmaxTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
-                          const Shape& shape, const Shape& newShape, const Shape& strides, size_t dim,
-                          DataType dtype, DataType resultDtype)
+    virtual void argmaxTo(const DeviceTensorParams& src, const DeviceTensorParams& dst, size_t dim)
     {
-        if (resultDtype != DataType::kInt32)
+        if (dst.dtype != DataType::kInt32)
         {
             throw std::invalid_argument("Device::argmaxTo supports only int32 data type for its result.");
         }
@@ -649,13 +652,12 @@ public:
             argmaxToGeneric<uint8_t   , int32_t>,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, srcSize, dstSize, shape, newShape, strides, dim);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst, dim);
     }
 
-    virtual void argmaxIndicesTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
-                                 const Shape& shape, const Shape& newShape, DataType dtype, DataType resultDtype)
+    virtual void argmaxIndicesTo(const DeviceTensorParams& src, const DeviceTensorParams& dst, size_t dim)
     {
-        if (resultDtype != DataType::kInt32)
+        if (dst.dtype != DataType::kInt32)
         {
             throw std::invalid_argument("Device::argmaxIndicesTo supports only int32 data type for its result.");
         }
@@ -673,11 +675,11 @@ public:
             argmaxIndicesToGeneric<uint8_t   , int32_t>,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, srcSize, dstSize, shape, newShape);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst, dim);
     }
 
-    virtual void sliceSet(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                            const Shape& strides, size_t dim, size_t start, size_t step, DataType dtype)
+    virtual void sliceSet(const DeviceTensorParams& src, const DeviceTensorParams& dst,
+                          size_t dim, size_t start, size_t end, size_t step)
     {
         static const auto funcTable = std::array
         {
@@ -692,10 +694,10 @@ public:
             sliceSetGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, shape, newShape, strides, dim, start, step);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst, dim, start, end, step);
     }
 
-    virtual void tril(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype)
+    virtual void tril(const DeviceTensorParams& dst, ssize_t diagonal)
     {
         static const auto funcTable = std::array
         {
@@ -710,10 +712,10 @@ public:
             trilGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](dst, size, shape, strides, diagonal);
+        funcTable[static_cast<size_t>(dst.dtype)](dst, diagonal);
     }
 
-    virtual void triu(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype)
+    virtual void triu(const DeviceTensorParams& dst, ssize_t diagonal)
     {
         static const auto funcTable = std::array
         {
@@ -728,11 +730,11 @@ public:
             triuGeneric<uint8_t   >,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](dst, size, shape, strides, diagonal);
+        funcTable[static_cast<size_t>(dst.dtype)](dst, diagonal);
     }
 
-    virtual void indexSelect(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
-                             const Shape& shape, size_t dim, DataType dtype)
+    virtual void indexSelect(const DeviceTensorParams& src, const DeviceTensorParams& dst,
+                             const DeviceTensorParams& indices, size_t dim)
     {
         static const auto funcTable = std::array
         {
@@ -747,11 +749,11 @@ public:
             indexSelectGeneric<uint8_t   , int32_t>,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, indices, indicesSize, shape, dim);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst, indices, dim);
     }
 
-    virtual void indexAdd(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
-                          const Shape& shape, size_t dim, DataType dtype)
+    virtual void indexAdd(const DeviceTensorParams& src, const DeviceTensorParams& dst,
+                          const DeviceTensorParams& indices, size_t dim)
     {
         static const auto funcTable = std::array
         {
@@ -766,7 +768,7 @@ public:
             indexAddGeneric<uint8_t   , int32_t>,
         };
         // Call the appropriate function from the table.
-        funcTable[static_cast<size_t>(dtype)](src, dst, size, indices, indicesSize, shape, dim);
+        funcTable[static_cast<size_t>(src.dtype)](src, dst, indices, dim);
     }
 
     virtual void emptyCache()
@@ -779,98 +781,98 @@ public:
 
 protected:
     template <typename T>
-    static void addGeneric(const void* a1, const void* a2, const size_t size, void* result)
+    static void addGeneric(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a1);
-        auto t2  = static_cast<const T*>(a2);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a1.data);
+        auto t2  = static_cast<const T*>(a2.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a1.size; ++i)
         {
             res[i] = t1[i] + t2[i];
         }
     }
 
     template <typename T>
-    static void subGeneric(const void* a1, const void* a2, const size_t size, void* result)
+    static void subGeneric(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a1);
-        auto t2  = static_cast<const T*>(a2);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a1.data);
+        auto t2  = static_cast<const T*>(a2.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a1.size; ++i)
         {
             res[i] = t1[i] - t2[i];
         }
     }
 
     template <typename T>
-    static void mulGeneric(const void* a1, const void* a2, const size_t size, void* result)
+    static void mulGeneric(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a1);
-        auto t2  = static_cast<const T*>(a2);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a1.data);
+        auto t2  = static_cast<const T*>(a2.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a1.size; ++i)
         {
             res[i] = t1[i] * t2[i];
         }
     }
 
     template <typename T>
-    static void divGeneric(const void* a1, const void* a2, const size_t size, void* result)
+    static void divGeneric(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a1);
-        auto t2  = static_cast<const T*>(a2);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a1.data);
+        auto t2  = static_cast<const T*>(a2.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a1.size; ++i)
         {
             res[i] = t1[i] / t2[i];
         }
     }
 
     template <typename T>
-    static void unaryGeneric(const void* a1, const size_t size, void* result)
+    static void unaryGeneric(const DeviceTensorParams& a1, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a1);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a1.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a1.size; ++i)
         {
             res[i] = -t1[i];
         }
     }
 
     template <typename SrcType, typename DstType>
-    static void fillGeneric(const void* src, void* dst, size_t size)
+    static void fillGeneric(const void* scalar, const DeviceTensorParams& result)
     {
-        auto tSrc = static_cast<const SrcType*>(src);
-        auto tDst = static_cast<DstType*>(dst);
-        for (size_t i=0; i<size; ++i)
+        auto tSrc = static_cast<const SrcType*>(scalar);
+        auto tDst = static_cast<DstType*>(result.data);
+        for (size_t i=0; i<result.size; ++i)
         {
             tDst[i] = static_cast<DstType>(tSrc[0]);
         }
     }
 
     template <typename T>
-    static void fillMinGeneric(void* dst, size_t size)
+    static void fillMinGeneric(const DeviceTensorParams& result)
     {
-        auto tDst = static_cast<T*>(dst);
-        for (size_t i=0; i<size; ++i)
+        auto tDst = static_cast<T*>(result.data);
+        for (size_t i=0; i<result.size; ++i)
         {
             tDst[i] = std::numeric_limits<T>::lowest();
         }
     }
 
     template <typename T>
-    static void sumGeneric(const void* a, const size_t size, void* result)
+    static void sumGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
         T sum = 0;
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             sum += t1[i];
         }
@@ -878,112 +880,112 @@ protected:
     }
 
     template <typename T>
-    static void sqrtGeneric(const void* a, const size_t size, void* result)
+    static void sqrtGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             res[i] = std::sqrt(t1[i]);
         }
     }
 
     template <typename T>
-    static void sinGeneric(const void* a, const size_t size, void* result)
+    static void sinGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             res[i] = std::sin(t1[i]);
         }
     }
 
     template <typename T>
-    static void cosGeneric(const void* a, const size_t size, void* result)
+    static void cosGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             res[i] = std::cos(t1[i]);
         }
     }
 
     template <typename T>
-    static void tanhGeneric(const void* a, const size_t size, void* result)
+    static void tanhGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             res[i] = std::tanh(t1[i]);
         }
     }
 
     template <typename T>
-    static void logGeneric(const void* a, const size_t size, void* result)
+    static void logGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             res[i] = std::log(t1[i]);
         }
     }
 
     template <typename T>
-    static void expGeneric(const void* a, const size_t size, void* result)
+    static void expGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             res[i] = std::exp(t1[i]);
         }
     }
 
     template <typename T>
-    static void powGeneric(const void* a1, const void* exp, const size_t size, void* result)
+    static void powGeneric(const DeviceTensorParams& a, const DeviceTensorParams& exp, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a1);
-        auto t2  = static_cast<const T*>(exp);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto t2  = static_cast<const T*>(exp.data);
+        auto res = static_cast<T*>(result.data);
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < a.size; ++i)
         {
             res[i] = std::pow(t1[i], t2[i]);
         }
     }
 
     template <typename T>
-    static void maxGeneric(const void* a, const size_t size, void* result)
+    static void maxGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t  = static_cast<const T*>(a);
-        auto res = static_cast<T*>(result);
+        auto t  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
         res[0] = t[0];
-        for (size_t i = 1; i < size; ++i)
+        for (size_t i = 1; i < a.size; ++i)
         {
             res[0] = std::max<T>(res[0], t[i]);
         }
     }
 
     template <typename T, typename T2>
-    static void argmaxGeneric(const void* a, const size_t size, void* result)
+    static void argmaxGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t  = static_cast<const T*>(a);
-        auto res = static_cast<T2*>(result);
+        auto t  = static_cast<const T*>(a.data);
+        auto res = static_cast<T2*>(result.data);
 
         T max = t[0];
         res[0] = 0;
-        for (size_t i = 1; i < size; ++i)
+        for (size_t i = 1; i < a.size; ++i)
         {
             if (t[i] > max)
             {
@@ -994,37 +996,36 @@ protected:
     }
 
     template <typename T, typename T2>
-    static void argmaxToGeneric(const void* src, void* dst, size_t srcSize, size_t dstSize,
-                                const Shape& shape, const Shape& newShape, const Shape& strides, size_t dim)
+    static void argmaxToGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst, size_t dim)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T2*>(dst);
-        auto tmaxTemp = new T[dstSize];     // Temporary helper buffer to store max values for comparison.
+        auto tSrc = static_cast<const T*>(src.data);
+        auto tDst = static_cast<T2*>(dst.data);
+        auto tmaxTemp = new T[dst.size];     // Temporary helper buffer to store max values for comparison.
 
         // Initialize the temp buffer with the lowest value of the data type, T.
-        fillMinGeneric<T>(tmaxTemp, dstSize);
+        fillMinGeneric<T>({ .data=tmaxTemp, .size=dst.size });
 
-        for (size_t index = 0; index < srcSize; ++index)
+        for (size_t index = 0; index < src.size; ++index)
         {
-            auto transIndex = translationIndex(index, newShape, shape);
+            auto transIndex = translationIndex(index, dst.shape, src.shape);
             if (tSrc[index] > tmaxTemp[transIndex])
             {
                 tmaxTemp[transIndex] = tSrc[index];
-                tDst[transIndex] = (index / strides[dim]) % shape[dim];
+                tDst[transIndex] = (index / src.strides[dim]) % src.shape[dim];
             }
         }
         delete [] tmaxTemp;
     }
 
     template <typename T, typename T2>
-    static void argmaxIndicesGeneric(const void* a, const size_t size, void* result)
+    static void argmaxIndicesGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result)
     {
-        auto t  = static_cast<const T*>(a);
-        auto res = static_cast<T2*>(result);
+        auto t  = static_cast<const T*>(a.data);
+        auto res = static_cast<T2*>(result.data);
 
         T max = t[0];
         T2 index = res[0] = 0;
-        for (size_t i = 1; i < size; ++i)
+        for (size_t i = 1; i < a.size; ++i)
         {
             res[i] = 0;
             if (t[i] > max)
@@ -1037,26 +1038,27 @@ protected:
     }
 
     template <typename T, typename T2>
-    static void argmaxIndicesToGeneric(const void* src, void* dst, size_t srcSize, size_t dstSize,
-                                       const Shape& shape, const Shape& newShape)
+    static void argmaxIndicesToGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst, size_t dim)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T2*>(dst);
-        auto tmaxTemp = new T[dstSize];     // Temporary helper buffer to store max values for comparison.
+        auto tSrc = static_cast<const T*>(src.data);
+        auto tDst = static_cast<T2*>(dst.data);
+        auto tmaxTemp = new T[src.size];     // Temporary helper buffer to store max values for comparison.
+        auto dstShape = dst.shape;
+        dstShape[dim] = 1;
 
         // Initialize the temp buffer with the lowest value of the data type, T.
-        fillMinGeneric<T>(tmaxTemp, dstSize);
+        fillMinGeneric<T>({ .data=tmaxTemp, .size=src.size });
         size_t maxElementCount = 1;
-        for (auto i : newShape)
+        for (auto i : dstShape)
         {
             maxElementCount *= i;
         }
 
         auto tDstTemp = new T2[maxElementCount];   // Temporary helper buffer to store index of max elements.
 
-        for (size_t index = 0; index < srcSize; ++index)
+        for (size_t index = 0; index < src.size; ++index)
         {
-            auto transIndex = translationIndex(index, newShape, shape);
+            auto transIndex = translationIndex(index, dstShape, src.shape);
             if (tSrc[index] > tmaxTemp[transIndex])
             {
                 tmaxTemp[transIndex] = tSrc[index];
@@ -1074,16 +1076,16 @@ protected:
     }
 
     template <typename T>
-    static void matmulGeneric(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result)
+    static void matmulGeneric(const DeviceTensorParams& a, const DeviceTensorParams& b, const DeviceTensorParams& result)
     {
-        auto t1  = static_cast<const T*>(a1);
-        auto t2  = static_cast<const T*>(a2);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto t2  = static_cast<const T*>(b.data);
+        auto res = static_cast<T*>(result.data);
 
         // NOTE: Since TensorValue validated the parameters, device method do not validate again.
-        size_t m = s1[0];        // Rows of the first matrix
-        size_t n = s2[1];        // Columns of the second matrix
-        size_t inner = s1[1];    // Inner dimension
+        size_t m = a.shape[0];      // Rows of the first matrix
+        size_t n = b.shape[1];      // Columns of the second matrix
+        size_t inner = a.shape[1];  // Inner dimension
 
         // Perform matrix multiplication
         for (size_t i = 0; i < m; ++i)
@@ -1093,7 +1095,7 @@ protected:
                 T sum = 0;
                 for (size_t k = 0; k < inner; ++k)
                 {
-                    sum += t1[i * s1[1] + k] * t2[k * n + j];
+                    sum += t1[i * a.shape[1] + k] * t2[k * n + j];
                 }
                 res[i * n + j] = sum;
             }
@@ -1101,18 +1103,17 @@ protected:
     }
 
     template <typename T>
-    static void transposeGeneric(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
-                                 const Stride& strides, const Stride& newStrides, const size_t size, void* result)
+    static void transposeGeneric(const DeviceTensorParams& a, const DeviceTensorParams& result, size_t dim0, size_t dim1)
     {
-        auto t1  = static_cast<const T*>(data);
-        auto res = static_cast<T*>(result);
+        auto t1  = static_cast<const T*>(a.data);
+        auto res = static_cast<T*>(result.data);
 
         // Perform the generalized transpose operation.
-        for (size_t i=0; i<size; ++i)
+        for (size_t i=0; i<a.size; ++i)
         {
-            auto oldIndices = unflattenIndex(i, strides);
+            auto oldIndices = unflattenIndex(i, a.strides);
             std::swap(oldIndices[dim0], oldIndices[dim1]);
-            size_t newIndex = flattenIndex(oldIndices, newStrides);
+            size_t newIndex = flattenIndex(oldIndices, result.strides);
             res[newIndex] = t1[i];
         }
     }
@@ -1136,21 +1137,20 @@ protected:
     }
 
     template <typename T>
-    static void contiguousGeneric(const void* src, void* dst, size_t size, size_t offset, const Stride& strides,
-                                  const Shape& shape)
+    static void contiguousGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
+        auto tSrc = static_cast<const T*>(src.data);
+        auto tDst = static_cast<T*>(dst.data);
 
-        for (size_t i=0; i<size; ++i)
+        for (size_t i=0; i<dst.size; ++i)
         {
             size_t idx = i;
-            size_t ofs = offset;
-            for (ssize_t dim = ssize_t(shape.size()) - 1; dim >= 0; --dim)
+            size_t ofs = src.offset;
+            for (ssize_t dim = ssize_t(src.shape.size()) - 1; dim >= 0; --dim)
             {
-                auto dimIndex = idx % shape[dim];
-                idx /= shape[dim];
-                ofs += dimIndex * strides[dim];
+                auto dimIndex = idx % src.shape[dim];
+                idx /= src.shape[dim];
+                ofs += dimIndex * src.strides[dim];
             }
 
             // Copy the element from non-contiguous source to contiguous destination.
@@ -1159,55 +1159,57 @@ protected:
     }
 
     template <typename T>
-    static void reduceToGeneric(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)
+    static void reduceToGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
+        auto tSrc = static_cast<const T*>(src.data);
+        auto tDst = static_cast<T*>(dst.data);
 
         // Sum the values from the broadcasted tensor to the original tensor shape. The reduction involves summation
         // because each element of the original tensor is used multiple times in the broadcasted operation.
         // Summing the gradients correctly aggregates these contributions.
-        for (size_t index = 0; index < size; ++index)
+        for (size_t index = 0; index < src.size; ++index)
         {
-            tDst[translationIndex(index, newShape, shape)] += tSrc[index];
+            tDst[translationIndex(index, dst.shape, src.shape)] += tSrc[index];
         }
     }
 
     template <typename T>
-    static void maxToGeneric(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape)
+    static void maxToGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
+        auto tSrc = static_cast<const T*>(src.data);
+        auto tDst = static_cast<T*>(dst.data);
 
-        for (size_t index = 0; index < size; ++index)
+        for (size_t index = 0; index < src.size; ++index)
         {
-            auto transIndex = translationIndex(index, newShape, shape);
+            auto transIndex = translationIndex(index, dst.shape, src.shape);
             tDst[transIndex] = std::max<T>(tDst[transIndex], tSrc[index]);
         }
     }
 
     template <typename T>
-    static void sliceSetGeneric(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
-                                const Shape& strides, size_t dim, size_t start, size_t step)
+    static void sliceSetGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst,
+                                size_t dim, size_t start, size_t end, size_t step)
     {
-        auto tSrc = static_cast<T*>(src);
-        auto tDst = static_cast<T*>(dst);
+        auto tSrc = static_cast<T*>(src.data);
+        auto tDst = static_cast<T*>(dst.data);
+        auto newShape = dst.shape;
+        newShape[dim] = (end - start + step - 1) / step;    // This computes the size along the slicing dimension.
 
-        for (size_t index = 0; index < size; ++index)
+        for (size_t index = 0; index < src.size; ++index)
         {
             // Translate the flat index into multi-dimensional indices.
             size_t dstIndex = index;
             size_t srcIndex = 0;
 
-            for (ssize_t i = static_cast<ssize_t>(shape.size()) - 1; i >= 0; --i)
+            for (ssize_t i = static_cast<ssize_t>(dst.shape.size()) - 1; i >= 0; --i)
             {
                 size_t coordinate = dstIndex % newShape[i];
                 dstIndex /= newShape[i];
 
                 if (i == static_cast<ssize_t>(dim))   // Handle the slicing dimension.
-                    srcIndex += (start + coordinate * step) * strides[i];
+                    srcIndex += (start + coordinate * step) * dst.strides[i];
                 else
-                    srcIndex += coordinate * strides[i];
+                    srcIndex += coordinate * dst.strides[i];
             }
 
             tDst[srcIndex] = tSrc[index];
@@ -1215,33 +1217,33 @@ protected:
     }
 
     template <typename T, typename T2>
-    static void indexSelectGeneric(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
-                                   const Shape& shape, size_t dim)
+    static void indexSelectGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst,
+                                   const DeviceTensorParams& indices, size_t dim)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
-        auto tIndices = static_cast<const T2*>(indices);
+        auto tSrc = static_cast<const T*>(src.data);
+        auto tDst = static_cast<T*>(dst.data);
+        auto tIndices = static_cast<const T2*>(indices.data);
 
         // Calculate the number of elements in one slice after the specified dimension.
         size_t sliceSize = 1;
-        for (size_t i = dim + 1; i < shape.size(); ++i)
+        for (size_t i = dim + 1; i < src.shape.size(); ++i)
         {
-            sliceSize *= shape[i];
+            sliceSize *= src.shape[i];
         }
 
         // Calculate the size of one entire slice for the dimension in question.
-        size_t dimSize = !shape.empty() ? shape[dim] * sliceSize : 0;
+        size_t dimSize = !src.shape.empty() ? src.shape[dim] * sliceSize : 0;
 
-        for (size_t index=0; index<size; ++index)
+        for (size_t index=0; index<dst.size; ++index)
         {
             // Calculate the outer loop index, index position, and element within the slice.
             size_t elementWithinSlice = index % sliceSize;
-            size_t idx = (index / sliceSize) % indicesSize;
-            size_t outer = index / (indicesSize * sliceSize);
+            size_t idx = (index / sliceSize) % indices.size;
+            size_t outer = index / (indices.size * sliceSize);
 
             size_t srcIndex = tIndices[idx] * sliceSize + elementWithinSlice;
             size_t srcOffset = outer * dimSize + srcIndex;
-            size_t dstOffset = outer * indicesSize * sliceSize + idx * sliceSize + elementWithinSlice;
+            size_t dstOffset = outer * indices.size * sliceSize + idx * sliceSize + elementWithinSlice;
 
             // Perform the copy operation.
             tDst[dstOffset] = tSrc[srcOffset];
@@ -1249,33 +1251,33 @@ protected:
     }
 
     template <typename T, typename T2>
-    static void indexAddGeneric(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
-                                const Shape& shape, size_t dim)
+    static void indexAddGeneric(const DeviceTensorParams& src, const DeviceTensorParams& dst,
+                                const DeviceTensorParams& indices, size_t dim)
     {
-        auto tSrc = static_cast<const T*>(src);
-        auto tDst = static_cast<T*>(dst);
-        auto tIndices = static_cast<const T2*>(indices);
+        auto tSrc = static_cast<const T*>(src.data);
+        auto tDst = static_cast<T*>(dst.data);
+        auto tIndices = static_cast<const T2*>(indices.data);
 
         // Calculate the number of elements in one slice after the specified dimension.
         size_t sliceSize = 1;
-        for (size_t i = dim + 1; i < shape.size(); ++i)
+        for (size_t i = dim + 1; i < dst.shape.size(); ++i)
         {
-            sliceSize *= shape[i];
+            sliceSize *= dst.shape[i];
         }
 
         // Calculate the size of one entire slice for the dimension in question.
-        size_t dimSize = !shape.empty() ? shape[dim] * sliceSize : 0;
+        size_t dimSize = !dst.shape.empty() ? dst.shape[dim] * sliceSize : 0;
 
-        for (size_t index = 0; index < size; ++index)
+        for (size_t index = 0; index < src.size; ++index)
         {
             // Calculate the outer loop index, index position, and element within the slice.
             size_t elementWithinSlice = index % sliceSize;
-            size_t idx = (index / sliceSize) % indicesSize;
-            size_t outer = index / (indicesSize * sliceSize);
+            size_t idx = (index / sliceSize) % indices.size;
+            size_t outer = index / (indices.size * sliceSize);
 
             size_t dstIndex = tIndices[idx] * sliceSize + elementWithinSlice;
             size_t dstOffset = outer * dimSize + dstIndex;
-            size_t srcOffset = outer * indicesSize * sliceSize + idx * sliceSize + elementWithinSlice;
+            size_t srcOffset = outer * indices.size * sliceSize + idx * sliceSize + elementWithinSlice;
 
             // Perform the addition operation.
             tDst[dstOffset] += tSrc[srcOffset];
@@ -1283,19 +1285,19 @@ protected:
     }
 
     template <typename T>
-    static void trilGeneric(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal)
+    static void trilGeneric(const DeviceTensorParams& dst, ssize_t diagonal)
     {
-        auto tDst = static_cast<T*>(dst);
+        auto tDst = static_cast<T*>(dst.data);
 
-        size_t shapeSize = shape.size();
-        size_t rows = shape[shapeSize - 2];      // Rows in the last 2-dim tensor.
-        size_t cols = shape[shapeSize - 1];      // Columns in the last 2-dim tensor.
+        size_t shapeSize = dst.shape.size();
+        size_t rows = dst.shape[shapeSize - 2];      // Rows in the last 2-dim tensor.
+        size_t cols = dst.shape[shapeSize - 1];      // Columns in the last 2-dim tensor.
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < dst.size; ++i)
         {
             // Calculate the row and column indices for the last 2-dim slice.
-            size_t row = (i / strides[shapeSize - 2]) % rows;
-            size_t col = (i / strides[shapeSize - 1]) % cols;
+            size_t row = (i / dst.strides[shapeSize - 2]) % rows;
+            size_t col = (i / dst.strides[shapeSize - 1]) % cols;
 
             // Zero out the elements above the specified diagonal.
             if (static_cast<ssize_t>(col) > static_cast<ssize_t>(row) + diagonal)
@@ -1306,19 +1308,19 @@ protected:
     }
 
     template <typename T>
-    static void triuGeneric(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal)
+    static void triuGeneric(const DeviceTensorParams& dst, ssize_t diagonal)
     {
-        auto tDst = static_cast<T*>(dst);
+        auto tDst = static_cast<T*>(dst.data);
 
-        size_t shapeSize = shape.size();
-        size_t rows = shape[shapeSize - 2];      // Rows in the last 2-dim tensor.
-        size_t cols = shape[shapeSize - 1];      // Columns in the last 2-dim tensor.
+        size_t shapeSize = dst.shape.size();
+        size_t rows = dst.shape[shapeSize - 2];      // Rows in the last 2-dim tensor.
+        size_t cols = dst.shape[shapeSize - 1];      // Columns in the last 2-dim tensor.
 
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < dst.size; ++i)
         {
             // Calculate the row and column indices for the last 2-dim slice.
-            size_t row = (i / strides[shapeSize - 2]) % rows;
-            size_t col = (i / strides[shapeSize - 1]) % cols;
+            size_t row = (i / dst.strides[shapeSize - 2]) % rows;
+            size_t col = (i / dst.strides[shapeSize - 1]) % cols;
 
             // Zero out the elements above the specified diagonal.
             if (static_cast<ssize_t>(col) < static_cast<ssize_t>(row) + diagonal)
@@ -1468,9 +1470,9 @@ public:
         m_size = std::accumulate(m_shape.begin(), m_shape.end(), 1, std::multiplies<>());
         // Each tensor array must use device specific memory allocator.
         m_storage = std::make_shared<TensorStorage>(device, m_size, dType);
-        // initialize data.
-        device->fill(&value, DataType::kFloat32, m_size, m_storage->data(), dType);
         m_strides = computeStrides();
+        // initialize data.
+        device->fill(&value, DataType::kFloat32, deviceParams());
     }
 
     // Constructor
@@ -1498,8 +1500,8 @@ public:
         // Each tensor array must use device specific memory allocator.
         m_size = 1;
         m_storage = std::make_shared<TensorStorage>(device, m_size, dType);
-        device->fill(&value, DataType::kFloat32, m_size, m_storage->data(), dType);
         m_strides = computeStrides();
+        device->fill(&value, DataType::kFloat32, deviceParams());
     }
 
     // Destructor
@@ -1610,6 +1612,13 @@ public:
 
     // Get the device
     Device * device() const     { return m_device; }
+
+    // Get device tensor parameters.
+    DeviceTensorParams deviceParams() const
+    {
+        return { .data=m_storage->data(), .dtype=m_dType, .isContiguous=m_isContiguous, .offset=m_offset,
+                 .shape=m_shape, .size=m_size, .strides=m_strides };
+    };
 
     // Set the device
     TensorValue to(Device * device) const
@@ -1748,7 +1757,7 @@ public:
         if (shape() == originalShape) return *this;
         // Ensure tensor values are initialized to zero, as the reduction operation performs a summation.
         TensorValue result(0, originalShape, device(), m_dType);
-        device()->reduceTo(data(), result.data(), m_size, m_shape, originalShape, m_dType);
+        device()->reduceTo(deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -1763,7 +1772,7 @@ public:
         if (isContiguous()) return *this;
 
         TensorValue result(m_shape, m_device, m_dType);
-        m_device->contiguous(data(), result.data(), result.size(), m_offset, m_strides, m_shape, m_dType);
+        m_device->contiguous(deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -1822,7 +1831,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, m_dType);
-        m_device->unary(data(), m_size, result.data(), m_dType);
+        m_device->unary(deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -1892,13 +1901,13 @@ public:
 
     void fill(float value) const
     {
-        m_device->fill(&value, DataType::kFloat32, m_size, m_storage->data(), m_dType);
+        m_device->fill(&value, DataType::kFloat32, deviceParams());
     }
 
     TensorValue sum() const
     {
         TensorValue result({}, device(), m_dType);
-        m_device->sum(data(), m_size, result.data(), m_dType);
+        m_device->sum(deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -1966,13 +1975,13 @@ public:
             TensorValue lhs = *this;
             TensorValue rhs = exp;
             auto result = prepareTensors(lhs, rhs);
-            result.device()->pow(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
+            result.device()->pow(lhs.deviceParams(), rhs.deviceParams(), result.deviceParams());
             return result;
         }
 
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, m_dType);
-        m_device->pow(data(), exp.data(), m_size, result.data(), m_dType);
+        m_device->pow(deviceParams(), exp.deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -1980,7 +1989,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result({}, m_device, m_dType);
-        m_device->max(data(), m_size, result.data(), m_dType);
+        m_device->max(deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -1998,8 +2007,9 @@ public:
         newShape[dim] = 1;
 
         TensorValue result(newShape, device(), m_dType);            // Zero initialization is not required.
-        device()->fillMin(m_dType, result.size(), result.data());   // Initialize the tensor with the lowest value.
-        device()->maxTo(data(), result.data(), m_size, m_shape, newShape, m_dType);
+        auto resDevParams = result.deviceParams();
+        device()->fillMin(resDevParams);       // Initialize the tensor with the lowest value.
+        device()->maxTo(deviceParams(), resDevParams);
         return keepDim ? result : result.squeeze(dim);
     }
 
@@ -2007,7 +2017,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result({}, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
-        m_device->argmax(data(), m_size, result.data(), m_dType, aix::DataType::kInt32);
+        m_device->argmax(deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -2025,8 +2035,7 @@ public:
         newShape[dim] = 1;
 
         TensorValue result(newShape, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
-        m_device->argmaxTo(data(), result.data(), m_size, result.size(), m_shape, newShape, m_strides, dim,
-                           m_dType, aix::DataType::kInt32);
+        m_device->argmaxTo(deviceParams(), result.deviceParams(), dim);
         return keepDim ? result : result.squeeze(dim);
     }
 
@@ -2034,7 +2043,7 @@ public:
     {
         // Create a new TensorValue to store the result. Perform element-wise.
         TensorValue result(m_shape, m_device, aix::DataType::kInt32);   // Index is by default in int32 type.
-        m_device->argmaxIndices(data(), m_size, result.data(), m_dType, aix::DataType::kInt32);
+        m_device->argmaxIndices(deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -2048,12 +2057,8 @@ public:
             throw std::invalid_argument("Dimension parameter of TensorValue::argmaxIndices() is out of range.");
         }
 
-        Shape newShape = m_shape;
-        newShape[dim] = 1;
-
         TensorValue result(0, m_shape, m_device, aix::DataType::kInt32);        // Index is by default in int32 type.
-        m_device->argmaxIndicesTo(data(), result.data(), m_size, result.size(), m_shape, newShape, m_dType,
-                                  aix::DataType::kInt32);
+        m_device->argmaxIndicesTo(deviceParams(), result.deviceParams(), dim);
         return result;
     }
 
@@ -2074,7 +2079,7 @@ public:
 
         Shape resultShape{m_shape[0], b.shape()[1]};
 
-        // Convert tensors to the promoted data type if necessary
+        // Convert tensors to the promoted data type if necessary.
         if (dataType() != b.dataType())
         {
             TensorValue lhs = *this;
@@ -2083,13 +2088,13 @@ public:
             lhs = lhs.to(promotedDType);
             rhs = rhs.to(promotedDType);
             TensorValue result(resultShape, lhs.device(), promotedDType);
-            result.device()->matmul(lhs.data(), lhs.shape(), rhs.data(), rhs.shape(), result.data(), result.dataType());
+            result.device()->matmul(lhs.deviceParams(), rhs.deviceParams(), result.deviceParams());
             return result;
         }
 
-        // Resultant tensor shape
+        // Result tensor shape.
         TensorValue result(resultShape, m_device, m_dType);
-        m_device->matmul(data(), m_shape, b.data(), b.m_shape, result.data(), m_dType);
+        m_device->matmul(deviceParams(), b.deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -2109,7 +2114,7 @@ public:
         Shape newShape = m_shape;
         std::swap(newShape[dim0], newShape[dim1]);
         TensorValue result(newShape, device(), m_dType);
-        m_device->transpose(dim0, dim1, data(), m_shape, m_strides, result.strides(), result.size(), result.data(), m_dType);
+        m_device->transpose(deviceParams(), result.deviceParams(), dim0, dim1);
         return result;
     }
 
@@ -2177,8 +2182,7 @@ public:
 
             // Perform the transpose.
             TensorValue tempTensor(currShape, m_device, m_dType);
-            m_device->transpose(j, i, currTensor.data(), currShape, currStride,
-                                tempTensor.strides(), tempTensor.size(), tempTensor.data(), m_dType);
+            m_device->transpose(currTensor.deviceParams(), tempTensor.deviceParams(), j, i);
             currTensor = std::move(tempTensor);
             currStride = currTensor.strides();
         }
@@ -2324,15 +2328,13 @@ public:
         if (inPlace)
         {
             // Slice and set tensor's data to the result tensor.
-            device()->sliceSet(tensor.m_storage->data(), m_storage->data(), tensor.size(), m_shape, newShape,
-                               m_strides, dim, start, step, m_dType);
+            device()->sliceSet(tensor.deviceParams(), deviceParams(), dim, start, end, step);
             return *this;
         }
 
         TensorValue result(0, m_shape, device(), m_dType);  // Zero initialization is required.
         // Slice and set tensor's data to the result tensor.
-        device()->sliceSet(tensor.m_storage->data(), result.data(), tensor.size(), m_shape, newShape, m_strides,
-                           dim, start, step, m_dType);
+        device()->sliceSet(tensor.deviceParams(), result.deviceParams(), dim, start, end, step);
         return result;
     }
 
@@ -2375,8 +2377,7 @@ public:
         assert(checkMinMaxValueOverflow(0, (!shape().empty() ? shape()[dim] : 0), indices));
 
         TensorValue result(newShape, device(), dataType());
-        device()->indexSelect(data(), result.data(), result.size(), indices.data(), indices.size(),
-                              shape(), dim, dataType());
+        device()->indexSelect(deviceParams(), result.deviceParams(), indices.deviceParams(), dim);
         return result;
     }
 
@@ -2419,14 +2420,12 @@ public:
 
         if (inPlace)
         {
-            device()->indexAdd(source.data(), m_storage->data(), source.size(), indices.data(), indices.size(),
-                               shape(), dim, dataType());
+            device()->indexAdd(source.deviceParams(), deviceParams(), indices.deviceParams(), dim);
             return *this;
         }
 
         TensorValue result(data(), size(), dataType(), shape(), device(), dataType());
-        device()->indexAdd(source.data(), result.data(), source.size(), indices.data(), indices.size(),
-                           shape(), dim, dataType());
+        device()->indexAdd(source.deviceParams(), result.deviceParams(), indices.deviceParams(), dim);
         return result;
     }
 
@@ -2464,7 +2463,7 @@ public:
         }
 
         TensorValue result = *this;
-        device()->tril(result.data(), result.size(), m_shape, m_strides, diagonal, m_dType);
+        device()->tril(result.deviceParams(), diagonal);
         return result;
     }
 
@@ -2476,7 +2475,7 @@ public:
         }
 
         TensorValue result = *this;
-        device()->triu(result.data(), result.size(), m_shape, m_strides, diagonal, m_dType);
+        device()->triu(result.deviceParams(), diagonal);
         return result;
     }
 
@@ -2548,11 +2547,11 @@ private:
             TensorValue lhs = *this;
             TensorValue rhs = other;
             auto result = prepareTensors(lhs, rhs);
-            (result.device()->*func)(lhs.data(), rhs.data(), lhs.size(), result.data(), result.dataType());
+            (result.device()->*func)(lhs.deviceParams(), rhs.deviceParams(), result.deviceParams());
             return result;
         }
         TensorValue result(m_shape, m_device, m_dType);
-        (m_device->*func)(data(), other.data(), m_size, result.data(), m_dType);
+        (m_device->*func)(deviceParams(), other.deviceParams(), result.deviceParams());
         return result;
     }
 
@@ -2564,13 +2563,13 @@ private:
             TensorValue lhs = *this;
             TensorValue rhs = other;
             prepareTensors(lhs, rhs);
-            (m_device->*func)(lhs.data(), rhs.data(), lhs.size(), lhs.data(), lhs.dataType());
+            (m_device->*func)(lhs.deviceParams(), rhs.deviceParams(), lhs.deviceParams());
             *this = TensorValue(lhs.data(), lhs.size(), lhs.dataType(), lhs.shape(), lhs.device(), dataType());
             return *this;
         }
         else
         {
-            (m_device->*func)(data(), other.data(), m_size, data(), m_dType);
+            (m_device->*func)(deviceParams(), other.deviceParams(), deviceParams());
         }
         return *this;
     }
@@ -2583,12 +2582,12 @@ private:
         {
             // This constructor requires copy operation.
             TensorValue result(data(), m_size, m_dType, m_shape, m_device, promotedDType);
-            (m_device->*func)(result.data(), result.size(), result.data(), promotedDType);
+            (m_device->*func)(result.deviceParams(), result.deviceParams());
             return result;
         }
         // This constructor does not require copy operation.
         TensorValue result(m_shape, m_device, m_dType);
-        (m_device->*func)(data(), m_size, result.data(), m_dType);
+        (m_device->*func)(deviceParams(), result.deviceParams());
         return result;
     }
 

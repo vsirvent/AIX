@@ -33,7 +33,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->add(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->add(m_t1.value().deviceParams(), m_t2.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -72,7 +72,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->sub(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->sub(m_t1.value().deviceParams(), m_t2.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -111,7 +111,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->mul(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->mul(m_t1.value().deviceParams(), m_t2.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -150,7 +150,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->div(m_t1.value().data(), m_t2.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->div(m_t1.value().deviceParams(), m_t2.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -188,7 +188,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->unary(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->unary(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -211,7 +211,7 @@ BENCHMARK(BenchmarkDeviceUnaryF3210M, "device_unary_f32_10m")
 // FILL
 // --------------------------------------------------------------------------------
 
-template<aix::DataType srcDataType, aix::DataType dstDataType, size_t elementCount>
+template<aix::DataType scalarDataType, aix::DataType dstDataType, size_t elementCount>
 class BenchmarkDeviceFill : public BenchmarkBase
 {
 public:
@@ -226,7 +226,7 @@ public:
     void run(const AIXBenchmarkConfigs&) final
     {
         double scalar = 5;  // Type and accuracy do not matter here.
-        m_device->fill(&scalar, srcDataType, elementCount, m_result.value().data(), m_result.dataType());
+        m_device->fill(&scalar, scalarDataType, m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -264,7 +264,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->sum(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->sum(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -302,7 +302,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->max(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->max(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -340,7 +340,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->sqrt(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->sqrt(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -378,7 +378,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->sin(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->sin(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -416,7 +416,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->cos(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->cos(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -454,7 +454,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->tanh(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->tanh(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -492,7 +492,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->log(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->log(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -530,7 +530,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->exp(m_t.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->exp(m_t.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -569,7 +569,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->pow(m_t.value().data(), m_exp.value().data(), elementCount, m_result.value().data(), dataType);
+        m_device->pow(m_t.value().deviceParams(), m_exp.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -608,8 +608,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->matmul(m_t1.value().data(), {M, M}, m_t2.value().data(), {M, M},
-                         m_result.value().data(), dataType);
+        m_device->matmul(m_t1.value().deviceParams(), m_t2.value().deviceParams(), m_result.value().deviceParams());
         m_device->synchronize();
     }
 
@@ -683,8 +682,7 @@ public:
 
     void run(const AIXBenchmarkConfigs&) final
     {
-        m_device->transpose(0, 1, m_t.value().data(), {M, M}, m_t.value().strides(), m_result.value().strides(),
-                            m_result.value().size(), m_result.value().data(), dataType);
+        m_device->transpose(m_t.value().deviceParams(), m_result.value().deviceParams(), 0, 1);
         m_device->synchronize();
     }
 

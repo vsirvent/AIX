@@ -70,75 +70,72 @@ public:
     // Deallocate GPU memory if it's allocated by current device.
     void deallocate(void * memory) override;
 
-    void add(const void* a1, const void* a2, size_t size, void* result, DataType dtype) override;
+    void add(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result) override;
 
-    void sub(const void* a1, const void* a2, size_t size, void* result, DataType dtype) override;
+    void sub(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result) override;
 
-    void mul(const void* a1, const void* a2, size_t size, void* result, DataType dtype) override;
+    void mul(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result) override;
 
-    void div(const void* a1, const void* a2, size_t size, void* result, DataType dtype) override;
+    void div(const DeviceTensorParams& a1, const DeviceTensorParams& a2, const DeviceTensorParams& result) override;
 
-    void unary(const void* a, size_t size, void* result, DataType dtype) override;
+    void unary(const DeviceTensorParams& a1, const DeviceTensorParams& result) override;
 
-    void fill(const void* scalar, DataType srcDType, size_t size, void* result, DataType dstDType) override;
+    void fill(const void* scalar, DataType scalarDType, const DeviceTensorParams& result) override;
 
-    void fillMin(DataType dtype, size_t size, void* result) override;
+    void fillMin(const DeviceTensorParams& result) override;
 
-    void sum(const void* a, size_t size, void* result, DataType dtype) override;
+    void sum(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void sqrt(const void* a, size_t size, void* result, DataType dtype) override;
+    void sqrt(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void sin(const void* a, size_t size, void* result, DataType dtype) override;
+    void sin(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void cos(const void* a, size_t size, void* result, DataType dtype) override;
+    void cos(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void tanh(const void* a, size_t size, void* result, DataType dtype) override;
+    void tanh(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void log(const void* a, size_t size, void* result, DataType dtype) override;
+    void log(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void exp(const void* a, size_t size, void* result, DataType dtype) override;
+    void exp(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void pow(const void* a, const void* exp, size_t size, void* result, DataType dtype) override;
+    void pow(const DeviceTensorParams& a, const DeviceTensorParams& exp, const DeviceTensorParams& result) override;
 
-    void max(const void* a, size_t size, void* result, DataType dtype) override;
+    void max(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void argmax(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype) override;
+    void argmax(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void argmaxIndices(const void* a, size_t size, void* result, DataType dtype, DataType resultDtype) override;
+    void argmaxIndices(const DeviceTensorParams& a, const DeviceTensorParams& result) override;
 
-    void matmul(const void* a1, const Shape & s1, const void* a2, const Shape & s2, void* result, DataType dtype) override;
+    void matmul(const DeviceTensorParams& a, const DeviceTensorParams& b, const DeviceTensorParams& result) override;
 
-    void transpose(size_t dim0, size_t dim1, const void* data, [[maybe_unused]] const Shape& shape,
-                   const Stride& strides, const Stride& newStrides, size_t size, void* result, DataType dtype) override;
+    void transpose(const DeviceTensorParams& a, const DeviceTensorParams& result, size_t dim0, size_t dim1) override;
 
     void copy(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size) override;
 
     void copyImmediate(const void* src, DataType srcDType, void* dst, DataType dstDType, size_t size) override;
 
-    void contiguous(const void* src, void* dst, size_t size, size_t offset, const Stride& strides, const Shape& shape, DataType dtype) override;
+    void contiguous(const DeviceTensorParams& src, const DeviceTensorParams& dst) override;
 
-    void reduceTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
+    void reduceTo(const DeviceTensorParams& src, const DeviceTensorParams& dst) override;
 
-    void maxTo(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, DataType dtype) override;
+    void maxTo(const DeviceTensorParams& src, const DeviceTensorParams& dst) override;
 
-    void argmaxTo(const void* src, void* dst, size_t srcSize, size_t dstSize, const Shape& shape, const Shape& newShape,
-                  const Shape& strides, size_t dim, DataType dtype, DataType resultDtype) override;
+    void argmaxTo(const DeviceTensorParams& src, const DeviceTensorParams& dst, size_t dim) override;
 
-    void argmaxIndicesTo(const void* src, void* dst, size_t srcSize, size_t dstSize,
-                         const Shape& shape, const Shape& newShape, DataType dtype, DataType resultDtype) override;
+    void argmaxIndicesTo(const DeviceTensorParams& src, const DeviceTensorParams& dst, size_t dim) override;
 
-    void sliceSet(void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape, const Shape& strides,
-                  size_t dim, size_t start, size_t step, DataType dtype) override;
+    void sliceSet(const DeviceTensorParams& src, const DeviceTensorParams& dst,
+                  size_t dim, size_t start, size_t end, size_t step) override;
 
-    void tril(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype) override;
+    void tril(const DeviceTensorParams& dst, ssize_t diagonal) override;
 
-    void triu(void* dst, size_t size, const Shape& shape, const Shape& strides, ssize_t diagonal, DataType dtype) override;
+    void triu(const DeviceTensorParams& dst, ssize_t diagonal) override;
 
-    void indexSelect(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
-                     const Shape& shape, size_t dim, DataType dtype) override;
+    void indexSelect(const DeviceTensorParams& src, const DeviceTensorParams& dst, const DeviceTensorParams& indices,
+                     size_t dim) override;
 
-    void indexAdd(const void* src, void* dst, size_t size, const void* indices, size_t indicesSize,
-                  const Shape& shape, size_t dim, DataType dtype) override;
+    void indexAdd(const DeviceTensorParams& src, const DeviceTensorParams& dst, const DeviceTensorParams& indices,
+                  size_t dim) override;
 
     void emptyCache() override;
 
@@ -189,19 +186,18 @@ protected:
                                           const MTL::ComputePipelineState* compFuncPSO, const MTL::Size& gridSize,
                                           const MTL::Size& threadsPerTG) const;
 
-    void executeDoubleArrayCmd(const void* a1, size_t size, void* result,
-                               const MTL::ComputePipelineState* compFuncPSO,
-                               DataType dtype, const std::string & cmdName);
+    void executeDoubleArrayCmd(const DeviceTensorParams& a, const DeviceTensorParams& result,
+                               const MTL::ComputePipelineState* compFuncPSO, const std::string & cmdName);
 
-    void executeTripleArrayCmd(const void* a1, const void* a2, size_t size, void* result,
-                               const MTL::ComputePipelineState* compFuncPSO,
-                               DataType dtype, const std::string & cmdName);
+    void executeTripleArrayCmd(const DeviceTensorParams& a1, const DeviceTensorParams& a2,
+                               const DeviceTensorParams& result, const MTL::ComputePipelineState* compFuncPSO,
+                               const std::string & cmdName);
 
     // Common method for broadcastTo and reduceTo methods.
     void translation(const void* src, void* dst, size_t size, const Shape& shape, const Shape& newShape,
                      const MTL::ComputePipelineState *computePSO, DataType dtype, const std::string & name);
 
-    void transpose2D(const void* mat, const Shape& shape, void* result, DataType dtype);
+    void transpose2D(const DeviceTensorParams& mat, const DeviceTensorParams& result);
 
     static const std::string& toString(size_t dtype);
     inline static const std::string& toString(DataType dtype);

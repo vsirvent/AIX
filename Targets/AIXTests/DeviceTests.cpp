@@ -199,8 +199,8 @@ bool testAdd(Device* testDevice, size_t n)
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
-        testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
+        refDevice.add(array1.value().deviceParams(), array2.value().deviceParams(), cpuResult.deviceParams());
+        testDevice->add(array1.value().deviceParams(), array2.value().deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -236,8 +236,8 @@ bool testSub(Device* testDevice, size_t n)
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.add(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
-        testDevice->add(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
+        refDevice.add(array1.value().deviceParams(), array2.value().deviceParams(), cpuResult.deviceParams());
+        testDevice->add(array1.value().deviceParams(), array2.value().deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -268,12 +268,12 @@ bool testUnary(Device* testDevice, size_t n)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto array1 = aix::randn({1, n}).to(dtype);
+        auto array1 = aix::randn({1, n}).to(dtype).value();
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.unary(array1.value().data(), n, cpuResult.data(), dtype);
-        testDevice->unary(array1.value().data(), n, deviceResult.data(), dtype);
+        refDevice.unary(array1.deviceParams(), cpuResult.deviceParams());
+        testDevice->unary(array1.deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -281,7 +281,7 @@ bool testUnary(Device* testDevice, size_t n)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array1" << std::endl << array1.value() << std::endl;
+            std::cout << "Array1" << std::endl << array1 << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
@@ -303,12 +303,12 @@ bool testSqrt(Device* testDevice, size_t n)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto array1       = (50 * aix::randn({1, n})).to(dtype);
+        auto array1       = (50 * aix::randn({1, n})).to(dtype).value();
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.sqrt(array1.value().data(), n, cpuResult.data(), dtype);
-        testDevice->sqrt(array1.value().data(), n, deviceResult.data(), dtype);
+        refDevice.sqrt(array1.deviceParams(), cpuResult.deviceParams());
+        testDevice->sqrt(array1.deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -316,7 +316,7 @@ bool testSqrt(Device* testDevice, size_t n)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array1" << std::endl << array1.value() << std::endl;
+            std::cout << "Array1" << std::endl << array1 << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
@@ -338,12 +338,12 @@ bool testSin(Device* testDevice, size_t n)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto array1       = (50 * aix::randn({1, n})).to(dtype);
+        auto array1       = (50 * aix::randn({1, n})).to(dtype).value();
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.sin(array1.value().data(), n, cpuResult.data(), dtype);
-        testDevice->sin(array1.value().data(), n, deviceResult.data(), dtype);
+        refDevice.sin(array1.deviceParams(), cpuResult.deviceParams());
+        testDevice->sin(array1.deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -351,7 +351,7 @@ bool testSin(Device* testDevice, size_t n)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array1" << std::endl << array1.value() << std::endl;
+            std::cout << "Array1" << std::endl << array1 << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
@@ -373,12 +373,12 @@ bool testCos(Device* testDevice, size_t n)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto array1       = (50 * aix::randn({1, n})).to(dtype);
+        auto array1       = (50 * aix::randn({1, n})).to(dtype).value();
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.cos(array1.value().data(), n, cpuResult.data(), dtype);
-        testDevice->cos(array1.value().data(), n, deviceResult.data(), dtype);
+        refDevice.cos(array1.deviceParams(), cpuResult.deviceParams());
+        testDevice->cos(array1.deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -386,7 +386,7 @@ bool testCos(Device* testDevice, size_t n)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array1" << std::endl << array1.value() << std::endl;
+            std::cout << "Array1" << std::endl << array1 << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
@@ -798,7 +798,7 @@ bool testIndexAdd(Device* testDevice)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array" << std::endl << array.value() << std::endl;
+            std::cout << "Array" << std::endl << array << std::endl;
             std::cout << "Indices" << std::endl << indices.value() << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
@@ -821,13 +821,13 @@ bool testPow(Device* testDevice, size_t n)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto array1       = (2 + 1 * aix::randn({1, n})).to(dtype);
-        auto exp          = (3 + 2 * aix::randn({1, n})).to(dtype);       // Random numbers in [1,5]
+        auto array1       = (2 + 1 * aix::randn({1, n})).to(dtype).value();
+        auto exp          = (3 + 2 * aix::randn({1, n})).to(dtype).value();       // Random numbers in [1,5]
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.pow(array1.value().data(), exp.value().data(), n, cpuResult.data(), dtype);
-        testDevice->pow(array1.value().data(), exp.value().data(), n, deviceResult.data(), dtype);
+        refDevice.pow(array1.deviceParams(), exp.deviceParams(), cpuResult.deviceParams());
+        testDevice->pow(array1.deviceParams(), exp.deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -836,8 +836,8 @@ bool testPow(Device* testDevice, size_t n)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "Array1" << std::endl << array1.value() << std::endl;
-            std::cout << "Exponents" << std::endl << exp.value() << std::endl;
+            std::cout << "Array1" << std::endl << array1 << std::endl;
+            std::cout << "Exponents" << std::endl << exp << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
@@ -864,8 +864,8 @@ bool testMul(Device* testDevice, size_t n)
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.mul(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
-        testDevice->mul(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
+        refDevice.mul(array1.value().deviceParams(), array2.value().deviceParams(), cpuResult.deviceParams());
+        testDevice->mul(array1.value().deviceParams(), array2.value().deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -901,8 +901,8 @@ bool testDiv(Device* testDevice, size_t n)
         auto cpuResult    = aix::TensorValue({1, n}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
-        refDevice.div(array1.value().data(), array2.value().data(), n, cpuResult.data(), dtype);
-        testDevice->div(array1.value().data(), array2.value().data(), n, deviceResult.data(), dtype);
+        refDevice.div(array1.value().deviceParams(), array2.value().deviceParams(), cpuResult.deviceParams());
+        testDevice->div(array1.value().deviceParams(), array2.value().deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -934,19 +934,13 @@ bool testMatMul(Device* testDevice, size_t n, size_t inner, size_t m)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto matA = (11 + 10 * aix::randn({n, inner})).to(dtype);
-        auto matB = (11 + 10 * aix::randn({inner, m})).to(dtype);
+        auto matA = (11 + 10 * aix::randn({n, inner})).to(dtype).value();
+        auto matB = (11 + 10 * aix::randn({inner, m})).to(dtype).value();
         auto cpuResult    = aix::TensorValue({n, m}, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue({n, m}, testDevice).to(dtype);
 
-        refDevice.matmul(matA.value().data(), {n, inner},
-                         matB.value().data(), {inner, m},
-                         cpuResult.data(), dtype);
-
-        testDevice->matmul(matA.value().data(), {n, inner},
-                           matB.value().data(), {inner, m},
-                           deviceResult.data(), dtype);
-
+        refDevice.matmul(matA.deviceParams(), matB.deviceParams(), cpuResult.deviceParams());
+        testDevice->matmul(matA.deviceParams(), matB.deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare true/cpu result with gpu result
@@ -954,8 +948,8 @@ bool testMatMul(Device* testDevice, size_t n, size_t inner, size_t m)
         {
             #ifdef DEBUG_LOG
             std::cout << "----------------------" << std::endl;
-            std::cout << "MatA" << std::endl << matA.value() << std::endl;
-            std::cout << "MatB" << std::endl << matB.value() << std::endl;
+            std::cout << "MatA" << std::endl << matA << std::endl;
+            std::cout << "MatB" << std::endl << matB << std::endl;
             std::cout << "Expected Result" << std::endl << cpuResult << std::endl;
             std::cout << "Device Result" << std::endl << deviceResult << std::endl;
             #endif
@@ -979,18 +973,15 @@ bool testTranspose2D(Device* testDevice, size_t n, size_t m)
 
         size_t dim0 = 0;
         size_t dim1 = 1;
-        auto tensor = aix::randn({n, m}).to(dtype);
+        auto tensor = aix::randn({n, m}).to(dtype).value();
 
         Shape newShape = tensor.shape();
         std::swap(newShape[dim0], newShape[dim1]);
         auto cpuResult    = aix::TensorValue(newShape, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue(newShape, testDevice).to(dtype);
 
-        refDevice.transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), cpuResult.strides(),
-                            cpuResult.size(), cpuResult.data(), dtype);
-
-        testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
-                              deviceResult.size(), deviceResult.data(), dtype);
+        refDevice.transpose(tensor.deviceParams(), cpuResult.deviceParams(), dim0, dim1);
+        testDevice->transpose(tensor.deviceParams(), deviceResult.deviceParams(), dim0, dim1);
         testDevice->synchronize();
 
         // Compare true/cpu result with gpu result
@@ -1021,7 +1012,7 @@ bool testTranspose(Device* testDevice)
 
         aix::Device  refDevice;     // Reference/CPU device.
         ssize_t maxDim = 5;
-        auto tensor = aix::randn(createRandomShape(1, maxDim)).to(dtype);
+        auto tensor = aix::randn(createRandomShape(1, maxDim)).to(dtype).value();
 
         std::uniform_int_distribution<size_t> distr_int(0, 1000);
         size_t dim0 = distr_int(randGen) % tensor.shape().size();
@@ -1033,11 +1024,8 @@ bool testTranspose(Device* testDevice)
         auto cpuResult    = aix::TensorValue(newShape, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue(newShape, testDevice).to(dtype);
 
-        refDevice.transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), cpuResult.strides(),
-                            cpuResult.size(), cpuResult.data(), dtype);
-
-        testDevice->transpose(dim0, dim1, tensor.value().data(), tensor.shape(), tensor.value().strides(), deviceResult.strides(),
-                              deviceResult.size(), deviceResult.data(), dtype);
+        refDevice.transpose(tensor.deviceParams(), cpuResult.deviceParams(), dim0, dim1);
+        testDevice->transpose(tensor.deviceParams(), deviceResult.deviceParams(), dim0, dim1);
         testDevice->synchronize();
 
         // Compare true/cpu result with gpu result
@@ -1151,9 +1139,9 @@ bool testFill(Device* testDevice, size_t n)
     {
         for (size_t j=0; j<aix::DataTypeCount; ++j)
         {
-            auto srcDType = static_cast<DataType>(i);
+            auto scalarDType = static_cast<DataType>(i);
             auto dstDType = static_cast<DataType>(j);
-            auto hasFloat64 = srcDType == DataType::kFloat64 || dstDType == DataType::kFloat64;
+            auto hasFloat64 = scalarDType == DataType::kFloat64 || dstDType == DataType::kFloat64;
 
             // Apple Metal Framework does not support kFloat64 data type.
             if (testDevice->type() == DeviceType::kGPU_METAL && hasFloat64) continue;
@@ -1162,7 +1150,7 @@ bool testFill(Device* testDevice, size_t n)
             // F16 and BF16 conversion issues.
             auto scalar = static_cast<float>(static_cast<int>(5 + 5 * distr(randGen)));
             memset(unifiedScalarValue, 0, sizeof(unifiedScalarValue));
-            switch (srcDType)
+            switch (scalarDType)
             {
                 case DataType::kFloat64:   *reinterpret_cast<double*    >(unifiedScalarValue) = static_cast<double    >(scalar); break;
                 case DataType::kFloat32:   *reinterpret_cast<float*     >(unifiedScalarValue) = static_cast<float     >(scalar); break;
@@ -1183,8 +1171,8 @@ bool testFill(Device* testDevice, size_t n)
             auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dstDType);
 
             // We used unifiedScalarValue to pass a pointer to data to the fill method with its data type.
-            refDevice.fill(&unifiedScalarValue, srcDType, n, cpuResult.data(), dstDType);
-            testDevice->fill(&unifiedScalarValue, srcDType, n, deviceResult.data(), dstDType);
+            refDevice.fill(&unifiedScalarValue, scalarDType, cpuResult.deviceParams());
+            testDevice->fill(&unifiedScalarValue, scalarDType, deviceResult.deviceParams());
             testDevice->synchronize();
 
             // Compare results with the true/reference results
@@ -1219,8 +1207,8 @@ bool testFillMin(Device* testDevice, size_t n)
         auto deviceResult = aix::TensorValue({1, n}, testDevice).to(dtype);
 
         // We used unifiedScalarValue to pass a pointer to data to the fill method with its data type.
-        refDevice.fillMin(dtype, n, cpuResult.data());
-        testDevice->fillMin(dtype, n, deviceResult.data());
+        refDevice.fillMin(cpuResult.deviceParams());
+        testDevice->fillMin(deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
@@ -1254,13 +1242,13 @@ bool testReduceTo(Device* testDevice)
 
         aix::Device  refDevice;     // Reference/CPU device.
 
-        auto srcTensor    = aix::randn(newShape).to(dtype);
+        auto srcTensor    = aix::randn(newShape).to(dtype).value();
         // Must initialize result tensor values since reduceTo has sum operation.
         auto cpuResult    = aix::TensorValue(0, shape, &refDevice).to(dtype);
         auto deviceResult = aix::TensorValue(0, shape, testDevice).to(dtype);
 
-        refDevice.reduceTo(srcTensor.value().data(),   cpuResult.data(),    cpuResult.size(),    shape, newShape, dtype);
-        testDevice->reduceTo(srcTensor.value().data(), deviceResult.data(), deviceResult.size(), shape, newShape, dtype);
+        refDevice.reduceTo(srcTensor.deviceParams(),   cpuResult.deviceParams());
+        testDevice->reduceTo(srcTensor.deviceParams(), deviceResult.deviceParams());
         testDevice->synchronize();
 
         // Compare results with the true/reference results
