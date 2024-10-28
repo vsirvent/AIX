@@ -666,7 +666,7 @@ TEST_CASE("Auto Grad - sum with dimension - complex")
         CheckVectorApproxValues(sum.grad(), aix::Tensor(1.0, aix::Shape{3,3}).value());
         CheckVectorApproxValues(sum.value(), aix::tensor({ 36.0,   72.0, 108.0,
                                                            100.0,  200.0, 300.0,
-                                                           164.0,  328.0, 492.0}, aix::Shape{3,1}).value());
+                                                           164.0,  328.0, 492.0}, aix::Shape{3,3}).value());
     }
 
     SUBCASE("Complex 4")

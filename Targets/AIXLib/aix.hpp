@@ -1432,6 +1432,7 @@ public:
     TensorValue(const void* data, size_t size, DataType srcDType, Shape shape, Device* device,
                 DataType dType = DataType::kFloat32) : m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
+        validateSize(size, m_shape);
         m_storage = std::make_shared<TensorStorage>(device, size, dType);
         device->copy(data, srcDType, m_storage->data(), dType, size);
         m_size = size;
@@ -1456,6 +1457,7 @@ public:
     TensorValue(const std::initializer_list<T> & data, Shape shape, Device * device, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_shape(std::move(shape)), m_device(device)
     {
+        validateSize(data.size(), m_shape);
         m_storage = std::make_shared<TensorStorage>(device, data.size(), dType);
         device->copy(data.begin(), getDataType<T>(), m_storage->data(), dType, data.size());
         m_size = data.size();
@@ -1489,6 +1491,7 @@ public:
     TensorValue(Shape shape, Device * device, size_t size, Stride strides, DataType dType = DataType::kFloat32) :
         m_dType(dType), m_size(size), m_shape(std::move(shape)), m_strides(std::move(strides)), m_device(device)
     {
+        validateSize(m_size, m_shape);
         // Each tensor array must use device specific memory allocator.
         m_storage = std::make_shared<TensorStorage>(device, m_size, dType);
     }
@@ -2646,6 +2649,14 @@ private:
             if (tensor.data<int32_t>()[i] > maxValue) return false;
         }
         return true;
+    }
+
+    static void validateSize(const size_t size, const Shape& shape)
+    {
+        if (size != static_cast<size_t>(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>())))
+        {
+            throw std::invalid_argument("Data size does not match the tensor shape.");
+        }
     }
 
     // Print Tensor data
