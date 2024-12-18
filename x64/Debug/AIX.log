@@ -1,0 +1,240 @@
+﻿  main.cpp
+D:\Github\AIX\AIXLib\aix.hpp(1231,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(1231,44): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(1425,28): warning C4244: 'argument': conversion from 'size_t' to 'float', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(1431,47): warning C4244: 'argument': conversion from 'const _Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(1852,9): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(1890,9): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(2893,36): warning C4244: 'argument': conversion from 'size_t' to 'const float', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(2899,55): warning C4244: 'argument': conversion from 'const _Ty' to 'const float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(3684,56): warning C4305: 'argument': truncation from 'double' to 'float'
+D:\Github\AIX\AIXLib\aix.hpp(3795,18): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(487,26): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(186,9): message : see reference to function template instantiation 'void aix::Device::argmaxGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &)' being compiled
+D:\Github\AIX\AIXLib\aix.hpp(528,25): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(191,9): message : see reference to function template instantiation 'void aix::Device::argmaxIndicesGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &)' being compiled
+D:\Github\AIX\AIXLib\aix.hpp(508,63): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(232,9): message : see reference to function template instantiation 'void aix::Device::argmaxToGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &,size_t)' being compiled
+D:\Github\AIX\AIXLib\aix.hpp(559,40): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(237,9): message : see reference to function template instantiation 'void aix::Device::argmaxIndicesToGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &,size_t)' being compiled
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\numeric(32,26): warning C4267: '=': conversion from 'size_t' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(966,23): message : see reference to function template instantiation '_Ty std::accumulate<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<unsigned __int64>>>,int,std::multiplies<void>>(const _InIt,const _InIt,_Ty,_Fn)' being compiled
+          with
+          [
+              _Ty=int,
+              _InIt=std::_Vector_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _Fn=std::multiplies<void>
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\numeric(136,26): warning C4267: '=': conversion from 'size_t' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\numeric(148,17): message : see reference to function template instantiation '_Ty std::inner_product<_InIt1,_InIt2,int,std::plus<void>,std::multiplies<void>>(_InIt1,_InIt1,_InIt2,_Ty,_BinOp1,_BinOp2)' being compiled
+          with
+          [
+              _Ty=int,
+              _InIt1=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _InIt2=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _BinOp1=std::plus<void>,
+              _BinOp2=std::multiplies<void>
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(2053,32): message : see reference to function template instantiation '_Ty std::inner_product<std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<unsigned __int64>>>,std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<unsigned __int64>>>,int>(const _InIt1,const _InIt1,const _InIt2,_Ty)' being compiled
+          with
+          [
+              _Ty=int,
+              _InIt1=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _InIt2=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xutility(240,76): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xmemory(717,14): message : see reference to function template instantiation '_Ty *std::construct_at<_Objty,int,const aix::Shape&,aix::Device*,aix::DataType&,0x0>(_Ty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &) noexcept(<expr>)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(800,27): message : see reference to function template instantiation 'void std::_Default_allocator_traits<_Alloc>::construct<_Ty,int,const aix::Shape&,aix::Device*,aix::DataType&>(_Alloc &,_Objty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Alloc=std::allocator<aix::TensorValue>,
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(782,20): message : see reference to function template instantiation '_Ty &std::vector<_Ty,std::allocator<_Ty>>::_Emplace_back_with_unused_capacity<int,const aix::Shape&,aix::Device*,aix::DataType&>(int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(864,24): message : see reference to function template instantiation '_Ty &std::vector<_Ty,std::allocator<_Ty>>::_Emplace_one_at_back<int,const aix::Shape&,aix::Device*,aix::DataType&>(int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(3482,16): message : see reference to function template instantiation '_Ty &std::vector<_Ty,std::allocator<_Ty>>::emplace_back<int,const aix::Shape&,aix::Device*,aix::DataType&>(int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xutility(241,90): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xmemory(717,14): message : see reference to function template instantiation '_Ty *std::construct_at<_Objty,int,const aix::Shape&,aix::Device*,aix::DataType&,0x0>(_Ty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &) noexcept(false)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(800,27): message : see reference to function template instantiation 'void std::_Default_allocator_traits<_Alloc>::construct<_Ty,int,const aix::Shape&,aix::Device*,aix::DataType&>(_Alloc &,_Objty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Alloc=std::allocator<aix::TensorValue>,
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+  aixDevices.cpp
+D:\Github\AIX\AIXLib\aix.hpp(1231,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(1231,44): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(1425,28): warning C4244: 'argument': conversion from 'size_t' to 'float', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(1431,47): warning C4244: 'argument': conversion from 'const _Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(1852,9): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(1890,9): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(2893,36): warning C4244: 'argument': conversion from 'size_t' to 'const float', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(2899,55): warning C4244: 'argument': conversion from 'const _Ty' to 'const float', possible loss of data
+          with
+          [
+              _Ty=size_t
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(3684,56): warning C4305: 'argument': truncation from 'double' to 'float'
+D:\Github\AIX\AIXLib\aix.hpp(3795,18): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(487,26): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(186,9): message : see reference to function template instantiation 'void aix::Device::argmaxGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &)' being compiled
+D:\Github\AIX\AIXLib\aix.hpp(528,25): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(191,9): message : see reference to function template instantiation 'void aix::Device::argmaxIndicesGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &)' being compiled
+D:\Github\AIX\AIXLib\aix.hpp(508,63): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(232,9): message : see reference to function template instantiation 'void aix::Device::argmaxToGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &,size_t)' being compiled
+D:\Github\AIX\AIXLib\aix.hpp(559,40): warning C4267: '=': conversion from 'size_t' to 'int32_t', possible loss of data
+D:\Github\AIX\AIXLib\aix.hpp(237,9): message : see reference to function template instantiation 'void aix::Device::argmaxIndicesToGeneric<float,int32_t>(const aix::DeviceTensorParams &,const aix::DeviceTensorParams &,size_t)' being compiled
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\numeric(32,26): warning C4267: '=': conversion from 'size_t' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(966,23): message : see reference to function template instantiation '_Ty std::accumulate<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<unsigned __int64>>>,int,std::multiplies<void>>(const _InIt,const _InIt,_Ty,_Fn)' being compiled
+          with
+          [
+              _Ty=int,
+              _InIt=std::_Vector_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _Fn=std::multiplies<void>
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\numeric(136,26): warning C4267: '=': conversion from 'size_t' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\numeric(148,17): message : see reference to function template instantiation '_Ty std::inner_product<_InIt1,_InIt2,int,std::plus<void>,std::multiplies<void>>(_InIt1,_InIt1,_InIt2,_Ty,_BinOp1,_BinOp2)' being compiled
+          with
+          [
+              _Ty=int,
+              _InIt1=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _InIt2=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _BinOp1=std::plus<void>,
+              _BinOp2=std::multiplies<void>
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(2053,32): message : see reference to function template instantiation '_Ty std::inner_product<std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<unsigned __int64>>>,std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<unsigned __int64>>>,int>(const _InIt1,const _InIt1,const _InIt2,_Ty)' being compiled
+          with
+          [
+              _Ty=int,
+              _InIt1=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>,
+              _InIt2=std::_Vector_const_iterator<std::_Vector_val<std::_Simple_types<size_t>>>
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xutility(240,76): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xmemory(717,14): message : see reference to function template instantiation '_Ty *std::construct_at<_Objty,int,const aix::Shape&,aix::Device*,aix::DataType&,0x0>(_Ty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &) noexcept(<expr>)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(800,27): message : see reference to function template instantiation 'void std::_Default_allocator_traits<_Alloc>::construct<_Ty,int,const aix::Shape&,aix::Device*,aix::DataType&>(_Alloc &,_Objty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Alloc=std::allocator<aix::TensorValue>,
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(782,20): message : see reference to function template instantiation '_Ty &std::vector<_Ty,std::allocator<_Ty>>::_Emplace_back_with_unused_capacity<int,const aix::Shape&,aix::Device*,aix::DataType&>(int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(864,24): message : see reference to function template instantiation '_Ty &std::vector<_Ty,std::allocator<_Ty>>::_Emplace_one_at_back<int,const aix::Shape&,aix::Device*,aix::DataType&>(int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue
+          ]
+D:\Github\AIX\AIXLib\aix.hpp(3482,16): message : see reference to function template instantiation '_Ty &std::vector<_Ty,std::allocator<_Ty>>::emplace_back<int,const aix::Shape&,aix::Device*,aix::DataType&>(int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xutility(241,90): warning C4244: 'argument': conversion from '_Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\xmemory(717,14): message : see reference to function template instantiation '_Ty *std::construct_at<_Objty,int,const aix::Shape&,aix::Device*,aix::DataType&,0x0>(_Ty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &) noexcept(false)' being compiled
+          with
+          [
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.37.32822\include\vector(800,27): message : see reference to function template instantiation 'void std::_Default_allocator_traits<_Alloc>::construct<_Ty,int,const aix::Shape&,aix::Device*,aix::DataType&>(_Alloc &,_Objty *const ,int &&,const aix::Shape &,aix::Device *&&,aix::DataType &)' being compiled
+          with
+          [
+              _Alloc=std::allocator<aix::TensorValue>,
+              _Ty=aix::TensorValue,
+              _Objty=aix::TensorValue
+          ]
+  Generating Code...
+  AIX.vcxproj -> D:\Github\AIX\x64\Debug\AIX.exe

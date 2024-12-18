@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Lib">
+      <UniqueIdentifier>{90656994-e2fa-42e9-9e84-8015c3c46e77}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Examples">
+      <UniqueIdentifier>{e4375a3e-319d-4d54-bc6c-b0a1ff53ad61}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AIXLib\aixDevices.cpp">
+      <Filter>Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="AIXExamples\XORLayerApp\main.cpp">
+      <Filter>Examples</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AIXLib\aixFloat16.hpp">
+      <Filter>Lib</Filter>
+    </ClInclude>
+    <ClInclude Include="AIXLib\aix.hpp">
+      <Filter>Lib</Filter>
+    </ClInclude>
+    <ClInclude Include="AIXLib\aixDevices.hpp">
+      <Filter>Lib</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
